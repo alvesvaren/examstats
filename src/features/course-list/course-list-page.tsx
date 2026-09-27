@@ -65,7 +65,7 @@ export function CourseListPage() {
             type="search"
             defaultValue={q}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Course, code or programme"
+            placeholder="Course or programme, use ; for several"
             aria-label="Search"
             autoComplete="off"
             spellCheck={false}

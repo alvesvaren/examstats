@@ -19,6 +19,15 @@ export const normalize = (text: string) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 
+const SEARCH_SEPARATOR = ";";
+
+/** Splits a query into its `;`-separated parts, trimmed, with empty parts dropped. */
+const searchParts = (query: string) =>
+  query
+    .split(SEARCH_SEPARATOR)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
 const words = (query: string) => normalize(query).split(/\s+/).filter(Boolean);
 
 /** Last year's pass rate minus the mean of the years before it, or null without history. */
@@ -71,24 +80,31 @@ export interface CourseQuery {
   dir?: SortDir;
 }
 
-/** Filters and sorts the catalog. An exact course code match always comes first. */
+/**
+ * Filters and sorts the catalog. Each `;`-separated part of `q` is its own search, and a course matches if any part
+ * matches all of its words. Courses whose code equals a part come first.
+ */
 export function queryCourses(courses: readonly CatalogCourse[], { q = "", programme, sort = "attemptsPerYear", dir = "desc" }: CourseQuery) {
-  const terms = words(q);
-  const exact = q.trim().toLowerCase();
-  const isExact = (c: CatalogCourse) => c.code.toLowerCase() === exact;
+  const parts = searchParts(q);
+  const searches = parts.map(words);
+  const exactCodes = new Set(parts.map((part) => part.toLowerCase()));
+  const isExact = (c: CatalogCourse) => exactCodes.has(c.code.toLowerCase());
+  const matchesSearch = (c: CatalogCourse) => !searches.length || searches.some((terms) => terms.every((t) => c.searchText.includes(t)));
   const rows = courses
-    .filter((c) => (!programme || c.programme === programme) && terms.every((t) => c.searchText.includes(t)))
+    .filter((c) => (!programme || c.programme === programme) && matchesSearch(c))
     .sort(compareBy(sort, dir))
     .sort((a, b) => Number(isExact(b)) - Number(isExact(a)));
   return { active: rows.filter((c) => !c.ended), ended: rows.filter((c) => c.ended) };
 }
 
-/** Programmes whose code starts with the query or whose name contains it. */
+/** Programmes whose code starts with a `;`-separated part of the query, or whose name contains one. */
 export function matchProgrammes(programmes: Readonly<Record<string, string>>, query: string, limit = 4) {
-  const q = normalize(query.trim());
-  if (q.length < MIN_PROGRAMME_QUERY) return [];
+  const parts = searchParts(query)
+    .map(normalize)
+    .filter((part) => part.length >= MIN_PROGRAMME_QUERY);
+  if (!parts.length) return [];
   return Object.entries(programmes)
-    .filter(([code, name]) => normalize(code).startsWith(q) || normalize(name).includes(q))
+    .filter(([code, name]) => parts.some((part) => normalize(code).startsWith(part) || normalize(name).includes(part)))
     .slice(0, limit)
     .map(([code, name]) => ({ code, name }));
 }

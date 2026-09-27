@@ -47,6 +47,14 @@ describe("queryCourses", () => {
     ]);
   });
 
+  it("matches any of several searches separated by semicolons", () => {
+    expect(queryCourses(courses, { q: "databaser; tmv165" }).active.map((c) => c.code)).toEqual(["TMV165", "TDA357"]);
+  });
+
+  it("ignores empty parts, so a trailing semicolon does not match everything", () => {
+    expect(queryCourses(courses, { q: "linjar ;" }).active.map((c) => c.code)).toEqual(["TMV165"]);
+  });
+
   it("puts an exact course code first whatever the sort", () => {
     expect(queryCourses(courses, { q: "tda357", sort: "attemptsPerYear", dir: "asc" }).active[0]?.code).toBe("TDA357");
   });
@@ -58,6 +66,10 @@ describe("matchProgrammes", () => {
   it("finds programmes by code prefix or by name", () => {
     expect(matchProgrammes(programmes, "informationsteknik").map((p) => p.code)).toEqual(["TKITE", "TITEA"]);
     expect(matchProgrammes(programmes, "tkt").map((p) => p.code)).toEqual(["TKTFY"]);
+  });
+
+  it("matches programmes for each semicolon-separated part", () => {
+    expect(matchProgrammes(programmes, "tkt; informationsteknik").map((p) => p.code)).toEqual(["TKITE", "TITEA", "TKTFY"]);
   });
 
   it("ignores one-letter queries", () => {
