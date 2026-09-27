@@ -37,7 +37,9 @@ export function CourseListPage() {
   );
   const setProgramme = (value: string | undefined) => navigate({ search: (prev) => ({ ...prev, programme: value, q: undefined }) });
   const setSort = (key: SortKey, nextDir: SortDir) => navigate({ search: (prev) => ({ ...prev, sort: key, dir: nextDir }), replace: true });
-  const toggleEnded = () => navigate({ search: (prev) => ({ ...prev, ended: search.ended ? undefined : true }), replace: true });
+  // Opening the group below the list should not move the page.
+  const toggleEnded = () =>
+    navigate({ search: (prev) => ({ ...prev, ended: search.ended ? undefined : true }), replace: true, resetScroll: false });
 
   return (
     <div className="flex flex-col gap-4">

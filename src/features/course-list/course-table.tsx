@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowDownIcon, ArrowUpIcon, ChevronDownIcon } from "lucide-react";
+import { memo } from "react";
 import { cn } from "cn";
 import { AverageGradeCell, PassRateCell } from "@/components/course-cells";
 import { SizeBar, Sparkline } from "@/components/marks";
@@ -9,11 +10,17 @@ import { Button } from "@/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { defaultSortDir, type CatalogCourse, type SortDir, type SortKey } from "@/domain/catalog";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { useWindowVirtualList } from "@/hooks/use-window-virtual-list";
 import { formatCount, formatMonth } from "@/lib/format";
 
 const DESKTOP_GRID = "grid grid-cols-[minmax(0,1fr)_5.5rem_8.5rem_8rem_5.5rem_7rem_5.5rem] items-center gap-x-4";
-const ROW_HEIGHT = 84;
+/** Tailwind's `md` breakpoint, where the list switches from stacked rows to columns. */
+const DESKTOP_QUERY = "(min-width: 768px)";
+/** Row heights in pixels. They must match the `h-*` classes on the rows below. */
+const DESKTOP_ROW_HEIGHT = 61;
+const MOBILE_ROW_HEIGHT = 100;
+const TOGGLE_ROW_HEIGHT = 56;
 
 interface Column {
   key: SortKey;
@@ -49,52 +56,84 @@ interface CourseTableProps {
 }
 
 export function CourseTable({ active, ended, showEnded, onToggleEnded, sort, dir, onSortChange, programmes, maxAttempts }: CourseTableProps) {
+  const isDesktop = useMediaQuery(DESKTOP_QUERY);
   const items: Item[] = [
     ...active.map((course) => ({ kind: "course" as const, course })),
     ...(ended.length ? [{ kind: "ended" as const, count: ended.length }] : []),
     ...(showEnded ? ended.map((course) => ({ kind: "course" as const, course })) : []),
   ];
-  const { listRef, virtualizer } = useWindowVirtualList({ count: items.length, estimateSize: ROW_HEIGHT });
   const sortBy = (key: SortKey) => onSortChange(key, key === sort ? flip(dir) : defaultSortDir(key));
 
   if (!items.length) return <p className="py-10 text-center text-muted-foreground">No courses match.</p>;
 
   return (
     <div>
-      <div className={cn(DESKTOP_GRID, "sticky top-0 z-20 hidden border-b bg-background px-2 py-2 text-xs text-muted-foreground md:grid")}>
-        {COLUMNS.map((column) => (
-          <SortHeader key={column.key} column={column} sort={sort} dir={dir} onSort={sortBy} />
-        ))}
-      </div>
-      <MobileSortBar sort={sort} dir={dir} onSortChange={onSortChange} />
-      <div ref={listRef} className="relative" style={{ height: virtualizer.getTotalSize() }}>
-        {virtualizer.getVirtualItems().map((row) => {
-          const item = items[row.index]!;
-          return (
-            <div
-              key={row.key}
-              data-index={row.index}
-              ref={virtualizer.measureElement}
-              className="absolute inset-x-0 top-0"
-              style={{ transform: `translateY(${row.start - virtualizer.options.scrollMargin}px)` }}
-            >
-              {item.kind === "course" ? (
-                <CourseRow course={item.course} programmeName={item.course.programme ? programmes[item.course.programme] : undefined} maxAttempts={maxAttempts} />
-              ) : (
-                <button
-                  type="button"
-                  onClick={onToggleEnded}
-                  aria-expanded={showEnded}
-                  className="flex w-full items-center justify-between border-b px-2 py-4 text-sm font-medium text-muted-foreground hover:text-foreground"
-                >
-                  Ended courses · {formatCount(item.count)}
-                  <ChevronDownIcon className={cn("size-4 transition-transform", showEnded && "rotate-180")} />
-                </button>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {isDesktop ? (
+        <div className={cn(DESKTOP_GRID, "sticky top-0 z-20 border-b bg-background px-2 py-2 text-xs text-muted-foreground")}>
+          {COLUMNS.map((column) => (
+            <SortHeader key={column.key} column={column} sort={sort} dir={dir} onSort={sortBy} />
+          ))}
+        </div>
+      ) : (
+        <MobileSortBar sort={sort} dir={dir} onSortChange={onSortChange} />
+      )}
+      {/* Row heights differ per layout, so switching layout starts a fresh virtualizer. */}
+      <VirtualRows
+        key={isDesktop ? "desktop" : "mobile"}
+        items={items}
+        isDesktop={isDesktop}
+        showEnded={showEnded}
+        onToggleEnded={onToggleEnded}
+        programmes={programmes}
+        maxAttempts={maxAttempts}
+      />
+    </div>
+  );
+}
+
+interface VirtualRowsProps extends Pick<CourseTableProps, "showEnded" | "onToggleEnded" | "programmes" | "maxAttempts"> {
+  items: Item[];
+  isDesktop: boolean;
+}
+
+function VirtualRows({ items, isDesktop, showEnded, onToggleEnded, programmes, maxAttempts }: VirtualRowsProps) {
+  const courseHeight = isDesktop ? DESKTOP_ROW_HEIGHT : MOBILE_ROW_HEIGHT;
+  const { listRef, virtualizer } = useWindowVirtualList({
+    count: items.length,
+    rowHeight: (index) => (items[index]?.kind === "ended" ? TOGGLE_ROW_HEIGHT : courseHeight),
+    getItemKey: (index) => {
+      const item = items[index];
+      return item?.kind === "course" ? item.course.code : "ended";
+    },
+  });
+
+  return (
+    <div ref={listRef} className="relative [overflow-anchor:none]" style={{ height: virtualizer.getTotalSize() }}>
+      {virtualizer.getVirtualItems().map((row) => {
+        const item = items[row.index]!;
+        return (
+          <div key={row.key} className="absolute inset-x-0 top-0" style={{ transform: `translateY(${row.start - virtualizer.options.scrollMargin}px)` }}>
+            {item.kind === "course" ? (
+              <CourseRow
+                course={item.course}
+                isDesktop={isDesktop}
+                programmeName={item.course.programme ? programmes[item.course.programme] : undefined}
+                maxAttempts={maxAttempts}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={onToggleEnded}
+                aria-expanded={showEnded}
+                className="flex h-14 w-full items-center justify-between border-b px-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                Ended courses · {formatCount(item.count)}
+                <ChevronDownIcon className={cn("size-4 transition-transform", showEnded && "rotate-180")} />
+              </button>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -129,7 +168,7 @@ function MobileSortBar({ sort, dir, onSortChange }: Pick<CourseTableProps, "sort
   };
   // 16px text, because iOS zooms into focused fields with smaller text.
   return (
-    <div className="sticky top-0 z-20 flex items-center gap-2 border-b bg-background py-2 md:hidden">
+    <div className="sticky top-0 z-20 flex items-center gap-2 border-b bg-background py-2">
       <span className="text-sm text-muted-foreground">Sort by</span>
       <NativeSelect value={sort} onChange={(event) => select(event.target.value)} aria-label="Sort by" className="[&_select]:text-base">
         {COLUMNS.map((column) => (
@@ -147,24 +186,31 @@ function MobileSortBar({ sort, dir, onSortChange }: Pick<CourseTableProps, "sort
 
 interface CourseRowProps {
   course: CatalogCourse;
+  isDesktop: boolean;
   programmeName?: string;
   maxAttempts: number;
 }
 
-/** The whole row links to the course. Controls inside it sit above the link with `relative z-10`. */
-function CourseRow({ course, programmeName, maxAttempts }: CourseRowProps) {
+/**
+ * The whole row links to the course. Controls inside it sit above the link with `relative z-10`.
+ * Memoized because the virtualizer re-renders on every scroll frame and rows carry several tooltips.
+ */
+const CourseRow = memo(function CourseRow({ course, isDesktop, programmeName, maxAttempts }: CourseRowProps) {
   return (
-    <div className={cn("relative border-b px-2 hover:bg-muted/50", course.ended && "text-muted-foreground")}>
+    <div className={cn("relative border-b px-2 hover:bg-muted/50", isDesktop ? "h-[61px]" : "h-[100px]", course.ended && "text-muted-foreground")}>
       <Link to="/course/$code" params={{ code: course.code }} className="absolute inset-0" aria-label={`${course.code} ${course.name}`} />
-      <MobileRow course={course} maxAttempts={maxAttempts} />
-      <DesktopRow course={course} programmeName={programmeName} maxAttempts={maxAttempts} />
+      {isDesktop ? (
+        <DesktopRow course={course} programmeName={programmeName} maxAttempts={maxAttempts} />
+      ) : (
+        <MobileRow course={course} maxAttempts={maxAttempts} />
+      )}
     </div>
   );
-}
+});
 
-function MobileRow({ course, maxAttempts }: Omit<CourseRowProps, "programmeName">) {
+function MobileRow({ course, maxAttempts }: Pick<CourseRowProps, "course" | "maxAttempts">) {
   return (
-    <div className="flex flex-col gap-1 py-3 md:hidden">
+    <div className="flex h-full flex-col justify-center gap-1">
       <div className="flex items-center justify-between gap-3">
         <span className={cn("text-lg tabular-nums", course.ended ? "font-medium" : "font-semibold")}>{course.code}</span>
         <PassRateCell grades={course.recentGrades} muted={course.ended} interactive={false} />
@@ -182,10 +228,10 @@ function MobileRow({ course, maxAttempts }: Omit<CourseRowProps, "programmeName"
   );
 }
 
-function DesktopRow({ course, programmeName, maxAttempts }: CourseRowProps) {
+function DesktopRow({ course, programmeName, maxAttempts }: Omit<CourseRowProps, "isDesktop">) {
   const muted = course.ended && "opacity-50";
   return (
-    <div className={cn(DESKTOP_GRID, "hidden py-2.5 md:grid")}>
+    <div className={cn(DESKTOP_GRID, "h-full")}>
       <div className="min-w-0">
         <span className={cn("block truncate", course.ended ? "font-normal" : "font-medium")}>{course.name}</span>
         <span className="text-xs text-muted-foreground tabular-nums">{course.code}</span>
