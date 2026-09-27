@@ -38,10 +38,26 @@ export function GradeTally({ grades, className }: { grades: GradeCounts; classNa
   );
 }
 
+interface GradeBarProps {
+  grades: GradeCounts;
+  label?: string;
+  className?: string;
+  /** Touch screens cannot hover, so a bar without a tooltip lets taps reach the row link underneath. */
+  interactive?: boolean;
+}
+
 /** Grade distribution as one thin bar, U first. Hover shows the counts. */
-export function GradeBar({ grades, label, className }: { grades: GradeCounts; label?: string; className?: string }) {
+export function GradeBar({ grades, label, className, interactive = true }: GradeBarProps) {
   const present = GRADES.filter((grade) => grades[grade] > 0);
   if (!present.length) return <span className={cn("h-2 w-16 rounded-sm bg-muted", className)} />;
+  const bar = (
+    <span className="flex h-2 w-full gap-px overflow-hidden rounded-sm">
+      {present.map((grade) => (
+        <span key={grade} className={GRADE_STYLE[grade].bg} style={{ flexGrow: grades[grade] }} />
+      ))}
+    </span>
+  );
+  if (!interactive) return <span className={cn("flex w-16", className)}>{bar}</span>;
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -50,11 +66,7 @@ export function GradeBar({ grades, label, className }: { grades: GradeCounts; la
           aria-label={present.map((grade) => `${grade}: ${grades[grade]}`).join(", ")}
           className={cn("relative z-10 -my-2 flex h-6 w-16 items-center", className)}
         >
-          <span className="flex h-2 w-full gap-px overflow-hidden rounded-sm">
-            {present.map((grade) => (
-              <span key={grade} className={GRADE_STYLE[grade].bg} style={{ flexGrow: grades[grade] }} />
-            ))}
-          </span>
+          {bar}
         </span>
       </TooltipTrigger>
       <TooltipContent className="flex-col items-start gap-1.5">

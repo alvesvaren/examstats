@@ -7,11 +7,11 @@ import { formatGrade, formatPercent } from "@/lib/format";
 const RECENT_LABEL = `Main exam, last ${RECENT_YEARS} years`;
 
 /** Pass rate with the grade bar it comes from. Shared by the course list and the course page. */
-export function PassRateCell({ grades, muted }: { grades: GradeCounts; muted?: boolean }) {
+export function PassRateCell({ grades, muted, interactive }: { grades: GradeCounts; muted?: boolean; interactive?: boolean }) {
   return (
     <span className="flex items-center justify-end gap-2 tabular-nums">
       {formatPercent(passRateOf(grades))}
-      <GradeBar grades={grades} label={RECENT_LABEL} className={muted ? "opacity-50" : undefined} />
+      <GradeBar grades={grades} label={RECENT_LABEL} interactive={interactive} className={muted ? "opacity-50" : undefined} />
     </span>
   );
 }

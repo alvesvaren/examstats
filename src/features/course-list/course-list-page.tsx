@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { catalogQuery } from "@/data/queries";
-import { matchProgrammes, queryCourses, type SortKey } from "@/domain/catalog";
+import { matchProgrammes, queryCourses, type SortDir, type SortKey } from "@/domain/catalog";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { formatCount } from "@/lib/format";
 import { CourseTable } from "./course-table";
@@ -14,7 +14,6 @@ import { CourseTable } from "./course-table";
 const route = getRouteApi("/");
 
 const ALL_PROGRAMMES = "all";
-const TEXT_SORTS: readonly SortKey[] = ["name", "programme"];
 const DEFAULT_SORT: SortKey = "attemptsPerYear";
 /** Typing shows at once. The URL, and the list that follows it, update when typing pauses. */
 const SEARCH_DELAY_MS = 150;
@@ -35,15 +34,7 @@ export function CourseListPage() {
     SEARCH_DELAY_MS,
   );
   const setProgramme = (value: string | undefined) => navigate({ search: (prev) => ({ ...prev, programme: value, q: undefined }) });
-  const setSort = (key: SortKey) =>
-    navigate({
-      search: (prev) => ({
-        ...prev,
-        sort: key,
-        dir: key === sort ? (dir === "asc" ? "desc" : "asc") : TEXT_SORTS.includes(key) ? "asc" : "desc",
-      }),
-      replace: true,
-    });
+  const setSort = (key: SortKey, nextDir: SortDir) => navigate({ search: (prev) => ({ ...prev, sort: key, dir: nextDir }), replace: true });
   const toggleEnded = () => navigate({ search: (prev) => ({ ...prev, ended: search.ended ? undefined : true }), replace: true });
 
   return (
@@ -105,7 +96,7 @@ export function CourseListPage() {
         onToggleEnded={toggleEnded}
         sort={sort}
         dir={dir}
-        onSort={setSort}
+        onSortChange={setSort}
         programmes={snapshot.programmes}
         maxAttempts={maxAttempts}
       />

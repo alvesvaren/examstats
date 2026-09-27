@@ -5,6 +5,11 @@ export const SORT_KEYS = ["name", "programme", "attemptsPerYear", "passRate", "t
 export type SortKey = (typeof SORT_KEYS)[number];
 export type SortDir = "asc" | "desc";
 
+const TEXT_SORTS: readonly SortKey[] = ["name", "programme"];
+
+/** Text sorts start A to Z. Numbers start with the largest. */
+export const defaultSortDir = (key: SortKey): SortDir => (TEXT_SORTS.includes(key) ? "asc" : "desc");
+
 const TREND_BASELINE_YEARS = 3;
 const MIN_PROGRAMME_QUERY = 2;
 
