@@ -1,0 +1,10 @@
+{
+  "extraKnownMarketplaces": {
+    "alve-skills": {
+      "source": { "source": "github", "repo": "alvesvaren/skills" }
+    }
+  },
+  "enabledPlugins": {
+    "alve-skills@alve-skills": true
+  }
+}
