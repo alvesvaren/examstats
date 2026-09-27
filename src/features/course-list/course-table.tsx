@@ -6,7 +6,7 @@ import { SizeBar, Sparkline } from "@/components/marks";
 import { MetricInfo, type Metric } from "@/components/metric-label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { defaultSortDir, type CatalogCourse, type SortDir, type SortKey } from "@/domain/catalog";
 import { useWindowVirtualList } from "@/hooks/use-window-virtual-list";
@@ -127,21 +127,17 @@ function MobileSortBar({ sort, dir, onSortChange }: Pick<CourseTableProps, "sort
     const column = COLUMNS.find((c) => c.key === value);
     if (column) onSortChange(column.key, defaultSortDir(column.key));
   };
+  // 16px text, because iOS zooms into focused fields with smaller text.
   return (
     <div className="sticky top-0 z-20 flex items-center gap-2 border-b bg-background py-2 md:hidden">
       <span className="text-sm text-muted-foreground">Sort by</span>
-      <Select value={sort} onValueChange={select}>
-        <SelectTrigger size="sm" aria-label="Sort by">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent position="popper">
-          {COLUMNS.map((column) => (
-            <SelectItem key={column.key} value={column.key}>
-              {column.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <NativeSelect value={sort} onChange={(event) => select(event.target.value)} aria-label="Sort by" className="[&_select]:text-base">
+        {COLUMNS.map((column) => (
+          <NativeSelectOption key={column.key} value={column.key}>
+            {column.label}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
       <Button variant="ghost" size="icon-sm" onClick={() => onSortChange(sort, flip(dir))} aria-label={dir === "asc" ? "Sort descending" : "Sort ascending"}>
         <Arrow />
       </Button>

@@ -1,10 +1,10 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { SearchIcon, XIcon } from "lucide-react";
-import { memo } from "react";
+import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { catalogQuery } from "@/data/queries";
 import { matchProgrammes, queryCourses, type SortDir, type SortKey } from "@/domain/catalog";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
@@ -17,6 +17,8 @@ const ALL_PROGRAMMES = "all";
 const DEFAULT_SORT: SortKey = "attemptsPerYear";
 /** Typing shows at once. The URL, and the list that follows it, update when typing pauses. */
 const SEARCH_DELAY_MS = 150;
+/** 16px text on phones, because iOS zooms into focused fields with smaller text. */
+const FIELD_SIZE = "[&_select]:h-10 [&_select]:text-base md:[&_select]:text-sm";
 
 export function CourseListPage() {
   const search = route.useSearch();
@@ -104,26 +106,25 @@ export function CourseListPage() {
   );
 }
 
-/** Memoized because Radix renders every option even while closed, and typing re-renders the page. */
-const ProgrammeSelect = memo(function ProgrammeSelect({ programme, programmes }: { programme?: string; programmes: Record<string, string> }) {
+function ProgrammeSelect({ programme, programmes }: { programme?: string; programmes: Record<string, string> }) {
   const navigate = route.useNavigate();
   const options = Object.entries(programmes).sort(([, a], [, b]) => a.localeCompare(b, "sv"));
   return (
-    <Select
+    <NativeSelect
       value={programme ?? ALL_PROGRAMMES}
-      onValueChange={(value) => navigate({ search: (prev) => ({ ...prev, programme: value === ALL_PROGRAMMES ? undefined : value, q: undefined }) })}
+      onChange={(event) => {
+        const { value } = event.target;
+        navigate({ search: (prev) => ({ ...prev, programme: value === ALL_PROGRAMMES ? undefined : value, q: undefined }) });
+      }}
+      aria-label="Programme"
+      className={cn("w-full sm:w-72", FIELD_SIZE)}
     >
-      <SelectTrigger className="h-10! w-full sm:w-72" aria-label="Programme">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent position="popper" className="max-h-96">
-        <SelectItem value={ALL_PROGRAMMES}>All programmes</SelectItem>
-        {options.map(([code, name]) => (
-          <SelectItem key={code} value={code}>
-            {name === code ? code : `${name} · ${code}`}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      <NativeSelectOption value={ALL_PROGRAMMES}>All programmes</NativeSelectOption>
+      {options.map(([code, name]) => (
+        <NativeSelectOption key={code} value={code}>
+          {name === code ? code : `${name} · ${code}`}
+        </NativeSelectOption>
+      ))}
+    </NativeSelect>
   );
-});
+}
