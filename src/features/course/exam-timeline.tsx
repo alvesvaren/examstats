@@ -4,61 +4,72 @@ import { GRADE_STYLE, GradeTally } from "@/components/grade";
 import { attemptsOf, passRateOf, type GradeCounts } from "@/domain/grades";
 import type { Part } from "@/domain/snapshot";
 import { layoutColumns, stackSegments } from "@/domain/timeline";
+import { useElementWidth } from "@/hooks/use-element-width";
 import { formatCount, formatDay, formatPercent } from "@/lib/format";
 
-const WIDTH = 1000;
+/** The chart draws in real pixels, so the gaps below are exact at every width. */
 const HEIGHT = 280;
 const AXIS_LEFT = 40;
 const TOP = 8;
 const BOTTOM = 26;
 const PLOT_HEIGHT = HEIGHT - TOP - BOTTOM;
 const GRID_SHARES = [0, 0.5, 1];
+const GRADE_GAP = 1;
+const EXAM_GAP = 2;
 const MIN_COLUMN_WIDTH = 3;
-/** Past this many sittings, a 1px gap keeps small columns from vanishing. */
-const DENSE_SITTINGS = 80;
+/** Below this width the chart scrolls sideways instead of squeezing columns. Courses with many exams scroll too. */
+const MIN_CHART_WIDTH = 640;
 const MIN_YEAR_LABEL_GAP = 44;
-/** The tooltip sits right of the hovered column, or left of it past this share of the width. */
-const TOOLTIP_FLIP_SHARE = 0.6;
-const TOOLTIP_OFFSET_PX = 8;
+/** Near an edge the tooltip anchors to that edge instead of centring on the column. */
+const TOOLTIP_EDGE_SHARE = 0.2;
 
-const y = (share: number) => TOP + PLOT_HEIGHT * (1 - share);
+const y = (share: number) => Math.round(TOP + PLOT_HEIGHT * (1 - share));
 
 /** One column per sitting, oldest first. Width shows attempts, height splits them by grade. */
 export function ExamTimeline({ part }: { part: Part }) {
-  const [hovered, setHovered] = useState<number | null>(null);
+  // The tooltip lives outside the scrolling box, so it records the scroll offset it was opened at.
+  const [hovered, setHovered] = useState<{ index: number; scrollLeft: number } | null>(null);
+  const { ref, width: viewportWidth } = useElementWidth<HTMLDivElement>();
 
-  const gap = part.sittings.length > DENSE_SITTINGS ? 1 : 2;
   const items = part.sittings.map((sitting) => ({ ...sitting, attempts: attemptsOf(sitting.grades) }));
-  const columns = layoutColumns(items, { width: WIDTH - AXIS_LEFT, gap, minWidth: MIN_COLUMN_WIDTH });
+  const width = Math.max(viewportWidth, MIN_CHART_WIDTH, AXIS_LEFT + items.length * (MIN_COLUMN_WIDTH + EXAM_GAP));
+  // Edges are rounded to whole pixels so every gap renders sharp and equally wide.
+  const columns = layoutColumns(items, { width: width - AXIS_LEFT, gap: EXAM_GAP, minWidth: MIN_COLUMN_WIDTH }).map((column) => {
+    const x = Math.round(column.x);
+    return { ...column, x, width: Math.round(column.x + column.width) - x };
+  });
   const yearLabels = columns.reduce<{ year: string; x: number }[]>((labels, column) => {
     const year = column.item.date.slice(0, 4);
     const previous = labels.at(-1);
     if (!previous || (year !== previous.year && column.x - previous.x >= MIN_YEAR_LABEL_GAP)) labels.push({ year, x: column.x });
     return labels;
   }, []);
-  const active = hovered === null ? null : columns[hovered];
+  const active = hovered && columns[hovered.index];
+  const hover = (index: number) => setHovered({ index, scrollLeft: ref.current?.scrollLeft ?? 0 });
 
   return (
-    <div className="overflow-x-auto">
-      <div className="relative min-w-[640px]">
-        {active && (
-          <SittingTooltip
-            date={active.item.date}
-            grades={active.item.grades}
-            start={AXIS_LEFT + active.x}
-            end={AXIS_LEFT + active.x + active.width}
-          />
-        )}
+    <div className="relative">
+      {active && hovered && (
+        <SittingTooltip
+          date={active.item.date}
+          grades={active.item.grades}
+          center={AXIS_LEFT + active.x + active.width / 2 - hovered.scrollLeft}
+          viewportWidth={viewportWidth}
+        />
+      )}
+      <div ref={ref} className="overflow-x-auto" onScroll={() => setHovered(null)}>
         <svg
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          className="block h-auto w-full"
+          width={width}
+          height={HEIGHT}
+          viewBox={`0 0 ${width} ${HEIGHT}`}
+          className="block"
           role="img"
           aria-label={`${part.sittings.length} sittings from ${part.sittings[0]?.date ?? ""} to ${part.sittings.at(-1)?.date ?? ""}`}
           onPointerLeave={() => setHovered(null)}
         >
           {GRID_SHARES.map((share) => (
             <g key={share}>
-              <line x1={AXIS_LEFT} x2={WIDTH} y1={y(share)} y2={y(share)} className="stroke-border" />
+              <line x1={AXIS_LEFT} x2={width} y1={y(share) + 0.5} y2={y(share) + 0.5} className="stroke-border" />
               <text x={AXIS_LEFT - 8} y={y(share) + 4} textAnchor="end" className="fill-muted-foreground text-xs">
                 {formatPercent(share)}
               </text>
@@ -68,21 +79,23 @@ export function ExamTimeline({ part }: { part: Part }) {
             <g
               key={`${column.item.date}-${i}`}
               transform={`translate(${AXIS_LEFT + column.x} 0)`}
-              onPointerEnter={() => setHovered(i)}
-              onPointerDown={() => setHovered(i)}
-              className={cn("transition-opacity", hovered !== null && hovered !== i && "opacity-50")}
+              onPointerEnter={() => hover(i)}
+              onPointerDown={() => hover(i)}
+              className={cn("transition-opacity", hovered && hovered.index !== i && "opacity-50")}
             >
-              {stackSegments(column.item.grades).map((segment) => (
-                <rect
-                  key={segment.grade}
-                  y={y(segment.end)}
-                  width={column.width}
-                  height={PLOT_HEIGHT * (segment.end - segment.start)}
-                  className={cn(GRADE_STYLE[segment.grade].fill, "stroke-background")}
-                  strokeWidth={1}
-                />
-              ))}
-              <rect width={column.width + gap} height={HEIGHT} fill="transparent" />
+              {stackSegments(column.item.grades).map((segment, index, segments) => {
+                const top = y(segment.end) + (index < segments.length - 1 ? GRADE_GAP : 0);
+                return (
+                  <rect
+                    key={segment.grade}
+                    y={top}
+                    width={column.width}
+                    height={Math.max(0, y(segment.start) - top)}
+                    className={GRADE_STYLE[segment.grade].fill}
+                  />
+                );
+              })}
+              <rect width={column.width + EXAM_GAP} height={HEIGHT} fill="transparent" />
             </g>
           ))}
           {yearLabels.map((label) => (
@@ -96,15 +109,24 @@ export function ExamTimeline({ part }: { part: Part }) {
   );
 }
 
-function SittingTooltip({ date, grades, start, end }: { date: string; grades: GradeCounts; start: number; end: number }) {
-  const position =
-    end / WIDTH < TOOLTIP_FLIP_SHARE
-      ? { left: `calc(${(end / WIDTH) * 100}% + ${TOOLTIP_OFFSET_PX}px)` }
-      : { right: `calc(${100 - (start / WIDTH) * 100}% + ${TOOLTIP_OFFSET_PX}px)` };
+interface SittingTooltipProps {
+  date: string;
+  grades: GradeCounts;
+  /** Column centre relative to the visible part of the chart. */
+  center: number;
+  viewportWidth: number;
+}
+
+function SittingTooltip({ date, grades, center, viewportWidth }: SittingTooltipProps) {
+  const share = viewportWidth ? center / viewportWidth : 0;
+  const align = share < TOOLTIP_EDGE_SHARE ? "translate-x-0" : share > 1 - TOOLTIP_EDGE_SHARE ? "-translate-x-full" : "-translate-x-1/2";
   return (
     <div
-      className="pointer-events-none absolute top-2 z-30 rounded-md border bg-popover px-3 py-2 text-sm whitespace-nowrap text-popover-foreground shadow-md"
-      style={position}
+      className={cn(
+        "pointer-events-none absolute bottom-full z-30 mb-2 rounded-md border bg-popover px-3 py-2 text-sm whitespace-nowrap text-popover-foreground shadow-md",
+        align,
+      )}
+      style={{ left: center }}
     >
       <div className="font-medium">{formatDay(date)}</div>
       <div className="text-muted-foreground tabular-nums">
