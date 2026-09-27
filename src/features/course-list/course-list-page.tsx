@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import { SearchIcon, XIcon } from "lucide-react";
+import { ArrowLeftIcon, SearchIcon } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,20 @@ export function CourseListPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      {programme && (
+        <div className="flex flex-col gap-2">
+          <Button variant="ghost" size="sm" className="-ml-2 self-start" onClick={() => setProgramme(undefined)}>
+            <ArrowLeftIcon />
+            All courses
+          </Button>
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h1 className="text-2xl font-semibold">{snapshot.programmes[programme] ?? programme}</h1>
+            <span className="text-muted-foreground">
+              {programme} · {formatCount(active.length + ended.length)} courses
+            </span>
+          </div>
+        </div>
+      )}
       <div className="flex flex-wrap gap-2">
         <div className="relative min-w-60 flex-1">
           <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -78,18 +92,6 @@ export function CourseListPage() {
         </ul>
       )}
 
-      {programme && (
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 pt-2">
-          <h1 className="text-2xl font-semibold">{snapshot.programmes[programme] ?? programme}</h1>
-          <span className="text-muted-foreground">
-            {programme} · {formatCount(active.length + ended.length)} courses
-          </span>
-          <Button variant="ghost" size="sm" onClick={() => setProgramme(undefined)}>
-            <XIcon />
-            All programmes
-          </Button>
-        </div>
-      )}
 
       <CourseTable
         active={active}
