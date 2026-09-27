@@ -4,3 +4,4 @@ dist
 public/data
 mockups
 .claude/settings.local.json
+.vercel
