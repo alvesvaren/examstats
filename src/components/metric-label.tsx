@@ -5,11 +5,11 @@ import { RECENT_YEARS } from "@/domain/course-stats";
 import { ANSWER_SCALE, EVALUATION_YEARS } from "@/domain/evaluation";
 
 const WINDOW = `the main exam over the last ${RECENT_YEARS} academic years with results`;
-const SPREAD = "In the mark, the darker a value, the more common it is. The tick is the median.";
+const SPREAD = "In the mark, the darker a value, the larger its share of answers. The tick is the median.";
 
 const METRIC_HELP = {
   passRate: `Share of attempts that passed ${WINDOW}. A retake counts as a new attempt.`,
-  averageGrade: `Mean of grades 3, 4 and 5 on ${WINDOW}. Fails are left out. ${SPREAD}`,
+  averageGrade: `Mean of grades 3, 4 and 5 on ${WINDOW}. Fails are left out.`,
   attemptsPerYear: `Attempts per year on ${WINDOW}.`,
   trend: "Pass rate per academic year on the main exam.",
   rating: `Students' overall impression of the course in Chalmers course surveys, from ${ANSWER_SCALE.min} to ${ANSWER_SCALE.max}, over the last ${EVALUATION_YEARS} academic years, counting every answer. ${SPREAD}`,

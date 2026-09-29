@@ -30,5 +30,5 @@
 - Ended: no new results for 18 months.
 - Main exam: the exam part with the most attempts. Courses without an exam use their largest part.
 - Rating: the mean answer to "What is your overall impression of the course?" in Chalmers course surveys, 1 to 5, over every answer in the last five academic years. Courses with fewer than five answers have no rating. The survey reports only show how many gave each answer as a bar chart, so `pnpm evaluations` reads the bar lengths and checks them against the reported mean.
-- Spread: grade and rating marks shade each value by how common it is, blending between neighbouring values, with a tick at the median. Each whole step of the scale gets an equal slot, so values at the ends sit inside the mark. Mean, median and standard deviation show on hover.
+- Spread: rating marks shade each answer by its share, darkest from 60% of answers, blending between neighbouring answers, with a tick at the median. Average grade shows only its number, since the pass rate bar beside it shows how the grades spread. Each whole step of the scale gets an equal slot, so values at the ends sit inside the mark. Mean, median and standard deviation show on hover.
 - Workload: the course survey question on workload, where 1 is too low, 3 balanced and 5 too high. It stays out of the rating.

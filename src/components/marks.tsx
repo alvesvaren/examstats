@@ -66,48 +66,46 @@ interface ScaleDotProps {
   className?: string;
 }
 
-/** A value as a dot on a track from `min` to `max`. */
+/** A value as a dot on a track from `min` to `max`, drawn like {@link SizeBar}. */
 export function ScaleDot({ value, min, max, mark, dotClassName = "bg-foreground", className }: ScaleDotProps) {
   const position = (x: number) => `${((x - min + HALF_STEP) / (max - min + 2 * HALF_STEP)) * 100}%`;
   return (
-    <span className={cn("relative h-3 w-12", className)} aria-hidden>
-      <span className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded bg-border" />
+    <span className={cn("relative h-2 w-12 rounded-sm bg-foreground/10", className)} aria-hidden>
       {mark !== undefined && (
-        <span className="absolute inset-y-0 w-px -translate-x-1/2 bg-muted-foreground" style={{ left: position(mark) }} />
+        <span className="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-foreground/30" style={{ left: position(mark) }} />
       )}
       <span
-        className={cn("absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-background", dotClassName)}
+        className={cn("absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full", dotClassName)}
         style={{ left: position(value) }}
       />
     </span>
   );
 }
 
-/** Colour per tone, and how dark the most common value gets in percent. */
-const DISTRIBUTION_TONE = {
-  grade: { color: "var(--grade-5)", peak: 100 },
-  neutral: { color: "var(--foreground)", peak: 70 },
-} as const;
+/** A value with this share of all answers or more gets the darkest shade. */
+const FULL_SHARE = 0.6;
+/** The darkest shade, in percent of the foreground colour. */
+const DARKEST = 70;
 
 interface DistributionMarkProps {
   frequencies: Frequencies;
   min: number;
   max: number;
-  tone?: keyof typeof DISTRIBUTION_TONE;
   className?: string;
 }
 
 /**
- * How grades or answers spread over a small scale, drawn inside a track like {@link SizeBar}. Each value's slot is as
- * dark as the value is common, blending into its neighbours. A tick that reaches past the track marks the median.
+ * How grades or answers spread over a small scale, drawn inside a track like {@link SizeBar}. Each value's slot is darker
+ * the larger its share, blending into its neighbours, so an even spread stays light and a clear favourite stands out.
+ * A tick that reaches past the track marks the median.
  */
-export function DistributionMark({ frequencies, min, max, tone = "neutral", className }: DistributionMarkProps) {
+export function DistributionMark({ frequencies, min, max, className }: DistributionMarkProps) {
   const at = (value: number) => ((value - min + HALF_STEP) / (max - min + 2 * HALF_STEP)) * 100;
-  const { color, peak } = DISTRIBUTION_TONE[tone];
-  const largest = Math.max(1, ...frequencies.map(([, count]) => count));
+  const total = frequencies.reduce((sum, [, count]) => sum + count, 0);
+  const shade = (count: number) => (total ? Math.min(1, count / total / FULL_SHARE) * DARKEST : 0);
   const stops = frequencies
     .toSorted(([a], [b]) => a - b)
-    .map(([value, count]) => `color-mix(in oklab, ${color} ${(count / largest) * peak}%, transparent) ${at(value)}%`);
+    .map(([value, count]) => `color-mix(in oklab, var(--foreground) ${shade(count)}%, transparent) ${at(value)}%`);
   const median = spreadOf(frequencies)?.median;
   return (
     <span className={cn("relative h-2 w-12 rounded-sm bg-foreground/10", className)} aria-hidden>

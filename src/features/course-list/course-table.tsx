@@ -286,7 +286,7 @@ function DesktopRow({ course, programmeName, maxAttempts }: Omit<CourseRowProps,
         <PassRateCell grades={course.recentGrades} muted={course.ended} />
       </div>
       <div className="flex justify-end">
-        <AverageGradeCell grades={course.recentGrades} muted={course.ended} />
+        <AverageGradeCell grades={course.recentGrades} />
       </div>
       <div className="flex justify-end">
         <Sparkline trend={course.trend} className={cn(muted)} />

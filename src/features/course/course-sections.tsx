@@ -90,7 +90,7 @@ export function OtherInstances({ courses, programmes }: { courses: CatalogCourse
             </span>
             <PassRateCell grades={course.recentGrades} muted={course.ended} />
             <span className="hidden sm:block">
-              <AverageGradeCell grades={course.recentGrades} muted={course.ended} />
+              <AverageGradeCell grades={course.recentGrades} />
             </span>
             <span className="hidden text-right tabular-nums sm:block">{formatMonth(course.lastResult)}</span>
           </li>

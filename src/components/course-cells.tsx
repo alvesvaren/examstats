@@ -5,7 +5,7 @@ import { DistributionMark } from "@/components/marks";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { RECENT_YEARS } from "@/domain/course-stats";
 import { ANSWER_SCALE, EVALUATION_YEARS, answerFrequencies, type EvaluationSummary } from "@/domain/evaluation";
-import { GRADE_SCALE, averageGradeOf, gradeFrequencies, passRateOf, type GradeCounts } from "@/domain/grades";
+import { gradeSpreadOf, passRateOf, type GradeCounts } from "@/domain/grades";
 import { spreadOf, type Frequencies } from "@/domain/spread";
 import { formatGrade, formatPercent, formatScore, formatSpread } from "@/lib/format";
 
@@ -20,11 +20,11 @@ interface CellProps {
 
 interface StackedCellProps extends Pick<CellProps, "interactive"> {
   value: ReactNode;
-  /** The mark under the value. */
-  children: ReactNode;
+  /** The mark under the value, if any. */
+  children?: ReactNode;
   /** Shown when hovering anywhere on the value or the mark. */
   tooltip?: ReactNode;
-  /** Sets the width of the cell to that of its mark. */
+  /** Sets the width of the cell, usually to that of its mark. */
   className: string;
 }
 
@@ -52,8 +52,8 @@ export function StackedCell({ value, children, tooltip, className, interactive =
   );
 }
 
-/** Takes the place of a {@link DistributionCell}, so dashes line up with values in the same column. */
-const EMPTY_CELL = <span className="ml-auto w-12 text-center text-muted-foreground">–</span>;
+/** Takes the place of a stacked cell as wide as `className` makes it, so dashes line up with values in the same column. */
+const emptyCell = (className: string) => <span className={cn("ml-auto text-center text-muted-foreground", className)}>–</span>;
 
 /** Pass rate with the grade bar it comes from, stacked or side by side. Shared by the course list and the course page. */
 export function PassRateCell({ grades, muted, interactive, inline }: CellProps & { grades: GradeCounts; inline?: boolean }) {
@@ -83,13 +83,12 @@ interface DistributionCellProps extends CellProps {
   value: string;
   frequencies: Frequencies;
   scale: { min: number; max: number };
-  tone?: "grade" | "neutral";
   /** What the values are, shown above them on hover. */
   label: string;
 }
 
 /** A value above the distribution it comes from. */
-export function DistributionCell({ value, frequencies, scale, tone, label, muted, interactive }: DistributionCellProps) {
+export function DistributionCell({ value, frequencies, scale, label, muted, interactive }: DistributionCellProps) {
   const spread = spreadOf(frequencies);
   const tooltip = (
     <>
@@ -99,30 +98,27 @@ export function DistributionCell({ value, frequencies, scale, tone, label, muted
   );
   return (
     <StackedCell value={value} tooltip={tooltip} interactive={interactive} className="w-12">
-      <DistributionMark frequencies={frequencies} {...scale} tone={tone} className={muted ? "opacity-50" : undefined} />
+      <DistributionMark frequencies={frequencies} {...scale} className={muted ? "opacity-50" : undefined} />
     </StackedCell>
   );
 }
 
-export function AverageGradeCell({ grades, muted, interactive }: CellProps & { grades: GradeCounts }) {
-  const average = averageGradeOf(grades);
-  if (average === null) return EMPTY_CELL;
-  return (
-    <DistributionCell
-      value={formatGrade(average)}
-      frequencies={gradeFrequencies(grades)}
-      scale={GRADE_SCALE}
-      tone="grade"
-      label={RECENT_LABEL}
-      muted={muted}
-      interactive={interactive}
-    />
+/** Average grade on its own. The pass rate bar beside it already shows how the grades spread. */
+export function AverageGradeCell({ grades, interactive }: Pick<CellProps, "interactive"> & { grades: GradeCounts }) {
+  const spread = gradeSpreadOf(grades);
+  if (!spread) return emptyCell("w-12");
+  const tooltip = (
+    <>
+      {RECENT_LABEL}
+      <span>{formatSpread(spread)}</span>
+    </>
   );
+  return <StackedCell value={formatGrade(spread.mean)} tooltip={tooltip} interactive={interactive} className="w-12" />;
 }
 
 /** Overall impression from course surveys. Shared by the course list and the course page. */
 export function RatingCell({ evaluation, muted, interactive }: CellProps & { evaluation: EvaluationSummary | null }) {
-  if (!evaluation) return EMPTY_CELL;
+  if (!evaluation) return emptyCell("w-12");
   return (
     <DistributionCell
       value={formatScore(evaluation.mean)}
