@@ -2,16 +2,19 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, Link, useCanGoBack, useRouter } from "@tanstack/react-router";
 import { ArrowLeftIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { RECENT_LABEL } from "@/components/course-cells";
 import { GradeBar } from "@/components/grade";
+import { SpreadMark } from "@/components/marks";
 import { MetricLabel } from "@/components/metric-label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { catalogQuery, courseQuery } from "@/data/queries";
 import { normalize, partLabel, type CatalogCourse } from "@/domain/catalog";
-import { RECENT_YEARS } from "@/domain/course-stats";
-import { formatCount, formatDay, formatGrade, formatPercent } from "@/lib/format";
+import { GRADE_SCALE, gradeSpreadOf } from "@/domain/grades";
+import { formatCount, formatDay, formatGrade, formatNumber, formatPercent } from "@/lib/format";
 import { GradeBreakdown, OtherInstances, OtherParts } from "./course-sections";
+import { CourseSurvey } from "./course-survey";
 import { ExamTimeline } from "./exam-timeline";
 
 const route = getRouteApi("/course/$code");
@@ -84,6 +87,7 @@ export function CoursePage() {
         {part && <GradeBreakdown part={part} />}
         <OtherParts parts={detail.parts} selected={selected} />
       </div>
+      <CourseSurvey evaluation={course.evaluation} rounds={detail.evaluations} fetchedAt={snapshot.evaluationsFetchedAt} />
       <OtherInstances courses={otherInstances} programmes={snapshot.programmes} />
     </div>
   );
@@ -91,14 +95,28 @@ export function CoursePage() {
 
 function StatStrip({ course }: { course: CatalogCourse }) {
   const { latestExam } = course;
+  const gradeSpread = gradeSpreadOf(course.recentGrades);
   return (
     <dl className="grid grid-cols-2 overflow-hidden rounded-lg border md:grid-cols-4">
       <Stat
         label={<MetricLabel metric="passRate">Pass rate</MetricLabel>}
         value={formatPercent(course.passRate)}
-        detail={<GradeBar grades={course.recentGrades} label={`Main exam, last ${RECENT_YEARS} years`} className="mt-1 w-full" />}
+        detail={<GradeBar grades={course.recentGrades} label={RECENT_LABEL} className="mt-1 w-full" />}
       />
-      <Stat label={<MetricLabel metric="averageGrade">Average grade</MetricLabel>} value={formatGrade(course.averageGrade)} />
+      <Stat
+        label={<MetricLabel metric="averageGrade">Average grade</MetricLabel>}
+        value={formatGrade(course.averageGrade)}
+        detail={
+          gradeSpread && (
+            <>
+              <SpreadMark spread={gradeSpread} {...GRADE_SCALE} tone="grade" className="mt-1 w-full" />
+              <span className="mt-1 block">
+                Median {formatNumber(gradeSpread.median)} · SD {formatNumber(gradeSpread.sd)}
+              </span>
+            </>
+          )
+        }
+      />
       <Stat label={<MetricLabel metric="attemptsPerYear">Attempts per year</MetricLabel>} value={formatCount(course.attemptsPerYear)} />
       <Stat
         label="Latest exam"

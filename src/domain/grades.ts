@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { spreadOf } from "./spread.ts";
 
 const count = z.number().int().nonnegative();
 
@@ -14,6 +15,7 @@ export const FAIL_GRADE = "U" satisfies Grade;
 
 /** Grades that carry a number and count toward the average grade. */
 const NUMERIC_GRADES = ["3", "4", "5"] as const satisfies readonly Grade[];
+export const GRADE_SCALE = { min: Number(NUMERIC_GRADES[0]), max: Number(NUMERIC_GRADES[NUMERIC_GRADES.length - 1]) };
 
 export const emptyCounts = (): GradeCounts => ({ U: 0, "3": 0, "4": 0, "5": 0, G: 0, VG: 0, TG: 0 });
 
@@ -34,9 +36,7 @@ export function passRateOf(counts: GradeCounts): number | null {
   return attempts ? passesOf(counts) / attempts : null;
 }
 
-/** Mean of grades 3 to 5, or null when the counts have no numeric grades. */
-export function averageGradeOf(counts: GradeCounts): number | null {
-  const graded = NUMERIC_GRADES.reduce((sum, grade) => sum + counts[grade], 0);
-  if (!graded) return null;
-  return NUMERIC_GRADES.reduce((sum, grade) => sum + Number(grade) * counts[grade], 0) / graded;
-}
+/** Mean, median and spread of grades 3 to 5, or null when the counts have no numeric grades. */
+export const gradeSpreadOf = (counts: GradeCounts) => spreadOf(NUMERIC_GRADES.map((grade) => [Number(grade), counts[grade]]));
+
+export const averageGradeOf = (counts: GradeCounts) => gradeSpreadOf(counts)?.mean ?? null;

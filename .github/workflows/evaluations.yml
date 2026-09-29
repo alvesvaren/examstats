@@ -1,8 +1,8 @@
-name: Nightly results
+name: Monthly course surveys
 
 on:
   schedule:
-    - cron: "17 3 * * *"
+    - cron: "43 4 2 * *"
   workflow_dispatch:
 
 permissions:
@@ -12,7 +12,7 @@ permissions:
 concurrency: data-commit
 
 jobs:
-  fetch:
+  crawl:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -22,17 +22,13 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Fails while stats.ftek.se is down, which leaves the committed results as they are.
-      - run: pnpm fetch-results
-      # Results change a few times per study period. A push deploys the site.
+      # Fails while the survey site is down, which leaves the committed surveys as they are.
+      - run: pnpm evaluations
+      # The file carries its fetch time, so there is always a commit. A push deploys the site.
       - run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/results.json
-          if git diff --cached --quiet; then
-            echo "No new results"
-            exit 0
-          fi
-          git commit -m "Update exam results"
+          git add data/evaluations.json
+          git commit -m "Update course surveys"
           git pull --rebase
           git push

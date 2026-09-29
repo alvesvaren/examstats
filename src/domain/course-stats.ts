@@ -51,14 +51,14 @@ function trendOf(sittings: readonly Sitting[], currentYear: number): TrendPoint[
 }
 
 /**
- * Builds the list row for a course from its parts.
+ * Builds the exam results of a course's list row from its parts.
  * Recent grades and size cover the main part's last {@link RECENT_YEARS} finished academic years with results.
  */
 export function summarizeCourse(
   course: Pick<CourseSummary, "code" | "name" | "programme">,
   parts: readonly Part[],
   today: Date,
-): CourseSummary {
+): Omit<CourseSummary, "evaluation"> {
   const [main] = orderParts(parts);
   const dates = parts.flatMap((p) => p.sittings.map((s) => s.date)).sort();
   const lastResult = dates.at(-1) ?? null;

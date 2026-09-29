@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowDownIcon, ArrowUpIcon, ChevronDownIcon } from "lucide-react";
 import { memo } from "react";
 import { cn } from "cn";
-import { AverageGradeCell, PassRateCell } from "@/components/course-cells";
+import { AverageGradeCell, PassRateCell, RatingCell, StackedCell } from "@/components/course-cells";
 import { SizeBar, Sparkline } from "@/components/marks";
 import { MetricInfo, type Metric } from "@/components/metric-label";
 import { Badge } from "@/components/ui/badge";
@@ -12,11 +12,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { defaultSortDir, type CatalogCourse, type SortDir, type SortKey } from "@/domain/catalog";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useWindowVirtualList } from "@/hooks/use-window-virtual-list";
-import { formatCount, formatMonth } from "@/lib/format";
+import { formatCount, formatGrade, formatMonth, formatScore } from "@/lib/format";
 
-const DESKTOP_GRID = "grid grid-cols-[minmax(0,1fr)_5.5rem_8.5rem_8rem_5.5rem_7rem_5.5rem] items-center gap-x-4";
-/** Tailwind's `md` breakpoint, where the list switches from stacked rows to columns. */
-const DESKTOP_QUERY = "(min-width: 768px)";
+const DESKTOP_GRID = "grid grid-cols-[minmax(0,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_4rem_5rem] items-center gap-x-4";
+/** Tailwind's `lg` breakpoint, where the list switches from stacked rows to columns. */
+const DESKTOP_QUERY = "(min-width: 1024px)";
 /** Row heights in pixels. They must match the `h-*` classes on the rows below. */
 const DESKTOP_ROW_HEIGHT = 61;
 const MOBILE_ROW_HEIGHT = 100;
@@ -26,16 +26,17 @@ interface Column {
   key: SortKey;
   label: string;
   metric?: Metric;
-  align?: "end";
+  align?: "center" | "end";
 }
 
 const COLUMNS: Column[] = [
   { key: "name", label: "Course" },
-  { key: "programme", label: "Programme" },
-  { key: "attemptsPerYear", label: "Attempts/yr", metric: "attemptsPerYear", align: "end" },
+  { key: "programme", label: "Programme", align: "center" },
+  { key: "attemptsPerYear", label: "Attempts", metric: "attemptsPerYear", align: "end" },
   { key: "passRate", label: "Pass rate", metric: "passRate", align: "end" },
-  { key: "trend", label: "Trend", metric: "trend", align: "end" },
   { key: "averageGrade", label: "Grade", metric: "averageGrade", align: "end" },
+  { key: "trend", label: "Trend", metric: "trend", align: "end" },
+  { key: "rating", label: "Rating", metric: "rating", align: "end" },
   { key: "lastResult", label: "Last exam", align: "end" },
 ];
 
@@ -143,7 +144,7 @@ function SortHeader({ column, sort, dir, onSort }: { column: Column; sort: SortK
   const Arrow = dir === "asc" ? ArrowUpIcon : ArrowDownIcon;
   return (
     <div
-      className={cn("flex items-center gap-1", column.align === "end" && "justify-end")}
+      className={cn("flex items-center gap-1", column.align === "end" && "justify-end", column.align === "center" && "justify-center")}
       aria-sort={isActive ? (dir === "asc" ? "ascending" : "descending") : undefined}
     >
       <button
@@ -213,7 +214,7 @@ function MobileRow({ course, maxAttempts }: Pick<CourseRowProps, "course" | "max
     <div className="flex h-full flex-col justify-center gap-1">
       <div className="flex items-center justify-between gap-3">
         <span className={cn("text-lg tabular-nums", course.ended ? "font-medium" : "font-semibold")}>{course.code}</span>
-        <PassRateCell grades={course.recentGrades} muted={course.ended} interactive={false} />
+        <PassRateCell grades={course.recentGrades} muted={course.ended} interactive={false} inline />
       </div>
       <span className="truncate text-sm">{course.name}</span>
       <div className="mt-1 flex items-center gap-4 text-xs text-muted-foreground tabular-nums">
@@ -221,7 +222,8 @@ function MobileRow({ course, maxAttempts }: Pick<CourseRowProps, "course" | "max
           {formatCount(course.attemptsPerYear)}/yr
           <SizeBar value={course.attemptsPerYear} max={maxAttempts} className={cn("w-12", course.ended && "opacity-50")} />
         </span>
-        <AverageGradeCell grades={course.recentGrades} muted={course.ended} />
+        <span>Grade {formatGrade(course.averageGrade)}</span>
+        <span>Rating {formatScore(course.evaluation?.mean ?? null)}</span>
         {course.programme && <span className="ml-auto">{course.programme}</span>}
       </div>
     </div>
@@ -236,7 +238,7 @@ function DesktopRow({ course, programmeName, maxAttempts }: Omit<CourseRowProps,
         <span className={cn("block truncate", course.ended ? "font-normal" : "font-medium")}>{course.name}</span>
         <span className="text-xs text-muted-foreground tabular-nums">{course.code}</span>
       </div>
-      <div>
+      <div className="flex justify-center">
         {course.programme && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -250,18 +252,22 @@ function DesktopRow({ course, programmeName, maxAttempts }: Omit<CourseRowProps,
           </Tooltip>
         )}
       </div>
-      <div className="flex items-center justify-end gap-2 tabular-nums">
-        {formatCount(course.attemptsPerYear)}
-        <SizeBar value={course.attemptsPerYear} max={maxAttempts} className={cn(muted)} />
+      <div className="flex justify-end">
+        <StackedCell value={formatCount(course.attemptsPerYear)} className="w-16">
+          <SizeBar value={course.attemptsPerYear} max={maxAttempts} className={cn(muted)} />
+        </StackedCell>
       </div>
       <div className="flex justify-end">
         <PassRateCell grades={course.recentGrades} muted={course.ended} />
       </div>
       <div className="flex justify-end">
+        <AverageGradeCell grades={course.recentGrades} muted={course.ended} />
+      </div>
+      <div className="flex justify-end">
         <Sparkline trend={course.trend} className={cn(muted)} />
       </div>
       <div className="flex justify-end">
-        <AverageGradeCell grades={course.recentGrades} muted={course.ended} />
+        <RatingCell evaluation={course.evaluation} muted={course.ended} />
       </div>
       <div className="text-right tabular-nums">{formatMonth(course.lastResult)}</div>
     </div>

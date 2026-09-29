@@ -9,7 +9,7 @@ import { formatCount, formatMonth, formatPercent } from "@/lib/format";
 
 const MAX_LISTED = 8;
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+export function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="mb-3 text-sm font-medium text-muted-foreground">{children}</h2>;
 }
 
@@ -62,7 +62,7 @@ export function OtherParts({ parts, selected }: { parts: Part[]; selected: numbe
   );
 }
 
-const INSTANCE_GRID = "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 sm:grid-cols-[minmax(0,1fr)_8.5rem_7rem_5.5rem]";
+const INSTANCE_GRID = "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 sm:grid-cols-[minmax(0,1fr)_8.5rem_4.5rem_5.5rem]";
 
 export function OtherInstances({ courses, programmes }: { courses: CatalogCourse[]; programmes: Record<string, string> }) {
   if (!courses.length) return null;

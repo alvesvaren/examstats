@@ -4,7 +4,7 @@
 
 | # | User | Story | Entry | Ends on |
 | --- | --- | --- | --- | --- |
-| 1 | Student picking electives | Compare the courses I am considering, so I avoid one where half fail. | Programme or course names | List, sorted, then one or two courses |
+| 1 | Student picking electives | Compare the courses I am considering, so I avoid one where half fail or students are unhappy. | Programme or course names | List, sorted, then one or two courses |
 | 2 | Student before an exam | See how recent exams went, so I know what to expect. | Course code | Course, latest exams |
 | 3 | Student planning a retake | See when retakes happen and how they go. | Course code | Course, small exams in the timeline |
 | 4 | New student | See which courses in my programme are hard. | Programme name or code | List scoped to the programme, sorted by pass rate |
@@ -21,7 +21,7 @@
 ## Structure
 
 - **List**: search, programme scope, and every course in one sortable list. Active courses come first. Ended courses sit in a collapsed group at the end.
-- **Course**: the four numbers, the timeline at full width, then grades, other parts, and other instances of the course.
+- **Course**: the four numbers, the timeline at full width, then grades, other parts, the course survey, and other instances of the course.
 
 ## Definitions
 
@@ -29,3 +29,6 @@
 - Size: attempts per year on the main exam, over the same three years.
 - Ended: no new results for 18 months.
 - Main exam: the exam part with the most attempts. Courses without an exam use their largest part.
+- Rating: the mean answer to "What is your overall impression of the course?" in Chalmers course surveys, 1 to 5, over every answer in the last five academic years. Courses with fewer than five answers have no rating. The survey reports only show how many gave each answer as a bar chart, so `pnpm evaluations` reads the bar lengths and checks them against the reported mean.
+- Spread: grade and rating marks show the mean as a dot, the median as a tick, and one standard deviation either side of the mean as a band. Quartiles would collapse onto whole grades on a three or five step scale.
+- Workload: the course survey question on workload, where 1 is too low, 3 balanced and 5 too high. It stays out of the rating.

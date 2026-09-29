@@ -1,7 +1,7 @@
 import { averageGradeOf, passRateOf } from "./grades.ts";
 import type { CourseSummary, Snapshot, TrendPoint } from "./snapshot.ts";
 
-export const SORT_KEYS = ["name", "programme", "attemptsPerYear", "passRate", "trend", "averageGrade", "lastResult"] as const;
+export const SORT_KEYS = ["name", "programme", "attemptsPerYear", "passRate", "trend", "averageGrade", "rating", "lastResult"] as const;
 export type SortKey = (typeof SORT_KEYS)[number];
 export type SortDir = "asc" | "desc";
 
@@ -60,6 +60,7 @@ const sortValue: Record<SortKey, (c: CatalogCourse) => number | string | null> =
   passRate: (c) => c.passRate,
   trend: (c) => c.trendDelta,
   averageGrade: (c) => c.averageGrade,
+  rating: (c) => c.evaluation?.mean ?? null,
   lastResult: (c) => c.lastResult,
 };
 

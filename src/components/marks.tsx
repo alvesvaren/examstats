@@ -1,7 +1,8 @@
 import { cn } from "cn";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { TrendPoint } from "@/domain/snapshot";
-import { formatAcademicYear, formatPercent } from "@/lib/format";
+import type { Spread } from "@/domain/spread";
+import { formatAcademicYear, formatNumber, formatPercent } from "@/lib/format";
 
 /** Bar length grows with the square root of `value`, so small courses stay visible next to large ones. */
 export function SizeBar({ value, max, className }: { value: number; max: number; className?: string }) {
@@ -50,19 +51,63 @@ export function Sparkline({ trend, className }: { trend: readonly TrendPoint[]; 
   );
 }
 
-const LOWEST_GRADE = 3;
-const GRADE_SPAN = 2;
+interface ScaleDotProps {
+  value: number;
+  min: number;
+  max: number;
+  /** Marks a reference point on the track, such as the balanced middle of a too low to too high scale. */
+  mark?: number;
+  dotClassName?: string;
+  className?: string;
+}
 
-/** Average grade as a dot on a 3 to 5 scale. */
-export function GradeScale({ average, className }: { average: number; className?: string }) {
-  const position = ((average - LOWEST_GRADE) / GRADE_SPAN) * 100;
+/** A value as a dot on a track from `min` to `max`. */
+export function ScaleDot({ value, min, max, mark, dotClassName = "bg-foreground", className }: ScaleDotProps) {
+  const position = (x: number) => `${((x - min) / (max - min)) * 100}%`;
   return (
     <span className={cn("relative h-3 w-12", className)} aria-hidden>
       <span className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded bg-border" />
+      {mark !== undefined && <span className="absolute inset-y-0 w-px -translate-x-1/2 bg-muted-foreground" style={{ left: position(mark) }} />}
       <span
-        className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-grade-5 ring-2 ring-background"
-        style={{ left: `${position}%` }}
+        className={cn("absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-background", dotClassName)}
+        style={{ left: position(value) }}
       />
+    </span>
+  );
+}
+
+/** Literal class names per tone, so Tailwind can see them. */
+const SPREAD_TONE = {
+  grade: { dot: "bg-grade-5", band: "bg-grade-5/30" },
+  neutral: { dot: "bg-foreground", band: "bg-foreground/20" },
+} as const;
+
+interface SpreadMarkProps {
+  spread: Pick<Spread, "mean" | "median" | "sd">;
+  min: number;
+  max: number;
+  tone?: keyof typeof SPREAD_TONE;
+  className?: string;
+}
+
+/** The numbers behind a {@link SpreadMark}, for tooltips and screen readers. */
+export const spreadSummary = ({ mean, median, sd }: SpreadMarkProps["spread"]) =>
+  `Mean ${formatNumber(mean)} · median ${formatNumber(median)} · SD ${formatNumber(sd)}`;
+
+/**
+ * A compact box plot for a small scale: the dot is the mean, the tick the median, and the band one standard deviation
+ * on either side of the mean. Quartiles would collapse onto whole grades, so the band shows spread instead.
+ */
+export function SpreadMark({ spread, min, max, tone = "neutral", className }: SpreadMarkProps) {
+  const { mean, median, sd } = spread;
+  const at = (value: number) => `${((Math.min(max, Math.max(min, value)) - min) / (max - min)) * 100}%`;
+  const { dot, band } = SPREAD_TONE[tone];
+  return (
+    <span className={cn("relative h-2 w-12", className)} aria-hidden>
+      <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
+      <span className={cn("absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full", band)} style={{ left: at(mean - sd), right: `calc(100% - ${at(mean + sd)})` }} />
+      <span className="absolute inset-y-0 w-0.5 -translate-x-1/2 rounded-full bg-foreground/60" style={{ left: at(median) }} />
+      <span className={cn("absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-1 ring-background", dot)} style={{ left: at(mean) }} />
     </span>
   );
 }
