@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { questionMean, summarizeEvaluations, type EvaluationRound } from "./evaluation.ts";
+import { pooledAnswerCounts, questionMean, summarizeEvaluations, type EvaluationRound } from "./evaluation.ts";
 
 const round = (
   academicYear: number,
@@ -13,7 +13,7 @@ const round = (
   answers,
   minutes: null,
   means,
-  overallAnswers,
+  answerCounts: overallAnswers ? { overall: overallAnswers } : {},
 });
 
 describe("summarizeEvaluations", () => {
@@ -38,6 +38,18 @@ describe("summarizeEvaluations", () => {
   it("gives no rating below five answers", () => {
     expect(summarizeEvaluations([round(2024, 2, {}, [0, 0, 0, 0, 2]), round(2025, 2, {}, [0, 0, 0, 0, 2])])).toBeNull();
     expect(summarizeEvaluations([])).toBeNull();
+  });
+});
+
+describe("pooledAnswerCounts", () => {
+  it("adds up the answers to one question over the rounds that show them", () => {
+    const rounds = [
+      { ...round(2023, 3, {}), answerCounts: { workload: [0, 0, 1, 1, 1] } },
+      { ...round(2024, 2, {}), answerCounts: { workload: [0, 0, 2, 0, 0], teaching: [0, 0, 0, 2, 0] } },
+      round(2025, 40, {}),
+    ];
+    expect(pooledAnswerCounts(rounds, "workload")).toEqual([0, 0, 3, 1, 1]);
+    expect(pooledAnswerCounts(rounds, "assessment")).toBeNull();
   });
 });
 

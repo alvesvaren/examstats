@@ -28,7 +28,8 @@ export const EVALUATION_YEARS = 5;
 export const MIN_SCORE_ANSWERS = 5;
 
 const mean = z.number().min(ANSWER_SCALE.min).max(ANSWER_SCALE.max);
-const overallAnswersSchema = z.array(z.number().int().nonnegative()).length(ANSWER_OPTIONS);
+/** How many gave each answer, lowest first. */
+const answerCountsSchema = z.array(z.number().int().nonnegative()).length(ANSWER_OPTIONS);
 
 export const evaluationRoundSchema = z.object({
   /** Academic year the round started in, so 2024 is 2024/25. */
@@ -40,8 +41,8 @@ export const evaluationRoundSchema = z.object({
   /** Minutes from the course evaluation meeting. */
   minutes: z.url().nullable(),
   means: z.partialRecord(z.enum(QUESTIONS), mean),
-  /** How many answered each option of the overall question, lowest first. Null when the report did not show it. */
-  overallAnswers: overallAnswersSchema.nullable(),
+  /** How many gave each answer to a question. Missing when the report did not show it. */
+  answerCounts: z.partialRecord(z.enum(QUESTIONS), answerCountsSchema),
 });
 
 /** The committed file that `pnpm evaluations` writes and `pnpm snapshot` reads. */
@@ -57,8 +58,7 @@ export const evaluationSummarySchema = z.object({
   sd: z.number(),
   answers: z.number().int(),
   rounds: z.number().int(),
-  /** How many gave each answer, lowest first. */
-  overallAnswers: overallAnswersSchema,
+  overallAnswers: answerCountsSchema,
 });
 
 export type EvaluationRound = z.infer<typeof evaluationRoundSchema>;
@@ -76,12 +76,20 @@ export function questionMean(rounds: readonly EvaluationRound[], question: Quest
 /** Answer counts per option, lowest first, as values and counts. */
 export const answerFrequencies = (counts: readonly number[]): Frequencies => counts.map((count, i) => [ANSWER_SCALE.min + i, count]);
 
+/** How many gave each answer to a question over the rounds that show it, or null when none does. */
+export function pooledAnswerCounts(rounds: readonly EvaluationRound[], question: Question): number[] | null {
+  const shown = rounds.map((r) => r.answerCounts[question]).filter((counts) => counts !== undefined);
+  if (!shown.length) return null;
+  return Array.from({ length: ANSWER_OPTIONS }, (_, i) => shown.reduce((sum, counts) => sum + counts[i]!, 0));
+}
+
 export function summarizeEvaluations(rounds: readonly EvaluationRound[]): EvaluationSummary | null {
-  const overallAnswers = Array.from({ length: ANSWER_OPTIONS }, (_, i) => rounds.reduce((sum, r) => sum + (r.overallAnswers?.[i] ?? 0), 0));
-  const spread = spreadOf(answerFrequencies(overallAnswers));
-  if (!spread || spread.count < MIN_SCORE_ANSWERS) return null;
+  const overallAnswers = pooledAnswerCounts(rounds, "overall");
+  const spread = overallAnswers && spreadOf(answerFrequencies(overallAnswers));
+  if (!overallAnswers || !spread || spread.count < MIN_SCORE_ANSWERS) return null;
   const { count, ...stats } = spread;
-  return { ...stats, answers: count, rounds: rounds.filter((r) => r.overallAnswers?.some(Boolean)).length, overallAnswers };
+  const scored = rounds.filter((r) => r.answerCounts.overall?.some(Boolean)).length;
+  return { ...stats, answers: count, rounds: scored, overallAnswers };
 }
 
 /** Newest round first, then by study period. */

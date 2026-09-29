@@ -56,32 +56,6 @@ export function Sparkline({ trend, className }: { trend: readonly TrendPoint[]; 
 /** The scales are whole steps, so each step gets a slot this wide on either side and values at the ends stay inside. */
 const HALF_STEP = 0.5;
 
-interface ScaleDotProps {
-  value: number;
-  min: number;
-  max: number;
-  /** Marks a reference point on the track, such as the balanced middle of a too low to too high scale. */
-  mark?: number;
-  dotClassName?: string;
-  className?: string;
-}
-
-/** A value as a dot on a track from `min` to `max`, drawn like {@link SizeBar}. */
-export function ScaleDot({ value, min, max, mark, dotClassName = "bg-foreground", className }: ScaleDotProps) {
-  const position = (x: number) => `${((x - min + HALF_STEP) / (max - min + 2 * HALF_STEP)) * 100}%`;
-  return (
-    <span className={cn("relative h-2 w-12 rounded-sm bg-foreground/10", className)} aria-hidden>
-      {mark !== undefined && (
-        <span className="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-foreground/30" style={{ left: position(mark) }} />
-      )}
-      <span
-        className={cn("absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full", dotClassName)}
-        style={{ left: position(value) }}
-      />
-    </span>
-  );
-}
-
 /** A value with this share of all answers or more gets the darkest shade. */
 const FULL_SHARE = 0.6;
 /** The darkest shade, in percent of the foreground colour. */

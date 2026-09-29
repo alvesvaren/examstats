@@ -1,13 +1,14 @@
 import { ExternalLinkIcon } from "lucide-react";
 import { cn } from "cn";
 import { DistributionCell } from "@/components/course-cells";
-import { DistributionMark, ScaleDot } from "@/components/marks";
+import { DistributionMark } from "@/components/marks";
 import { MetricLabel } from "@/components/metric-label";
 import {
   ANSWER_SCALE,
   BALANCED_WORKLOAD,
   EVALUATION_YEARS,
   answerFrequencies,
+  pooledAnswerCounts,
   questionMean,
   type EvaluationRound,
   type EvaluationSummary,
@@ -47,8 +48,9 @@ export function CourseSurvey({ evaluation, rounds, fetchedAt }: CourseSurveyProp
   const workload = questionMean(rounds, "workload");
   const breakdown = BREAKDOWN.flatMap(({ question, label }) => {
     const mean = questionMean(rounds, question);
-    return mean === null ? [] : [{ question, label, mean }];
+    return mean === null ? [] : [{ question, label, mean, counts: pooledAnswerCounts(rounds, question) }];
   });
+  const workloadCounts = pooledAnswerCounts(rounds, "workload");
 
   return (
     <section>
@@ -84,11 +86,11 @@ export function CourseSurvey({ evaluation, rounds, fetchedAt }: CourseSurveyProp
               )}
             </div>
             <ul className="flex flex-col gap-1.5 border-t pt-4 text-sm">
-              {breakdown.map(({ question, label, mean }) => (
+              {breakdown.map(({ question, label, mean, counts }) => (
                 <li key={question} className={QUESTION_GRID}>
                   <span className="truncate">{label}</span>
                   <span className="text-right tabular-nums">{formatScore(mean)}</span>
-                  <ScaleDot value={mean} {...ANSWER_SCALE} className="w-full" />
+                  {counts && <DistributionMark frequencies={answerFrequencies(counts)} {...ANSWER_SCALE} className="w-full" />}
                 </li>
               ))}
               {workload !== null && (
@@ -100,7 +102,9 @@ export function CourseSurvey({ evaluation, rounds, fetchedAt }: CourseSurveyProp
                     </span>
                   </span>
                   <span className="text-right tabular-nums">{formatScore(workload)}</span>
-                  <ScaleDot value={workload} {...ANSWER_SCALE} mark={BALANCED_WORKLOAD} className="w-full" />
+                  {workloadCounts && (
+                    <DistributionMark frequencies={answerFrequencies(workloadCounts)} {...ANSWER_SCALE} className="w-full" />
+                  )}
                 </li>
               )}
             </ul>
@@ -138,10 +142,10 @@ function SurveyRounds({ rounds }: { rounds: readonly EvaluationRound[] }) {
             <span>
               {formatAcademicYear(round.academicYear)} <span className="text-muted-foreground">{periodsLabel(round.periods)}</span>
             </span>
-            {round.overallAnswers ? (
+            {round.answerCounts.overall ? (
               <DistributionCell
                 value={formatScore(round.means.overall ?? null)}
-                frequencies={answerFrequencies(round.overallAnswers)}
+                frequencies={answerFrequencies(round.answerCounts.overall)}
                 scale={ANSWER_SCALE}
                 label="Overall impression"
               />
