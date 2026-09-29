@@ -21,7 +21,7 @@
 ## Structure
 
 - **List**: search, programme scope, and every course in one sortable list. Active courses come first. Ended courses sit in a collapsed group at the end.
-- **Course**: the four numbers, the timeline at full width, then grades, other parts, the course survey, and other instances of the course.
+- **Course**: the four numbers, the timeline at full width, then grades, other parts, the course survey, and other instances of the course. The survey lists every round and sums up the newest year, or another year or all of them when picked in the list.
 
 ## Definitions
 

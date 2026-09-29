@@ -50,7 +50,11 @@ export function OtherParts({ parts, selected }: { parts: Part[]; selected: numbe
           const counts = sumCounts(part.sittings.map((s) => s.grades));
           return (
             <li key={index} className="border-t first:border-t-0">
-              <Link from="/course/$code" search={{ part: index }} className="flex items-center gap-3 py-2 hover:underline">
+              <Link
+                from="/course/$code"
+                search={(prev) => ({ ...prev, part: index })}
+                className="flex items-center gap-3 py-2 hover:underline"
+              >
                 <span className="min-w-0 flex-1 truncate">{partLabel(part.type)}</span>
                 <span className="text-muted-foreground tabular-nums">{formatPercent(passRateOf(counts))}</span>
                 <GradeBar grades={counts} label={partLabel(part.type)} />

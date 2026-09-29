@@ -13,7 +13,7 @@ import { normalize, partLabel, type CatalogCourse } from "@/domain/catalog";
 import { gradeSpreadOf } from "@/domain/grades";
 import { formatCount, formatDay, formatGrade, formatNumber, formatPercent } from "@/lib/format";
 import { GradeBreakdown, OtherInstances, OtherParts } from "./course-sections";
-import { CourseSurvey } from "./course-survey";
+import { CourseSurvey, type SurveyYear } from "./course-survey";
 import { ExamTimeline } from "./exam-timeline";
 
 const route = getRouteApi("/course/$code");
@@ -21,7 +21,7 @@ const MAX_PART_TABS = 6;
 
 export function CoursePage() {
   const { code } = route.useParams();
-  const { part: partIndex = 0 } = route.useSearch();
+  const { part: partIndex = 0, survey } = route.useSearch();
   const { course } = route.useLoaderData();
   const { data: snapshot } = useSuspenseQuery(catalogQuery);
   const { data: detail } = useSuspenseQuery(courseQuery(code));
@@ -34,6 +34,8 @@ export function CoursePage() {
   const otherInstances = snapshot.courses
     .filter((c) => c.code !== code && normalize(c.name) === normalize(course.name))
     .toSorted((a, b) => (b.lastResult ?? "").localeCompare(a.lastResult ?? ""));
+  // Picking a survey year only swaps the summary beside the list, so the page stays where it is.
+  const setSurvey = (year: SurveyYear) => navigate({ search: (prev) => ({ ...prev, survey: year }), replace: true, resetScroll: false });
   const goBack = () => (canGoBack ? router.history.back() : navigate({ to: "/" }));
 
   return (
@@ -66,7 +68,7 @@ export function CoursePage() {
               variant="outline"
               size="sm"
               value={String(selected)}
-              onValueChange={(value) => value && navigate({ search: { part: Number(value) }, replace: true })}
+              onValueChange={(value) => value && navigate({ search: (prev) => ({ ...prev, part: Number(value) }), replace: true })}
               className="flex-wrap"
             >
               {detail.parts.slice(0, MAX_PART_TABS).map((p, index) => (
@@ -86,7 +88,7 @@ export function CoursePage() {
         {part && <GradeBreakdown part={part} />}
         <OtherParts parts={detail.parts} selected={selected} />
       </div>
-      <CourseSurvey evaluation={course.evaluation} rounds={detail.evaluations} fetchedAt={snapshot.evaluationsFetchedAt} />
+      <CourseSurvey rounds={detail.evaluations} year={survey} onYearChange={setSurvey} fetchedAt={snapshot.evaluationsFetchedAt} />
       <OtherInstances courses={otherInstances} programmes={snapshot.programmes} />
     </div>
   );

@@ -29,6 +29,10 @@ const listRoute = createRoute({
 
 const courseSearchSchema = z.object({
   part: z.number().int().nonnegative().optional().catch(undefined),
+  survey: z
+    .union([z.number().int(), z.literal("all")])
+    .optional()
+    .catch(undefined),
 });
 
 const courseRoute = createRoute({
