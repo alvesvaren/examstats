@@ -263,7 +263,7 @@ const CourseRow = memo(function CourseRow({ course, canHover, programmeName, max
           <Sparkline trend={course.trend} interactive={canHover} className={cn(muted)} />
         </div>
         <div className="flex justify-end">
-          <RatingCell evaluation={course.evaluation} muted={course.ended} interactive={canHover} />
+          <RatingCell answers={course.overallAnswers} muted={course.ended} interactive={canHover} />
         </div>
         <div className="text-right tabular-nums">{formatMonth(course.lastResult)}</div>
       </div>

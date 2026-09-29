@@ -1,3 +1,4 @@
+import { meanAnswer } from "./evaluation.ts";
 import { averageGradeOf, passRateOf } from "./grades.ts";
 import type { CourseSummary, Snapshot, TrendPoint } from "./snapshot.ts";
 
@@ -35,7 +36,7 @@ export function trendDelta(trend: readonly TrendPoint[]): number | null {
   const last = trend.at(-1);
   const before = trend.slice(-1 - TREND_BASELINE_YEARS, -1);
   if (!last || !before.length) return null;
-  return last.passRate - before.reduce((sum, t) => sum + t.passRate, 0) / before.length;
+  return last[1] - before.reduce((sum, [, passRate]) => sum + passRate, 0) / before.length;
 }
 
 /** A course plus the values the list filters and sorts on, computed once when the snapshot loads. */
@@ -45,6 +46,7 @@ export function toCatalogCourse(course: CourseSummary) {
     passRate: passRateOf(course.recentGrades),
     averageGrade: averageGradeOf(course.recentGrades),
     trendDelta: trendDelta(course.trend),
+    rating: course.overallAnswers && meanAnswer(course.overallAnswers),
     searchText: normalize(`${course.code} ${course.name} ${course.programme ?? ""}`),
   };
 }
@@ -60,7 +62,7 @@ const sortValue: Record<SortKey, (c: CatalogCourse) => number | string | null> =
   passRate: (c) => c.passRate,
   trend: (c) => c.trendDelta,
   averageGrade: (c) => c.averageGrade,
-  rating: (c) => c.evaluation?.mean ?? null,
+  rating: (c) => c.rating,
   lastResult: (c) => c.lastResult,
 };
 

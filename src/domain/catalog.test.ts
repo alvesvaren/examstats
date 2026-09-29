@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { matchProgrammes, partLabel, queryCourses, toCatalogCourse, trendDelta } from "./catalog.ts";
 import { emptyCounts } from "./grades.ts";
-import type { CourseSummary } from "./snapshot.ts";
+import type { CourseSummary, TrendPoint } from "./snapshot.ts";
 
 const row = (code: string, name: string, extra: Partial<CourseSummary> = {}) =>
   toCatalogCourse({
@@ -13,8 +13,7 @@ const row = (code: string, name: string, extra: Partial<CourseSummary> = {}) =>
     lastResult: null,
     ended: false,
     trend: [],
-    latestExam: null,
-    evaluation: null,
+    overallAnswers: null,
     ...extra,
   });
 
@@ -28,7 +27,7 @@ const courses = [
   row("TDA357", "Databaser", {
     programme: "TKITE",
     attemptsPerYear: 380,
-    evaluation: { mean: 4.2, median: 4, sd: 0.8, answers: 90, rounds: 3, overallAnswers: [0, 5, 10, 30, 45] },
+    overallAnswers: [0, 5, 10, 30, 45],
   }),
   row("TDA545", "Objektorienterad programvaruutveckling", { programme: "TKITE", attemptsPerYear: 0, ended: true }),
 ];
@@ -60,7 +59,7 @@ describe("queryCourses", () => {
     const rated = [
       ...courses,
       row("TMA976", "Matematisk analys, fortsättning", {
-        evaluation: { mean: 3.1, median: 3, sd: 1.1, answers: 40, rounds: 2, overallAnswers: [5, 8, 12, 10, 5] },
+        overallAnswers: [5, 8, 12, 10, 5],
       }),
     ];
     expect(
@@ -107,12 +106,12 @@ describe("matchProgrammes", () => {
 
 describe("trendDelta", () => {
   it("compares the last year with the mean of the three before it", () => {
-    const trend = [0.9, 0.5, 0.6, 0.7, 0.4].map((passRate, i) => ({ academicYear: 2020 + i, passRate, attempts: 10 }));
+    const trend = [0.9, 0.5, 0.6, 0.7, 0.4].map((passRate, i): TrendPoint => [2020 + i, passRate]);
     expect(trendDelta(trend)).toBeCloseTo(-0.2);
   });
 
   it("is null without history", () => {
-    expect(trendDelta([{ academicYear: 2025, passRate: 0.5, attempts: 10 }])).toBeNull();
+    expect(trendDelta([[2025, 0.5]])).toBeNull();
   });
 });
 
