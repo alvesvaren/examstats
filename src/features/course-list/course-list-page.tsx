@@ -8,10 +8,13 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { catalogQuery } from "@/data/queries";
 import { matchProgrammes, queryCourses, type SortDir, type SortKey } from "@/domain/catalog";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
+import { useElementSize } from "@/hooks/use-element-size";
+import { useScrollBack } from "@/hooks/use-scroll-back";
 import { formatCount } from "@/lib/format";
 import { CourseTable } from "./course-table";
 
 const route = getRouteApi("/");
+type ListSearch = ReturnType<typeof route.useSearch>;
 
 const ALL_PROGRAMMES = "all";
 const DEFAULT_SORT: SortKey = "attemptsPerYear";
@@ -24,6 +27,8 @@ export function CourseListPage() {
   const search = route.useSearch();
   const navigate = route.useNavigate();
   const { data: snapshot } = useSuspenseQuery(catalogQuery);
+  const { ref: filtersRef, height: filtersHeight } = useElementSize<HTMLDivElement>();
+  const { ref: resultsRef, scrollBack } = useScrollBack<HTMLDivElement>();
 
   const { sort = DEFAULT_SORT, dir = "desc", programme, q = "" } = search;
   const { active, ended } = queryCourses(snapshot.courses, { q, programme, sort, dir });
@@ -31,12 +36,14 @@ export function CourseListPage() {
   const maxAttempts = Math.max(...snapshot.courses.map((c) => c.attemptsPerYear));
   const coursesIn = (code: string) => snapshot.courses.filter((c) => c.programme === code).length;
 
-  const setQuery = useDebouncedCallback(
-    (value: string) => navigate({ search: (prev) => ({ ...prev, q: value || undefined }), replace: true }),
-    SEARCH_DELAY_MS,
-  );
-  const setProgramme = (value: string | undefined) => navigate({ search: (prev) => ({ ...prev, programme: value, q: undefined }) });
-  const setSort = (key: SortKey, nextDir: SortDir) => navigate({ search: (prev) => ({ ...prev, sort: key, dir: nextDir }), replace: true });
+  // A new filter or sort keeps the filters where they are and starts the list over just below them.
+  const updateList = (changes: Partial<ListSearch>, replace = false) => {
+    scrollBack();
+    void navigate({ search: (prev) => ({ ...prev, ...changes }), replace, resetScroll: false });
+  };
+  const setQuery = useDebouncedCallback((value: string) => updateList({ q: value || undefined }, true), SEARCH_DELAY_MS);
+  const setProgramme = (value: string | undefined) => updateList({ programme: value, q: undefined });
+  const setSort = (key: SortKey, nextDir: SortDir) => updateList({ sort: key, dir: nextDir }, true);
   // Opening the group below the list should not move the page.
   const toggleEnded = () =>
     navigate({ search: (prev) => ({ ...prev, ended: search.ended ? undefined : true }), replace: true, resetScroll: false });
@@ -57,67 +64,76 @@ export function CourseListPage() {
           </div>
         </div>
       )}
-      <div className="flex flex-wrap gap-2">
-        <div className="relative min-w-60 flex-1">
-          <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            key={programme ?? ALL_PROGRAMMES}
-            type="search"
-            defaultValue={q}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Course or programme, use ; for several"
-            aria-label="Search"
-            autoComplete="off"
-            spellCheck={false}
-            className="h-10 pl-9 text-base"
-          />
+      {/* The negative margin cancels the padding the filters need when stuck, so the top of this box is where they stick. */}
+      <div ref={resultsRef} className="-mt-2 flex flex-col gap-2">
+        <div ref={filtersRef} className="sticky top-0 z-30 flex flex-wrap gap-2 bg-background py-2">
+          <div className="relative min-w-60 flex-1">
+            <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              key={programme ?? ALL_PROGRAMMES}
+              type="search"
+              defaultValue={q}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Course or programme, use ; for several"
+              aria-label="Search"
+              autoComplete="off"
+              spellCheck={false}
+              className="h-10 pl-9 text-base"
+            />
+          </div>
+          <ProgrammeSelect programme={programme} programmes={snapshot.programmes} onChange={setProgramme} />
         </div>
-        <ProgrammeSelect programme={programme} programmes={snapshot.programmes} />
+
+        {programmeMatches.length > 0 && (
+          <ul className="flex flex-col gap-1">
+            {programmeMatches.map((match) => (
+              <li key={match.code}>
+                <Link
+                  to="/"
+                  search={{ programme: match.code }}
+                  className="flex items-baseline gap-3 rounded-md border px-3 py-2 hover:bg-muted/50"
+                >
+                  <span className="font-medium">{match.name}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {match.code} · {formatCount(coursesIn(match.code))} courses
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <CourseTable
+          active={active}
+          ended={ended}
+          showEnded={search.ended ?? false}
+          onToggleEnded={toggleEnded}
+          sort={sort}
+          dir={dir}
+          onSortChange={setSort}
+          programmes={snapshot.programmes}
+          maxAttempts={maxAttempts}
+          stickyTop={filtersHeight}
+        />
       </div>
-
-      {programmeMatches.length > 0 && (
-        <ul className="flex flex-col gap-1">
-          {programmeMatches.map((match) => (
-            <li key={match.code}>
-              <Link
-                to="/"
-                search={{ programme: match.code }}
-                className="flex items-baseline gap-3 rounded-md border px-3 py-2 hover:bg-muted/50"
-              >
-                <span className="font-medium">{match.name}</span>
-                <span className="text-sm text-muted-foreground">
-                  {match.code} · {formatCount(coursesIn(match.code))} courses
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <CourseTable
-        active={active}
-        ended={ended}
-        showEnded={search.ended ?? false}
-        onToggleEnded={toggleEnded}
-        sort={sort}
-        dir={dir}
-        onSortChange={setSort}
-        programmes={snapshot.programmes}
-        maxAttempts={maxAttempts}
-      />
     </div>
   );
 }
 
-function ProgrammeSelect({ programme, programmes }: { programme?: string; programmes: Record<string, string> }) {
-  const navigate = route.useNavigate();
+interface ProgrammeSelectProps {
+  programme?: string;
+  programmes: Record<string, string>;
+  onChange: (programme: string | undefined) => void;
+}
+
+function ProgrammeSelect({ programme, programmes, onChange }: ProgrammeSelectProps) {
   const options = Object.entries(programmes).toSorted(([, a], [, b]) => a.localeCompare(b, "sv"));
   return (
     <NativeSelect
       value={programme ?? ALL_PROGRAMMES}
       onChange={(event) => {
         const { value } = event.target;
-        void navigate({ search: (prev) => ({ ...prev, programme: value === ALL_PROGRAMMES ? undefined : value, q: undefined }) });
+        onChange(value === ALL_PROGRAMMES ? undefined : value);
       }}
       aria-label="Programme"
       className={cn("w-full sm:w-72", FIELD_SIZE)}

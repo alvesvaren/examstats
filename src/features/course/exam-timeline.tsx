@@ -5,7 +5,7 @@ import { GRADE_STYLE } from "@/components/grade-style";
 import { attemptsOf, passRateOf, type GradeCounts } from "@/domain/grades";
 import type { Part } from "@/domain/snapshot";
 import { layoutColumns, stackSegments } from "@/domain/timeline";
-import { useElementWidth } from "@/hooks/use-element-width";
+import { useElementSize } from "@/hooks/use-element-size";
 import { formatCount, formatDay, formatPercent } from "@/lib/format";
 
 /** The chart draws in real pixels, so the gaps below are exact at every width. */
@@ -30,7 +30,7 @@ const y = (share: number) => Math.round(TOP + PLOT_HEIGHT * (1 - share));
 export function ExamTimeline({ part }: { part: Part }) {
   // The tooltip lives outside the scrolling box, so it records the scroll offset it was opened at.
   const [hovered, setHovered] = useState<{ index: number; scrollLeft: number } | null>(null);
-  const { ref, width: viewportWidth } = useElementWidth<HTMLDivElement>();
+  const { ref, width: viewportWidth } = useElementSize<HTMLDivElement>();
 
   const items = part.sittings.map((sitting) => ({ ...sitting, attempts: attemptsOf(sitting.grades) }));
   const width = Math.max(viewportWidth, MIN_CHART_WIDTH, AXIS_LEFT + items.length * (MIN_COLUMN_WIDTH + EXAM_GAP));

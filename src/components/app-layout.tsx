@@ -1,12 +1,16 @@
 import { Link, Outlet, type ErrorComponentProps } from "@tanstack/react-router";
-import { MoonIcon, SunIcon } from "lucide-react";
+import { ArrowUpIcon, MoonIcon, SunIcon } from "lucide-react";
+import { cn } from "cn";
 import { GradeChip } from "@/components/grade";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useScrolledPast } from "@/hooks/use-scrolled-past";
 import { useTheme } from "@/hooks/use-theme";
 
 const LOGO_GRADES = ["U", "3", "4", "5"] as const;
 const SKELETON_ROWS = 12;
+/** How far down the page, in pixels, the button back to the top appears. */
+const SCROLL_TOP_OFFSET = 600;
 
 function ThemeToggle() {
   const { toggle } = useTheme();
@@ -14,6 +18,28 @@ function ThemeToggle() {
     <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle dark mode">
       <SunIcon className="hidden dark:block" />
       <MoonIcon className="dark:hidden" />
+    </Button>
+  );
+}
+
+const scrollUp = () => window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+
+/** Shows once the page has scrolled a way down. Hidden, it stays in place but out of sight and out of the tab order. */
+function ScrollToTop() {
+  const visible = useScrolledPast(SCROLL_TOP_OFFSET);
+  return (
+    <Button
+      variant="outline"
+      size="icon-lg"
+      onClick={scrollUp}
+      aria-label="Back to top"
+      inert={!visible}
+      className={cn(
+        "fixed right-4 bottom-4 z-40 rounded-full shadow-md transition-opacity md:right-6 md:bottom-6",
+        !visible && "opacity-0",
+      )}
+    >
+      <ArrowUpIcon />
     </Button>
   );
 }
@@ -41,6 +67,7 @@ export function AppLayout() {
           stats.ftek.se
         </a>
       </footer>
+      <ScrollToTop />
     </div>
   );
 }

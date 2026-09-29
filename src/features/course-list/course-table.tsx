@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowDownIcon, ArrowUpIcon, ChevronDownIcon } from "lucide-react";
-import { memo } from "react";
+import { memo, type CSSProperties } from "react";
 import { cn } from "cn";
 import { AverageGradeCell, PassRateCell, RatingCell, StackedCell } from "@/components/course-cells";
 import { SizeBar, Sparkline } from "@/components/marks";
@@ -54,6 +54,8 @@ interface CourseTableProps {
   onSortChange: (sort: SortKey, dir: SortDir) => void;
   programmes: Record<string, string>;
   maxAttempts: number;
+  /** Pixels between the top of the viewport and the sticky header, for what sticks above it. */
+  stickyTop: number;
 }
 
 export function CourseTable({
@@ -66,6 +68,7 @@ export function CourseTable({
   onSortChange,
   programmes,
   maxAttempts,
+  stickyTop,
 }: CourseTableProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY);
   const items: Item[] = [
@@ -80,13 +83,16 @@ export function CourseTable({
   return (
     <div>
       {isDesktop ? (
-        <div className={cn(DESKTOP_GRID, "sticky top-0 z-20 border-b bg-background px-2 py-2 text-xs text-muted-foreground")}>
+        <div
+          className={cn(DESKTOP_GRID, "sticky z-20 border-b bg-background px-2 py-2 text-xs text-muted-foreground")}
+          style={{ top: stickyTop }}
+        >
           {COLUMNS.map((column) => (
             <SortHeader key={column.key} column={column} sort={sort} dir={dir} onSort={sortBy} />
           ))}
         </div>
       ) : (
-        <MobileSortBar sort={sort} dir={dir} onSortChange={onSortChange} />
+        <MobileSortBar sort={sort} dir={dir} onSortChange={onSortChange} stickyTop={stickyTop} />
       )}
       {/* Row heights differ per layout, so switching layout starts a fresh virtualizer. */}
       <VirtualRows
@@ -119,7 +125,11 @@ function VirtualRows({ items, isDesktop, showEnded, onToggleEnded, programmes, m
   });
 
   return (
-    <div ref={listRef} className="relative [overflow-anchor:none]" style={{ height: virtualizer.getTotalSize() }}>
+    <div
+      ref={listRef}
+      className="relative [overflow-anchor:none] row-lines"
+      style={{ height: virtualizer.getTotalSize(), "--row-height": `${courseHeight}px` } as CSSProperties}
+    >
       {virtualizer.getVirtualItems().map((row) => {
         const item = items[row.index]!;
         return (
@@ -140,7 +150,7 @@ function VirtualRows({ items, isDesktop, showEnded, onToggleEnded, programmes, m
                 type="button"
                 onClick={onToggleEnded}
                 aria-expanded={showEnded}
-                className="flex h-14 w-full items-center justify-between border-b px-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+                className="flex h-14 w-full items-center justify-between border-b bg-background px-2 text-sm font-medium text-muted-foreground hover:text-foreground"
               >
                 Ended courses · {formatCount(item.count)}
                 <ChevronDownIcon className={cn("size-4 transition-transform", showEnded && "rotate-180")} />
@@ -175,7 +185,7 @@ function SortHeader({ column, sort, dir, onSort }: { column: Column; sort: SortK
 }
 
 /** Column headers do not fit on a phone, so sorting gets its own controls. */
-function MobileSortBar({ sort, dir, onSortChange }: Pick<CourseTableProps, "sort" | "dir" | "onSortChange">) {
+function MobileSortBar({ sort, dir, onSortChange, stickyTop }: Pick<CourseTableProps, "sort" | "dir" | "onSortChange" | "stickyTop">) {
   const Arrow = dir === "asc" ? ArrowUpIcon : ArrowDownIcon;
   const select = (value: string) => {
     const column = COLUMNS.find((c) => c.key === value);
@@ -183,7 +193,7 @@ function MobileSortBar({ sort, dir, onSortChange }: Pick<CourseTableProps, "sort
   };
   // 16px text, because iOS zooms into focused fields with smaller text.
   return (
-    <div className="sticky top-0 z-20 flex items-center gap-2 border-b bg-background py-2">
+    <div className="sticky z-20 flex items-center gap-2 border-b bg-background py-2" style={{ top: stickyTop }}>
       <span className="text-sm text-muted-foreground">Sort by</span>
       <NativeSelect value={sort} onChange={(event) => select(event.target.value)} aria-label="Sort by" className="[&_select]:text-base">
         {COLUMNS.map((column) => (
@@ -219,7 +229,7 @@ const CourseRow = memo(function CourseRow({ course, isDesktop, programmeName, ma
   return (
     <div
       className={cn(
-        "relative border-b px-2 hover:bg-muted/50",
+        "relative border-b bg-background px-2 hover:bg-muted/50",
         isDesktop ? "h-[61px]" : "h-[100px]",
         course.ended && "text-muted-foreground",
       )}

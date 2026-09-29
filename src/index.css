@@ -138,6 +138,11 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* A divider every `--row-height`, behind a virtual list, so rows it has not rendered yet still show where they go. */
+@utility row-lines {
+  background: linear-gradient(to bottom, transparent calc(100% - 1px), var(--border) calc(100% - 1px)) 0 0 / 100% var(--row-height) repeat-y;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
