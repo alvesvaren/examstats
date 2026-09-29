@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { spreadOf, type Spread } from "./spread.ts";
+import { spreadOf, type Frequencies } from "./spread.ts";
 
 /** Standard questions in Chalmers course surveys. All use the answer scale below. */
 export const QUESTIONS = [
@@ -28,6 +28,7 @@ export const EVALUATION_YEARS = 5;
 export const MIN_SCORE_ANSWERS = 5;
 
 const mean = z.number().min(ANSWER_SCALE.min).max(ANSWER_SCALE.max);
+const overallAnswersSchema = z.array(z.number().int().nonnegative()).length(ANSWER_OPTIONS);
 
 export const evaluationRoundSchema = z.object({
   /** Academic year the round started in, so 2024 is 2024/25. */
@@ -40,7 +41,7 @@ export const evaluationRoundSchema = z.object({
   minutes: z.url().nullable(),
   means: z.partialRecord(z.enum(QUESTIONS), mean),
   /** How many answered each option of the overall question, lowest first. Null when the report did not show it. */
-  overallAnswers: z.array(z.number().int().nonnegative()).length(ANSWER_OPTIONS).nullable(),
+  overallAnswers: overallAnswersSchema.nullable(),
 });
 
 /** The committed file that `pnpm evaluations` writes and `pnpm snapshot` reads. */
@@ -56,6 +57,8 @@ export const evaluationSummarySchema = z.object({
   sd: z.number(),
   answers: z.number().int(),
   rounds: z.number().int(),
+  /** How many gave each answer, lowest first. */
+  overallAnswers: overallAnswersSchema,
 });
 
 export type EvaluationRound = z.infer<typeof evaluationRoundSchema>;
@@ -70,17 +73,15 @@ export function questionMean(rounds: readonly EvaluationRound[], question: Quest
   return asked.reduce((sum, r) => sum + r.means[question]! * r.answers, 0) / answers;
 }
 
-/** Spread of the overall answers in the given rounds, pooled. */
-export function overallSpread(rounds: readonly EvaluationRound[]): Spread | null {
-  const pooled = Array.from({ length: ANSWER_OPTIONS }, (_, i) => rounds.reduce((sum, r) => sum + (r.overallAnswers?.[i] ?? 0), 0));
-  return spreadOf(pooled.map((count, i) => [ANSWER_SCALE.min + i, count]));
-}
+/** Answer counts per option, lowest first, as values and counts. */
+export const answerFrequencies = (counts: readonly number[]): Frequencies => counts.map((count, i) => [ANSWER_SCALE.min + i, count]);
 
 export function summarizeEvaluations(rounds: readonly EvaluationRound[]): EvaluationSummary | null {
-  const spread = overallSpread(rounds);
+  const overallAnswers = Array.from({ length: ANSWER_OPTIONS }, (_, i) => rounds.reduce((sum, r) => sum + (r.overallAnswers?.[i] ?? 0), 0));
+  const spread = spreadOf(answerFrequencies(overallAnswers));
   if (!spread || spread.count < MIN_SCORE_ANSWERS) return null;
   const { count, ...stats } = spread;
-  return { ...stats, answers: count, rounds: rounds.filter((r) => r.overallAnswers?.some(Boolean)).length };
+  return { ...stats, answers: count, rounds: rounds.filter((r) => r.overallAnswers?.some(Boolean)).length, overallAnswers };
 }
 
 /** Newest round first, then by study period. */

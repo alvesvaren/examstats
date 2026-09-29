@@ -4,14 +4,14 @@ import { ArrowLeftIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { RECENT_LABEL } from "@/components/course-cells";
 import { GradeBar } from "@/components/grade";
-import { SpreadMark } from "@/components/marks";
+import { DistributionMark } from "@/components/marks";
 import { MetricLabel } from "@/components/metric-label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { catalogQuery, courseQuery } from "@/data/queries";
 import { normalize, partLabel, type CatalogCourse } from "@/domain/catalog";
-import { GRADE_SCALE, gradeSpreadOf } from "@/domain/grades";
+import { GRADE_SCALE, gradeFrequencies, gradeSpreadOf } from "@/domain/grades";
 import { formatCount, formatDay, formatGrade, formatNumber, formatPercent } from "@/lib/format";
 import { GradeBreakdown, OtherInstances, OtherParts } from "./course-sections";
 import { CourseSurvey } from "./course-survey";
@@ -109,7 +109,7 @@ function StatStrip({ course }: { course: CatalogCourse }) {
         detail={
           gradeSpread && (
             <>
-              <SpreadMark spread={gradeSpread} {...GRADE_SCALE} tone="grade" className="mt-1 w-full" />
+              <DistributionMark frequencies={gradeFrequencies(course.recentGrades)} {...GRADE_SCALE} tone="grade" className="mt-1 w-full" />
               <span className="mt-1 block">
                 Median {formatNumber(gradeSpread.median)} · SD {formatNumber(gradeSpread.sd)}
               </span>

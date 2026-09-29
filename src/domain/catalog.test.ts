@@ -28,7 +28,7 @@ const courses = [
   row("TDA357", "Databaser", {
     programme: "TKITE",
     attemptsPerYear: 380,
-    evaluation: { mean: 4.2, median: 4, sd: 0.8, answers: 90, rounds: 3 },
+    evaluation: { mean: 4.2, median: 4, sd: 0.8, answers: 90, rounds: 3, overallAnswers: [0, 5, 10, 30, 45] },
   }),
   row("TDA545", "Objektorienterad programvaruutveckling", { programme: "TKITE", attemptsPerYear: 0, ended: true }),
 ];
@@ -59,7 +59,9 @@ describe("queryCourses", () => {
   it("sorts by survey rating with unrated courses last", () => {
     const rated = [
       ...courses,
-      row("TMA976", "Matematisk analys, fortsättning", { evaluation: { mean: 3.1, median: 3, sd: 1.1, answers: 40, rounds: 2 } }),
+      row("TMA976", "Matematisk analys, fortsättning", {
+        evaluation: { mean: 3.1, median: 3, sd: 1.1, answers: 40, rounds: 2, overallAnswers: [5, 8, 12, 10, 5] },
+      }),
     ];
     expect(
       queryCourses(rated, { sort: "rating", dir: "desc" })

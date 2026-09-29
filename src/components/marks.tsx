@@ -1,15 +1,18 @@
 import { cn } from "cn";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { TrendPoint } from "@/domain/snapshot";
-import type { Spread } from "@/domain/spread";
+import { spreadOf, type Frequencies } from "@/domain/spread";
 import { formatAcademicYear, formatPercent } from "@/lib/format";
 
-/** Bar length grows with the square root of `value`, so small courses stay visible next to large ones. */
+/**
+ * A fixed-width track filled up to `value`, so bars compare at a glance. The fill grows with the square root of
+ * `value`, so small courses stay visible next to large ones.
+ */
 export function SizeBar({ value, max, className }: { value: number; max: number; className?: string }) {
   const width = max ? Math.sqrt(value / max) * 100 : 0;
   return (
-    <span className={cn("flex h-2 w-16", className)}>
-      <span className="rounded-sm bg-foreground/35" style={{ width: `${width}%` }} />
+    <span className={cn("flex h-2 w-16 rounded-sm bg-foreground/10", className)}>
+      <span className="rounded-sm bg-foreground/40" style={{ width: `${width}%` }} />
     </span>
   );
 }
@@ -38,7 +41,6 @@ export function Sparkline({ trend, className }: { trend: readonly TrendPoint[]; 
           className={cn("relative z-10 text-muted-foreground", className)}
           aria-label={`Pass rate ${formatPercent(first.passRate)} in ${formatAcademicYear(first.academicYear)}, ${formatPercent(last.passRate)} in ${formatAcademicYear(last.academicYear)}`}
         >
-          <line x1={0} x2={SPARK_WIDTH} y1={y(0.5)} y2={y(0.5)} className="stroke-border" />
           <path d={path} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round" />
           <circle cx={x(trend.length - 1)} cy={y(last.passRate)} r={2.5} className="fill-foreground" />
         </svg>
@@ -50,6 +52,9 @@ export function Sparkline({ trend, className }: { trend: readonly TrendPoint[]; 
     </Tooltip>
   );
 }
+
+/** The scales are whole steps, so each step gets a slot this wide on either side and values at the ends stay inside. */
+const HALF_STEP = 0.5;
 
 interface ScaleDotProps {
   value: number;
@@ -63,7 +68,7 @@ interface ScaleDotProps {
 
 /** A value as a dot on a track from `min` to `max`. */
 export function ScaleDot({ value, min, max, mark, dotClassName = "bg-foreground", className }: ScaleDotProps) {
-  const position = (x: number) => `${((x - min) / (max - min)) * 100}%`;
+  const position = (x: number) => `${((x - min + HALF_STEP) / (max - min + 2 * HALF_STEP)) * 100}%`;
   return (
     <span className={cn("relative h-3 w-12", className)} aria-hidden>
       <span className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded bg-border" />
@@ -78,40 +83,38 @@ export function ScaleDot({ value, min, max, mark, dotClassName = "bg-foreground"
   );
 }
 
-/** Literal class names per tone, so Tailwind can see them. */
-const SPREAD_TONE = {
-  grade: { dot: "bg-grade-5", band: "bg-grade-5/30" },
-  neutral: { dot: "bg-foreground", band: "bg-foreground/20" },
+/** Colour per tone, and how dark the most common value gets in percent. */
+const DISTRIBUTION_TONE = {
+  grade: { color: "var(--grade-5)", peak: 100 },
+  neutral: { color: "var(--foreground)", peak: 70 },
 } as const;
 
-interface SpreadMarkProps {
-  spread: Pick<Spread, "mean" | "median" | "sd">;
+interface DistributionMarkProps {
+  frequencies: Frequencies;
   min: number;
   max: number;
-  tone?: keyof typeof SPREAD_TONE;
+  tone?: keyof typeof DISTRIBUTION_TONE;
   className?: string;
 }
 
 /**
- * A compact box plot for a small scale: the dot is the mean, the tick the median, and the band one standard deviation
- * on either side of the mean. Quartiles would collapse onto whole grades, so the band shows spread instead.
+ * How grades or answers spread over a small scale, drawn inside a track like {@link SizeBar}. Each value's slot is as
+ * dark as the value is common, blending into its neighbours. A tick that reaches past the track marks the median.
  */
-export function SpreadMark({ spread, min, max, tone = "neutral", className }: SpreadMarkProps) {
-  const { mean, median, sd } = spread;
-  const at = (value: number) => `${((Math.min(max, Math.max(min, value)) - min) / (max - min)) * 100}%`;
-  const { dot, band } = SPREAD_TONE[tone];
+export function DistributionMark({ frequencies, min, max, tone = "neutral", className }: DistributionMarkProps) {
+  const at = (value: number) => ((value - min + HALF_STEP) / (max - min + 2 * HALF_STEP)) * 100;
+  const { color, peak } = DISTRIBUTION_TONE[tone];
+  const largest = Math.max(1, ...frequencies.map(([, count]) => count));
+  const stops = frequencies
+    .toSorted(([a], [b]) => a - b)
+    .map(([value, count]) => `color-mix(in oklab, ${color} ${(count / largest) * peak}%, transparent) ${at(value)}%`);
+  const median = spreadOf(frequencies)?.median;
   return (
-    <span className={cn("relative h-2 w-12", className)} aria-hidden>
-      <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
-      <span
-        className={cn("absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full", band)}
-        style={{ left: at(mean - sd), right: `calc(100% - ${at(mean + sd)})` }}
-      />
-      <span className="absolute inset-y-0 w-0.5 -translate-x-1/2 rounded-full bg-foreground/60" style={{ left: at(median) }} />
-      <span
-        className={cn("absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-1 ring-background", dot)}
-        style={{ left: at(mean) }}
-      />
+    <span className={cn("relative h-2 w-12 rounded-sm bg-foreground/10", className)} aria-hidden>
+      <span className="absolute inset-0 rounded-sm" style={{ backgroundImage: `linear-gradient(to right, ${stops.join(", ")})` }} />
+      {median !== undefined && (
+        <span className="absolute -inset-y-0.5 w-0.5 -translate-x-1/2 rounded-full bg-foreground" style={{ left: `${at(median)}%` }} />
+      )}
     </span>
   );
 }

@@ -1,13 +1,13 @@
 import { ExternalLinkIcon } from "lucide-react";
 import { cn } from "cn";
-import { SpreadCell } from "@/components/course-cells";
-import { ScaleDot, SpreadMark } from "@/components/marks";
+import { DistributionCell } from "@/components/course-cells";
+import { DistributionMark, ScaleDot } from "@/components/marks";
 import { MetricLabel } from "@/components/metric-label";
 import {
   ANSWER_SCALE,
   BALANCED_WORKLOAD,
   EVALUATION_YEARS,
-  overallSpread,
+  answerFrequencies,
   questionMean,
   type EvaluationRound,
   type EvaluationSummary,
@@ -72,7 +72,7 @@ export function CourseSurvey({ evaluation, rounds, fetchedAt }: CourseSurveyProp
               </div>
               {evaluation && (
                 <>
-                  <SpreadMark spread={evaluation} {...ANSWER_SCALE} className="w-full" />
+                  <DistributionMark frequencies={answerFrequencies(evaluation.overallAnswers)} {...ANSWER_SCALE} className="w-full" />
                   <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
                     <span>{ANSWER_SCALE.min} Very poor</span>
                     <span>
@@ -124,7 +124,6 @@ export function CourseSurvey({ evaluation, rounds, fetchedAt }: CourseSurveyProp
 const ROUND_GRID = "grid grid-cols-[minmax(0,1fr)_4rem_3.5rem] items-center gap-x-4 sm:grid-cols-[minmax(0,1fr)_4rem_5rem_3.5rem]";
 
 function SurveyRounds({ rounds }: { rounds: readonly EvaluationRound[] }) {
-  const rows = rounds.map((round) => ({ round, spread: overallSpread([round]) }));
   return (
     <div>
       <div className={cn(ROUND_GRID, "border-b pb-2 text-xs text-muted-foreground")}>
@@ -134,13 +133,18 @@ function SurveyRounds({ rounds }: { rounds: readonly EvaluationRound[] }) {
         <span className="text-right">Minutes</span>
       </div>
       <ul className="flex flex-col text-sm tabular-nums">
-        {rows.map(({ round, spread }) => (
+        {rounds.map((round) => (
           <li key={`${round.academicYear} ${round.periods}`} className={cn(ROUND_GRID, "border-b py-2")}>
             <span>
               {formatAcademicYear(round.academicYear)} <span className="text-muted-foreground">{periodsLabel(round.periods)}</span>
             </span>
-            {spread ? (
-              <SpreadCell value={formatScore(spread.mean)} spread={spread} scale={ANSWER_SCALE} label="Overall impression" />
+            {round.overallAnswers ? (
+              <DistributionCell
+                value={formatScore(round.means.overall ?? null)}
+                frequencies={answerFrequencies(round.overallAnswers)}
+                scale={ANSWER_SCALE}
+                label="Overall impression"
+              />
             ) : (
               <span className="text-right">{formatScore(round.means.overall ?? null)}</span>
             )}

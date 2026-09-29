@@ -5,7 +5,7 @@ import { RECENT_YEARS } from "@/domain/course-stats";
 import { ANSWER_SCALE, EVALUATION_YEARS } from "@/domain/evaluation";
 
 const WINDOW = `the main exam over the last ${RECENT_YEARS} academic years with results`;
-const SPREAD = "In the mark, the dot is the mean, the tick the median, and the band one standard deviation either side.";
+const SPREAD = "In the mark, the darker a value, the more common it is. The tick is the median.";
 
 const METRIC_HELP = {
   passRate: `Share of attempts that passed ${WINDOW}. A retake counts as a new attempt.`,

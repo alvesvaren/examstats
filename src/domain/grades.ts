@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { spreadOf } from "./spread.ts";
+import { spreadOf, type Frequencies } from "./spread.ts";
 
 const count = z.number().int().nonnegative();
 
@@ -38,6 +38,9 @@ export function passRateOf(counts: GradeCounts): number | null {
 }
 
 /** Mean, median and spread of grades 3 to 5, or null when the counts have no numeric grades. */
-export const gradeSpreadOf = (counts: GradeCounts) => spreadOf(NUMERIC_GRADES.map((grade) => [Number(grade), counts[grade]]));
+/** How many got each of grades 3 to 5. */
+export const gradeFrequencies = (counts: GradeCounts): Frequencies => NUMERIC_GRADES.map((grade) => [Number(grade), counts[grade]]);
+
+export const gradeSpreadOf = (counts: GradeCounts) => spreadOf(gradeFrequencies(counts));
 
 export const averageGradeOf = (counts: GradeCounts) => gradeSpreadOf(counts)?.mean ?? null;
