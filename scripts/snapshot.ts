@@ -34,7 +34,7 @@ async function main() {
   const roundsByCode = Map.groupBy(evaluations.rounds, (r) => r.code);
   /** Survey rounds of a course, newest first. */
   const roundsOf = (code: string): EvaluationRound[] =>
-    (roundsByCode.get(code) ?? []).map(({ code: _, ...round }) => round).sort(compareRounds);
+    (roundsByCode.get(code) ?? []).map(({ code: _, ...round }) => round).toSorted(compareRounds);
 
   const coursesDir = path.join(env.OUT_DIR, "courses");
   await rm(env.OUT_DIR, { recursive: true, force: true });

@@ -65,7 +65,8 @@ export function CourseSurvey({ evaluation, rounds, fetchedAt }: CourseSurveyProp
                 <span className="ml-auto text-right text-xs text-muted-foreground tabular-nums">
                   Overall impression
                   <br />
-                  {evaluation ? `${formatCount(evaluation.answers)} answers` : "Too few answers"} · {formatAcademicYear(oldest.academicYear)}
+                  {evaluation ? `${formatCount(evaluation.answers)} answers` : "Too few answers"} ·{" "}
+                  {formatAcademicYear(oldest.academicYear)}
                   {oldest.academicYear !== newest.academicYear && `–${formatAcademicYear(newest.academicYear)}`}
                 </span>
               </div>
@@ -148,7 +149,12 @@ function SurveyRounds({ rounds }: { rounds: readonly EvaluationRound[] }) {
             </span>
             <span className="text-right">
               {round.minutes ? (
-                <a href={round.minutes} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline-offset-4 hover:underline">
+                <a
+                  href={round.minutes}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 underline-offset-4 hover:underline"
+                >
                   PDF
                   <ExternalLinkIcon className="size-3" aria-hidden />
                 </a>

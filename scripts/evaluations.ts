@@ -9,7 +9,15 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { EVALUATION_YEARS, type EvaluationFile } from "../src/domain/evaluation.ts";
-import { CHART_WIDTH, parseAnswerChart, parseReport, parseSearchForm, parseSurveyRows, parseTitle, type Category } from "./evaluation-pages.ts";
+import {
+  CHART_WIDTH,
+  parseAnswerChart,
+  parseReport,
+  parseSearchForm,
+  parseSurveyRows,
+  parseTitle,
+  type Category,
+} from "./evaluation-pages.ts";
 import { toJsonLines } from "./json-lines.ts";
 
 const env = z
@@ -68,7 +76,7 @@ class Session {
       }
       const location = response.headers.get("location");
       if (!location) {
-        if (!response.ok) throw new Error(`${response.status} ${response.statusText} for ${target}`);
+        if (!response.ok) throw new Error(`${response.status} ${response.statusText} for ${target.href}`);
         return response;
       }
       target = new URL(location, target);
@@ -162,7 +170,7 @@ async function crawlReport(reportId: number): Promise<Round[]> {
     try {
       rounds.push({ ...course, ...(await fetchRound(id)) });
     } catch (error) {
-      console.warn(`Skipping "${title}" (${id}): ${error instanceof Error ? error.message : error}`);
+      console.warn(`Skipping "${title}" (${id}): ${error instanceof Error ? error.message : String(error)}`);
     }
     if ((index + 1) % PROGRESS_EVERY === 0) console.log(`Report ${reportId}: ${index + 1}/${surveys.length}`);
   }
@@ -172,7 +180,8 @@ async function crawlReport(reportId: number): Promise<Round[]> {
 }
 
 /** Positive when `a` is the better copy of a round: one with the overall answers, then one with more answers. */
-const compareCopies = (a: Round, b: Round) => Number(a.overallAnswers !== null) - Number(b.overallAnswers !== null) || a.answers - b.answers;
+const compareCopies = (a: Round, b: Round) =>
+  Number(a.overallAnswers !== null) - Number(b.overallAnswers !== null) || a.answers - b.answers;
 
 /** A round can show up in both reports, or twice in one. Keep the best copy. */
 function dedupe(rounds: readonly Round[]): Round[] {
@@ -182,7 +191,7 @@ function dedupe(rounds: readonly Round[]): Round[] {
     const existing = byKey.get(key);
     if (!existing || compareCopies(round, existing) > 0) byKey.set(key, round);
   }
-  return [...byKey.values()].sort(
+  return [...byKey.values()].toSorted(
     (a, b) => a.code.localeCompare(b.code) || a.academicYear - b.academicYear || (a.periods ?? "").localeCompare(b.periods ?? ""),
   );
 }

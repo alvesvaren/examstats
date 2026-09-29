@@ -85,7 +85,10 @@ export interface CourseQuery {
  * Filters and sorts the catalog. Each `;`-separated part of `q` is its own search, and a course matches if any part
  * matches all of its words. Courses whose code equals a part come first.
  */
-export function queryCourses(courses: readonly CatalogCourse[], { q = "", programme, sort = "attemptsPerYear", dir = "desc" }: CourseQuery) {
+export function queryCourses(
+  courses: readonly CatalogCourse[],
+  { q = "", programme, sort = "attemptsPerYear", dir = "desc" }: CourseQuery,
+) {
   const parts = searchParts(q);
   const searches = parts.map(words);
   const exactCodes = new Set(parts.map((part) => part.toLowerCase()));
@@ -93,8 +96,8 @@ export function queryCourses(courses: readonly CatalogCourse[], { q = "", progra
   const matchesSearch = (c: CatalogCourse) => !searches.length || searches.some((terms) => terms.every((t) => c.searchText.includes(t)));
   const rows = courses
     .filter((c) => (!programme || c.programme === programme) && matchesSearch(c))
-    .sort(compareBy(sort, dir))
-    .sort((a, b) => Number(isExact(b)) - Number(isExact(a)));
+    .toSorted(compareBy(sort, dir))
+    .toSorted((a, b) => Number(isExact(b)) - Number(isExact(a)));
   return { active: rows.filter((c) => !c.ended), ended: rows.filter((c) => c.ended) };
 }
 

@@ -2,7 +2,7 @@ import { cn } from "cn";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { TrendPoint } from "@/domain/snapshot";
 import type { Spread } from "@/domain/spread";
-import { formatAcademicYear, formatNumber, formatPercent } from "@/lib/format";
+import { formatAcademicYear, formatPercent } from "@/lib/format";
 
 /** Bar length grows with the square root of `value`, so small courses stay visible next to large ones. */
 export function SizeBar({ value, max, className }: { value: number; max: number; className?: string }) {
@@ -67,7 +67,9 @@ export function ScaleDot({ value, min, max, mark, dotClassName = "bg-foreground"
   return (
     <span className={cn("relative h-3 w-12", className)} aria-hidden>
       <span className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded bg-border" />
-      {mark !== undefined && <span className="absolute inset-y-0 w-px -translate-x-1/2 bg-muted-foreground" style={{ left: position(mark) }} />}
+      {mark !== undefined && (
+        <span className="absolute inset-y-0 w-px -translate-x-1/2 bg-muted-foreground" style={{ left: position(mark) }} />
+      )}
       <span
         className={cn("absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-background", dotClassName)}
         style={{ left: position(value) }}
@@ -90,10 +92,6 @@ interface SpreadMarkProps {
   className?: string;
 }
 
-/** The numbers behind a {@link SpreadMark}, for tooltips and screen readers. */
-export const spreadSummary = ({ mean, median, sd }: SpreadMarkProps["spread"]) =>
-  `Mean ${formatNumber(mean)} · median ${formatNumber(median)} · SD ${formatNumber(sd)}`;
-
 /**
  * A compact box plot for a small scale: the dot is the mean, the tick the median, and the band one standard deviation
  * on either side of the mean. Quartiles would collapse onto whole grades, so the band shows spread instead.
@@ -105,9 +103,15 @@ export function SpreadMark({ spread, min, max, tone = "neutral", className }: Sp
   return (
     <span className={cn("relative h-2 w-12", className)} aria-hidden>
       <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
-      <span className={cn("absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full", band)} style={{ left: at(mean - sd), right: `calc(100% - ${at(mean + sd)})` }} />
+      <span
+        className={cn("absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full", band)}
+        style={{ left: at(mean - sd), right: `calc(100% - ${at(mean + sd)})` }}
+      />
       <span className="absolute inset-y-0 w-0.5 -translate-x-1/2 rounded-full bg-foreground/60" style={{ left: at(median) }} />
-      <span className={cn("absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-1 ring-background", dot)} style={{ left: at(mean) }} />
+      <span
+        className={cn("absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-1 ring-background", dot)}
+        style={{ left: at(mean) }}
+      />
     </span>
   );
 }

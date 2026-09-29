@@ -1,0 +1,6 @@
+# Generated
+dist
+public/data
+data
+pnpm-lock.yaml
+src/components/ui

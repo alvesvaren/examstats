@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { cn } from "cn";
-import { GRADE_STYLE, GradeTally } from "@/components/grade";
+import { GradeTally } from "@/components/grade";
+import { GRADE_STYLE } from "@/components/grade-style";
 import { attemptsOf, passRateOf, type GradeCounts } from "@/domain/grades";
 import type { Part } from "@/domain/snapshot";
 import { layoutColumns, stackSegments } from "@/domain/timeline";

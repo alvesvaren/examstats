@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { questionMean, summarizeEvaluations, type EvaluationRound } from "./evaluation.ts";
 
-const round = (academicYear: number, answers: number, means: EvaluationRound["means"], overallAnswers: number[] | null = null): EvaluationRound => ({
+const round = (
+  academicYear: number,
+  answers: number,
+  means: EvaluationRound["means"],
+  overallAnswers: number[] | null = null,
+): EvaluationRound => ({
   academicYear,
   periods: "LP1",
   respondents: answers * 3,

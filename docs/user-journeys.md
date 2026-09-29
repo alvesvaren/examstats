@@ -2,14 +2,14 @@
 
 ## Journeys
 
-| # | User | Story | Entry | Ends on |
-| --- | --- | --- | --- | --- |
-| 1 | Student picking electives | Compare the courses I am considering, so I avoid one where half fail or students are unhappy. | Programme or course names | List, sorted, then one or two courses |
-| 2 | Student before an exam | See how recent exams went, so I know what to expect. | Course code | Course, latest exams |
-| 3 | Student planning a retake | See when retakes happen and how they go. | Course code | Course, small exams in the timeline |
-| 4 | New student | See which courses in my programme are hard. | Programme name or code | List scoped to the programme, sorted by pass rate |
-| 5 | Student representative | Spot courses in my programme where results dropped. | Programme | List scoped to the programme, sorted by trend |
-| 6 | Curious visitor | Find the hardest and easiest courses at Chalmers. | Nothing | List, sorted by pass rate, large courses only |
+| #   | User                      | Story                                                                                         | Entry                     | Ends on                                           |
+| --- | ------------------------- | --------------------------------------------------------------------------------------------- | ------------------------- | ------------------------------------------------- |
+| 1   | Student picking electives | Compare the courses I am considering, so I avoid one where half fail or students are unhappy. | Programme or course names | List, sorted, then one or two courses             |
+| 2   | Student before an exam    | See how recent exams went, so I know what to expect.                                          | Course code               | Course, latest exams                              |
+| 3   | Student planning a retake | See when retakes happen and how they go.                                                      | Course code               | Course, small exams in the timeline               |
+| 4   | New student               | See which courses in my programme are hard.                                                   | Programme name or code    | List scoped to the programme, sorted by pass rate |
+| 5   | Student representative    | Spot courses in my programme where results dropped.                                           | Programme                 | List scoped to the programme, sorted by trend     |
+| 6   | Curious visitor           | Find the hardest and easiest courses at Chalmers.                                             | Nothing                   | List, sorted by pass rate, large courses only     |
 
 ## What they share
 

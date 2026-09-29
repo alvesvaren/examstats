@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
 import { cn } from "cn";
 import { GradeBar, GradeTally } from "@/components/grade";
-import { SpreadMark, spreadSummary } from "@/components/marks";
+import { SpreadMark } from "@/components/marks";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { RECENT_YEARS } from "@/domain/course-stats";
 import { ANSWER_SCALE, EVALUATION_YEARS, type EvaluationSummary } from "@/domain/evaluation";
 import { GRADE_SCALE, gradeSpreadOf, passRateOf, type GradeCounts } from "@/domain/grades";
 import type { Spread } from "@/domain/spread";
-import { formatGrade, formatPercent, formatScore } from "@/lib/format";
+import { formatGrade, formatPercent, formatScore, formatSpread } from "@/lib/format";
 
 export const RECENT_LABEL = `Main exam, last ${RECENT_YEARS} years`;
 const RATING_LABEL = `Overall impression, last ${EVALUATION_YEARS} years`;
@@ -93,7 +93,7 @@ export function SpreadCell({ value, spread, scale, tone, label, muted, interacti
   const tooltip = (
     <>
       {label}
-      <span>{spreadSummary(spread)}</span>
+      <span>{formatSpread(spread)}</span>
     </>
   );
   return (

@@ -46,6 +46,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   return <ThemeContext value={{ toggle }}>{children}</ThemeContext>;
 }
 
+// oxlint-disable-next-line react/only-export-components -- The provider and its hook share a private context.
 export function useTheme() {
   const context = use(ThemeContext);
   if (!context) throw new Error("useTheme needs a ThemeProvider");

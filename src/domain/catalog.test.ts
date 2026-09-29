@@ -20,8 +20,16 @@ const row = (code: string, name: string, extra: Partial<CourseSummary> = {}) =>
 
 const courses = [
   row("TMV165", "Linjär algebra", { programme: "TKMAS", attemptsPerYear: 50, recentGrades: { ...emptyCounts(), U: 1, "3": 1 } }),
-  row("TMA970", "Inledande matematisk analys", { programme: "TKTFY", attemptsPerYear: 350, recentGrades: { ...emptyCounts(), U: 53, "4": 47 } }),
-  row("TDA357", "Databaser", { programme: "TKITE", attemptsPerYear: 380, evaluation: { mean: 4.2, median: 4, sd: 0.8, answers: 90, rounds: 3 } }),
+  row("TMA970", "Inledande matematisk analys", {
+    programme: "TKTFY",
+    attemptsPerYear: 350,
+    recentGrades: { ...emptyCounts(), U: 53, "4": 47 },
+  }),
+  row("TDA357", "Databaser", {
+    programme: "TKITE",
+    attemptsPerYear: 380,
+    evaluation: { mean: 4.2, median: 4, sd: 0.8, answers: 90, rounds: 3 },
+  }),
   row("TDA545", "Objektorienterad programvaruutveckling", { programme: "TKITE", attemptsPerYear: 0, ended: true }),
 ];
 
@@ -49,9 +57,20 @@ describe("queryCourses", () => {
   });
 
   it("sorts by survey rating with unrated courses last", () => {
-    const rated = [...courses, row("TMA976", "Matematisk analys, fortsättning", { evaluation: { mean: 3.1, median: 3, sd: 1.1, answers: 40, rounds: 2 } })];
-    expect(queryCourses(rated, { sort: "rating", dir: "desc" }).active.map((c) => c.code).slice(0, 2)).toEqual(["TDA357", "TMA976"]);
-    expect(queryCourses(rated, { sort: "rating", dir: "asc" }).active.map((c) => c.code).slice(0, 2)).toEqual(["TMA976", "TDA357"]);
+    const rated = [
+      ...courses,
+      row("TMA976", "Matematisk analys, fortsättning", { evaluation: { mean: 3.1, median: 3, sd: 1.1, answers: 40, rounds: 2 } }),
+    ];
+    expect(
+      queryCourses(rated, { sort: "rating", dir: "desc" })
+        .active.map((c) => c.code)
+        .slice(0, 2),
+    ).toEqual(["TDA357", "TMA976"]);
+    expect(
+      queryCourses(rated, { sort: "rating", dir: "asc" })
+        .active.map((c) => c.code)
+        .slice(0, 2),
+    ).toEqual(["TMA976", "TDA357"]);
   });
 
   it("matches any of several searches separated by semicolons", () => {

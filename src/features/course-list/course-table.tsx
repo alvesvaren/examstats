@@ -56,7 +56,17 @@ interface CourseTableProps {
   maxAttempts: number;
 }
 
-export function CourseTable({ active, ended, showEnded, onToggleEnded, sort, dir, onSortChange, programmes, maxAttempts }: CourseTableProps) {
+export function CourseTable({
+  active,
+  ended,
+  showEnded,
+  onToggleEnded,
+  sort,
+  dir,
+  onSortChange,
+  programmes,
+  maxAttempts,
+}: CourseTableProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY);
   const items: Item[] = [
     ...active.map((course) => ({ kind: "course" as const, course })),
@@ -113,7 +123,11 @@ function VirtualRows({ items, isDesktop, showEnded, onToggleEnded, programmes, m
       {virtualizer.getVirtualItems().map((row) => {
         const item = items[row.index]!;
         return (
-          <div key={row.key} className="absolute inset-x-0 top-0" style={{ transform: `translateY(${row.start - virtualizer.options.scrollMargin}px)` }}>
+          <div
+            key={row.key}
+            className="absolute inset-x-0 top-0"
+            style={{ transform: `translateY(${row.start - virtualizer.options.scrollMargin}px)` }}
+          >
             {item.kind === "course" ? (
               <CourseRow
                 course={item.course}
@@ -178,7 +192,12 @@ function MobileSortBar({ sort, dir, onSortChange }: Pick<CourseTableProps, "sort
           </NativeSelectOption>
         ))}
       </NativeSelect>
-      <Button variant="ghost" size="icon-sm" onClick={() => onSortChange(sort, flip(dir))} aria-label={dir === "asc" ? "Sort descending" : "Sort ascending"}>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={() => onSortChange(sort, flip(dir))}
+        aria-label={dir === "asc" ? "Sort descending" : "Sort ascending"}
+      >
         <Arrow />
       </Button>
     </div>
@@ -198,7 +217,13 @@ interface CourseRowProps {
  */
 const CourseRow = memo(function CourseRow({ course, isDesktop, programmeName, maxAttempts }: CourseRowProps) {
   return (
-    <div className={cn("relative border-b px-2 hover:bg-muted/50", isDesktop ? "h-[61px]" : "h-[100px]", course.ended && "text-muted-foreground")}>
+    <div
+      className={cn(
+        "relative border-b px-2 hover:bg-muted/50",
+        isDesktop ? "h-[61px]" : "h-[100px]",
+        course.ended && "text-muted-foreground",
+      )}
+    >
       <Link to="/course/$code" params={{ code: course.code }} className="absolute inset-0" aria-label={`${course.code} ${course.name}`} />
       {isDesktop ? (
         <DesktopRow course={course} programmeName={programmeName} maxAttempts={maxAttempts} />

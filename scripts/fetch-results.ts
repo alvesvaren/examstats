@@ -7,7 +7,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { orderParts } from "../src/domain/course-stats.ts";
-import { GRADES, attemptsOf, gradeCountsSchema } from "../src/domain/grades.ts";
+import { attemptsOf, gradeCountsSchema } from "../src/domain/grades.ts";
 import type { Part, ResultsFile } from "../src/domain/snapshot.ts";
 import { toJsonLines } from "./json-lines.ts";
 
@@ -64,7 +64,7 @@ async function listCourses() {
 }
 
 async function mapConcurrent<T, R>(items: readonly T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
-  const results: R[] = new Array(items.length);
+  const results: R[] = [];
   let next = 0;
   const worker = async () => {
     while (next < items.length) {
@@ -85,8 +85,8 @@ function toParts(results: z.infer<typeof upstreamResultsSchema>): Part[] {
     type: group[0]!.type,
     code: group[0]!.resultId,
     sittings: group
-      .map((r) => ({ date: r.date, grades: Object.fromEntries(GRADES.map((g) => [g, r[g]])) as Part["sittings"][number]["grades"] }))
-      .sort((a, b) => a.date.localeCompare(b.date)),
+      .map(({ date, type: _type, resultId: _resultId, ...grades }) => ({ date, grades }))
+      .toSorted((a, b) => a.date.localeCompare(b.date)),
   }));
   return orderParts(parts);
 }

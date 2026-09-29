@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "cn";
 import { AverageGradeCell, PassRateCell } from "@/components/course-cells";
-import { GRADE_STYLE, GradeBar, GradeChip } from "@/components/grade";
+import { GradeBar, GradeChip } from "@/components/grade";
+import { GRADE_STYLE } from "@/components/grade-style";
 import { partLabel, type CatalogCourse } from "@/domain/catalog";
 import { GRADES, attemptsOf, passRateOf, sumCounts } from "@/domain/grades";
 import type { Part } from "@/domain/snapshot";
@@ -77,7 +78,10 @@ export function OtherInstances({ courses, programmes }: { courses: CatalogCourse
       </div>
       <ul className="flex flex-col text-sm">
         {courses.slice(0, MAX_LISTED).map((course) => (
-          <li key={course.code} className={cn(INSTANCE_GRID, "relative border-b py-2 hover:bg-muted/50", course.ended && "text-muted-foreground")}>
+          <li
+            key={course.code}
+            className={cn(INSTANCE_GRID, "relative border-b py-2 hover:bg-muted/50", course.ended && "text-muted-foreground")}
+          >
             <span className="min-w-0">
               <Link to="/course/$code" params={{ code: course.code }} className="font-medium tabular-nums after:absolute after:inset-0">
                 {course.code}

@@ -34,7 +34,7 @@ export function CoursePage() {
   const part = detail.parts[selected];
   const otherInstances = snapshot.courses
     .filter((c) => c.code !== code && normalize(c.name) === normalize(course.name))
-    .sort((a, b) => (b.lastResult ?? "").localeCompare(a.lastResult ?? ""));
+    .toSorted((a, b) => (b.lastResult ?? "").localeCompare(a.lastResult ?? ""));
   const goBack = () => (canGoBack ? router.history.back() : navigate({ to: "/" }));
 
   return (

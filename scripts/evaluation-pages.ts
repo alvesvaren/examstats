@@ -52,7 +52,10 @@ export function parseSearchForm(html: string) {
     const item = items.find((i) => i.CategoryTitle === title);
     if (!item) throw new Error(`Search form has no "${title}" field`);
     const options = item.CategoryTree.matchAll(/tag="(\d+)"[^>]*\/>\s*<label[^>]*>([^<]*)<\/label>/g);
-    return { name: `hfCategory${item.ID}`, options: [...options].map(([, id, label]): Category => ({ id: Number(id), label: decode(label!).trim() })) };
+    return {
+      name: `hfCategory${item.ID}`,
+      options: [...options].map(([, id, label]): Category => ({ id: Number(id), label: decode(label!).trim() })),
+    };
   };
   return { sessionKey, programmes: field("Program som kurs ingår i"), years: field("Läsår") };
 }
@@ -101,7 +104,9 @@ export function parseReport(html: string) {
     const mean = Number(row[2]!.replace(",", "."));
     if (!key || key in means || mean < ANSWER_SCALE.min || mean > ANSWER_SCALE.max) continue;
     means[key] = Math.round(mean * DECIMALS) / DECIMALS;
-    if (key === "overall") overallChart = [...chunks[index - 1]!.matchAll(/<img class="srchart"[^>]*src="images\/loading\.gif(\?k=[^"]+)"/g)].at(-1)?.[1] ?? null;
+    if (key === "overall")
+      overallChart =
+        [...chunks[index - 1]!.matchAll(/<img class="srchart"[^>]*src="images\/loading\.gif(\?k=[^"]+)"/g)].at(-1)?.[1] ?? null;
   }
   return { respondents: Number(respondents), answers: Number(answers), minutes: minutes ? decode(minutes) : null, means, overallChart };
 }
@@ -125,7 +130,7 @@ const BAR_TOLERANCE_PX = 1.5;
 export function parseAnswerChart(png: Buffer, answers: number, reportedMean: number): number[] | null {
   const { width, height, data } = PNG.sync.read(png);
   const options = ANSWER_SCALE.max - ANSWER_SCALE.min + 1;
-  const barEnds: number[] = new Array(options).fill(-1);
+  const barEnds = Array.from({ length: options }, () => -1);
   let axis = width;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {

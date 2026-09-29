@@ -8,6 +8,7 @@ export const GRADES = ["U", "3", "4", "5", "G", "VG", "TG"] as const;
 export type Grade = (typeof GRADES)[number];
 
 // Built from GRADES because object keys like "3" sort before "U", so the schema cannot hold the order.
+// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Object.fromEntries loses the keys, and GRADES maps every one.
 export const gradeCountsSchema = z.object(Object.fromEntries(GRADES.map((grade) => [grade, count])) as Record<Grade, typeof count>);
 
 export type GradeCounts = z.infer<typeof gradeCountsSchema>;

@@ -94,7 +94,6 @@ export function CourseListPage() {
         </ul>
       )}
 
-
       <CourseTable
         active={active}
         ended={ended}
@@ -112,13 +111,13 @@ export function CourseListPage() {
 
 function ProgrammeSelect({ programme, programmes }: { programme?: string; programmes: Record<string, string> }) {
   const navigate = route.useNavigate();
-  const options = Object.entries(programmes).sort(([, a], [, b]) => a.localeCompare(b, "sv"));
+  const options = Object.entries(programmes).toSorted(([, a], [, b]) => a.localeCompare(b, "sv"));
   return (
     <NativeSelect
       value={programme ?? ALL_PROGRAMMES}
       onChange={(event) => {
         const { value } = event.target;
-        navigate({ search: (prev) => ({ ...prev, programme: value === ALL_PROGRAMMES ? undefined : value, q: undefined }) });
+        void navigate({ search: (prev) => ({ ...prev, programme: value === ALL_PROGRAMMES ? undefined : value, q: undefined }) });
       }}
       aria-label="Programme"
       className={cn("w-full sm:w-72", FIELD_SIZE)}

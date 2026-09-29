@@ -12,6 +12,9 @@ Exam results and course survey ratings for every Chalmers course, built from sta
 - `pnpm fetch-results` fetches stats.ftek.se into `data/results.json`. A nightly Action runs it and commits the file when it changes.
 - `pnpm evaluations` crawls the course surveys into `data/evaluations.json`. It takes about 20 minutes, since it sends one request at a time. A monthly Action runs it and commits the file.
 - `pnpm dev`, `pnpm build`, `pnpm typecheck`
+- `pnpm lint` runs oxlint with type-aware rules. ESLint's TypeScript support needs the TypeScript API, which TypeScript 7 does not ship.
+- `pnpm format` runs Prettier, which also sorts Tailwind classes. `pnpm format:check` only checks.
+- CI runs `format:check`, `typecheck`, `lint` and `test` on every push to main and every pull request.
 - `pnpm test` runs Vitest.
 
 ## Layout

@@ -24,11 +24,11 @@ const partAttempts = (part: Part) => part.sittings.reduce((sum, s) => sum + atte
 
 /** Exams first, then by attempts. The first part is the course's main part. */
 export function orderParts(parts: readonly Part[]): Part[] {
-  return [...parts].sort((a, b) => Number(isExam(b)) - Number(isExam(a)) || partAttempts(b) - partAttempts(a));
+  return parts.toSorted((a, b) => Number(isExam(b)) - Number(isExam(a)) || partAttempts(b) - partAttempts(a));
 }
 
 function latestExam(sittings: readonly Sitting[]) {
-  const sizes = sittings.map((s) => attemptsOf(s.grades)).sort((a, b) => a - b);
+  const sizes = sittings.map((s) => attemptsOf(s.grades)).toSorted((a, b) => a - b);
   const median = sizes[Math.floor(sizes.length / 2)] ?? 0;
   const floor = Math.max(LATEST_EXAM_MIN_ATTEMPTS, median * LATEST_EXAM_MIN_SHARE);
   const sitting = sittings.findLast((s) => attemptsOf(s.grades) >= floor) ?? sittings.at(-1);
@@ -46,7 +46,7 @@ function trendOf(sittings: readonly Sitting[], currentYear: number): TrendPoint[
       const counts = sumCounts(group.map((s) => s.grades));
       return { academicYear: year, passRate: passRateOf(counts) ?? 0, attempts: attemptsOf(counts) };
     })
-    .sort((a, b) => a.academicYear - b.academicYear)
+    .toSorted((a, b) => a.academicYear - b.academicYear)
     .slice(-TREND_YEARS);
 }
 
@@ -60,11 +60,11 @@ export function summarizeCourse(
   today: Date,
 ): Omit<CourseSummary, "evaluation"> {
   const [main] = orderParts(parts);
-  const dates = parts.flatMap((p) => p.sittings.map((s) => s.date)).sort();
+  const dates = parts.flatMap((p) => p.sittings.map((s) => s.date)).toSorted();
   const lastResult = dates.at(-1) ?? null;
   const ended = !lastResult || (today.getTime() - Date.parse(lastResult)) / DAY_MS > ENDED_AFTER_DAYS;
 
-  const sittings = [...(main?.sittings ?? [])].sort((a, b) => a.date.localeCompare(b.date));
+  const sittings = (main?.sittings ?? []).toSorted((a, b) => a.date.localeCompare(b.date));
   const currentYear = academicYear(today.toISOString().slice(0, 10));
   const years = sittings.map((s) => academicYear(s.date));
   const finishedYears = years.filter((y) => y < currentYear);
