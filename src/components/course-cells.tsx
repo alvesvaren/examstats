@@ -55,17 +55,9 @@ export function StackedCell({ value, children, tooltip, className, interactive =
 /** Takes the place of a stacked cell as wide as `className` makes it, so dashes line up with values in the same column. */
 const emptyCell = (className: string) => <span className={cn("ml-auto text-center text-muted-foreground", className)}>–</span>;
 
-/** Pass rate with the grade bar it comes from, stacked or side by side. Shared by the course list and the course page. */
-export function PassRateCell({ grades, muted, interactive, inline }: CellProps & { grades: GradeCounts; inline?: boolean }) {
+/** Pass rate above the grade bar it comes from. Shared by the course list and the course page. */
+export function PassRateCell({ grades, muted, interactive }: CellProps & { grades: GradeCounts }) {
   const value = formatPercent(passRateOf(grades));
-  if (inline) {
-    return (
-      <span className="flex items-center justify-end gap-2 tabular-nums">
-        {value}
-        <GradeBar grades={grades} label={RECENT_LABEL} interactive={interactive} className={muted ? "opacity-50" : undefined} />
-      </span>
-    );
-  }
   const tooltip = (
     <>
       {RECENT_LABEL}

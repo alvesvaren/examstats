@@ -16,6 +16,8 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  /* Opaque, so a row's pinned column can match the rest of the row on hover. */
+  --color-row-hover: color-mix(in oklab, var(--muted) 50%, var(--background));
   --color-grade-u: var(--grade-u);
   --color-grade-3: var(--grade-3);
   --color-grade-4: var(--grade-4);
