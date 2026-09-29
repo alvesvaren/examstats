@@ -13,8 +13,16 @@ import { useScrollLeftSync } from "@/hooks/use-scroll-left-sync";
 import { useWindowVirtualList } from "@/hooks/use-window-virtual-list";
 import { formatCount, formatMonth } from "@/lib/format";
 
-/** The course column keeps a readable width on phones, where the table scrolls sideways. */
-const GRID = "grid min-w-[50rem] grid-cols-[minmax(10rem,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_4rem_5rem] items-center gap-x-4";
+/**
+ * Below `lg` the table scrolls sideways and the course column narrows to the course code, so the numbers get the screen.
+ * The minimum width is the fixed columns, the gaps, the padding and that narrow course column.
+ */
+const TABLE_WIDTH = "min-w-[45.25rem]";
+const GRID = cn(
+  "grid items-center gap-x-4",
+  TABLE_WIDTH,
+  "grid-cols-[minmax(5rem,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_4rem_5rem] lg:grid-cols-[minmax(0,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_4rem_5rem]",
+);
 /** Stays in view while the table scrolls sideways, covering what scrolls under it, with an edge once something has. */
 const PINNED =
   "sticky left-0 z-20 -ml-2 self-stretch bg-background pr-2 pl-2 group-data-scrolled/table:shadow-[1px_0_0_var(--color-border)]";
@@ -125,7 +133,7 @@ function VirtualRows({ items, canHover, showEnded, onToggleEnded, programmes, ma
   return (
     <div
       ref={listRef}
-      className="relative min-w-[50rem] [overflow-anchor:none] row-lines"
+      className={cn("relative [overflow-anchor:none] row-lines", TABLE_WIDTH)}
       style={{ height: virtualizer.getTotalSize(), "--row-height": `${ROW_HEIGHT}px` } as CSSProperties}
     >
       {virtualizer.getVirtualItems().map((row) => {
@@ -208,9 +216,23 @@ const CourseRow = memo(function CourseRow({ course, canHover, programmeName, max
       <Link to="/course/$code" params={{ code: course.code }} className="absolute inset-0" aria-label={`${course.code} ${course.name}`} />
       <div className={cn(GRID, "h-full")}>
         {/* Taps pass through the pinned column to the row link below it. */}
-        <div className={cn(PINNED, "pointer-events-none flex min-w-0 flex-col justify-center group-hover:bg-row-hover")}>
-          <span className={cn("block truncate", course.ended ? "font-normal" : "font-medium")}>{course.name}</span>
-          <span className="text-xs text-muted-foreground tabular-nums">{course.code}</span>
+        {/* The code leads on phones and the name on wider screens. */}
+        <div
+          className={cn(PINNED, "pointer-events-none flex min-w-0 flex-col justify-center group-hover:bg-row-hover lg:flex-col-reverse")}
+        >
+          <span
+            className={cn("tabular-nums lg:text-xs lg:font-normal lg:text-muted-foreground", course.ended ? "font-normal" : "font-medium")}
+          >
+            {course.code}
+          </span>
+          <span
+            className={cn(
+              "truncate text-xs text-muted-foreground lg:text-base lg:text-inherit",
+              course.ended ? "font-normal" : "lg:font-medium",
+            )}
+          >
+            {course.name}
+          </span>
         </div>
         <div className="flex justify-center">
           {course.programme && (
