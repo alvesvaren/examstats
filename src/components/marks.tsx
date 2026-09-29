@@ -11,7 +11,7 @@ import { formatAcademicYear, formatPercent } from "@/lib/format";
 export function SizeBar({ value, max, className }: { value: number; max: number; className?: string }) {
   const width = max ? Math.sqrt(value / max) * 100 : 0;
   return (
-    <span className={cn("flex h-2 w-16 rounded-sm bg-foreground/10", className)}>
+    <span className={cn("flex h-2 w-16 rounded-sm bg-foreground/8 dark:bg-foreground/3", className)}>
       <span className="rounded-sm bg-foreground/40" style={{ width: `${width}%` }} />
     </span>
   );
