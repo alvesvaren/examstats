@@ -13,7 +13,7 @@ import { normalize, partLabel, type CatalogCourse } from "@/domain/catalog";
 import { gradeSpreadOf } from "@/domain/grades";
 import { formatCount, formatDay, formatGrade, formatNumber, formatPercent } from "@/lib/format";
 import { GradeBreakdown, OtherInstances, OtherParts } from "./course-sections";
-import { CourseSurvey, type SurveyYear } from "./course-survey";
+import { CourseSurvey } from "./course-survey";
 import { ExamTimeline } from "./exam-timeline";
 
 const route = getRouteApi("/course/$code");
@@ -34,8 +34,8 @@ export function CoursePage() {
   const otherInstances = snapshot.courses
     .filter((c) => c.code !== code && normalize(c.name) === normalize(course.name))
     .toSorted((a, b) => (b.lastResult ?? "").localeCompare(a.lastResult ?? ""));
-  // Picking a survey year only swaps the summary beside the list, so the page stays where it is.
-  const setSurvey = (year: SurveyYear) => navigate({ search: (prev) => ({ ...prev, survey: year }), replace: true, resetScroll: false });
+  // Picking a survey round only swaps the summary beside the list, so the page stays where it is.
+  const setSurvey = (key: string) => navigate({ search: (prev) => ({ ...prev, survey: key }), replace: true, resetScroll: false });
   const goBack = () => (canGoBack ? router.history.back() : navigate({ to: "/" }));
 
   return (
@@ -88,7 +88,7 @@ export function CoursePage() {
         {part && <GradeBreakdown part={part} />}
         <OtherParts parts={detail.parts} selected={selected} />
       </div>
-      <CourseSurvey rounds={detail.evaluations} year={survey} onYearChange={setSurvey} fetchedAt={snapshot.evaluationsFetchedAt} />
+      <CourseSurvey rounds={detail.evaluations} selected={survey} onSelect={setSurvey} fetchedAt={snapshot.evaluationsFetchedAt} />
       <OtherInstances courses={otherInstances} programmes={snapshot.programmes} />
     </div>
   );

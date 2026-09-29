@@ -35,37 +35,37 @@ const QUESTION_GRID = "grid grid-cols-[minmax(0,1fr)_2rem_5rem] items-center gap
 const periodsLabel = (periods: string | null) => periods?.replace("-", "–") ?? "";
 const sumOf = (rounds: readonly EvaluationRound[], key: "answers" | "respondents") => rounds.reduce((sum, r) => sum + r[key], 0);
 
-/** An academic year of course surveys, or all of them. */
-export type SurveyYear = number | "all";
+/** Names a round within a course, such as "2025-LP3". Picked rounds go by it in the URL. */
+const roundKey = ({ academicYear, periods }: EvaluationRound) => (periods ? `${academicYear}-${periods}` : String(academicYear));
+const ALL_ROUNDS = "all";
 
 interface CourseSurveyProps {
   /** Newest first. */
   rounds: readonly EvaluationRound[];
-  /** The newest year when missing or not surveyed. */
-  year: SurveyYear | undefined;
-  onYearChange: (year: SurveyYear) => void;
+  /** The key of the picked round, or all of them. The newest round when missing or unknown. */
+  selected: string | undefined;
+  onSelect: (key: string) => void;
   fetchedAt: string;
 }
 
-/** What students answered in Chalmers course surveys: each round, and the rating and standard questions for the chosen year. */
-export function CourseSurvey({ rounds, year, onYearChange, fetchedAt }: CourseSurveyProps) {
-  const years = [...new Set(rounds.map((r) => r.academicYear))];
-  const selected = year === "all" || (year !== undefined && years.includes(year)) ? year : years[0];
-  const shown = selected === "all" ? rounds : rounds.filter((r) => r.academicYear === selected);
+/** What students answered in Chalmers course surveys: each round, and the rating and standard questions for the picked one. */
+export function CourseSurvey({ rounds, selected, onSelect, fetchedAt }: CourseSurveyProps) {
+  const picked = selected === ALL_ROUNDS ? rounds : rounds.filter((r) => roundKey(r) === selected);
+  const shown = picked.length ? picked : rounds.slice(0, 1);
 
   return (
     <section>
       <SectionTitle>
         <MetricLabel metric="rating">Course survey</MetricLabel>
       </SectionTitle>
-      {selected === undefined ? (
+      {!shown.length ? (
         <>
           <p className="text-sm text-muted-foreground">No course surveys in the last {EVALUATION_YEARS} academic years.</p>
           <SurveySource fetchedAt={fetchedAt} />
         </>
       ) : (
         <div className="grid gap-8 md:grid-cols-2 md:gap-10">
-          <SurveyRounds rounds={rounds} selected={selected} showAll={years.length > 1} onSelect={onYearChange} fetchedAt={fetchedAt} />
+          <SurveyRounds rounds={rounds} shown={shown} onSelect={onSelect} fetchedAt={fetchedAt} />
           <SurveySummary rounds={shown} />
         </div>
       )}
@@ -164,20 +164,20 @@ function SurveySummary({ rounds }: { rounds: readonly EvaluationRound[] }) {
   );
 }
 
-const ROUND_GRID = "grid grid-cols-[minmax(0,1fr)_4rem_3.5rem] items-center gap-x-4 sm:grid-cols-[minmax(0,1fr)_4rem_5rem_3.5rem]";
+const ROUND_GRID = "grid grid-cols-[minmax(0,1fr)_4rem_3.5rem] items-center gap-x-4 sm:grid-cols-[minmax(0,1fr)_4rem_6rem_3.5rem]";
 
 interface SurveyRoundsProps {
   /** Newest first. */
   rounds: readonly EvaluationRound[];
-  selected: SurveyYear;
-  /** Whether to end the list with a row for all years together. */
-  showAll: boolean;
-  onSelect: (year: SurveyYear) => void;
+  /** The rounds the summary shows. */
+  shown: readonly EvaluationRound[];
+  onSelect: (key: string) => void;
   fetchedAt: string;
 }
 
-/** Every round, newest first. Picking one shows its year in the summary. */
-function SurveyRounds({ rounds, selected, showAll, onSelect, fetchedAt }: SurveyRoundsProps) {
+/** Every round, newest first, then all of them together. Picking one shows it in the summary. */
+function SurveyRounds({ rounds, shown, onSelect, fetchedAt }: SurveyRoundsProps) {
+  const isAll = rounds.length > 1 && shown.length === rounds.length;
   return (
     <div className="self-start">
       <div className={cn(ROUND_GRID, "border-b px-2 pb-2 text-xs text-muted-foreground")}>
@@ -189,7 +189,7 @@ function SurveyRounds({ rounds, selected, showAll, onSelect, fetchedAt }: Survey
       <ul className="flex flex-col text-sm tabular-nums">
         {rounds.map((round) => (
           <RoundRow
-            key={`${round.academicYear} ${round.periods}`}
+            key={roundKey(round)}
             label={formatAcademicYear(round.academicYear)}
             detail={periodsLabel(round.periods)}
             mean={round.means.overall ?? null}
@@ -197,20 +197,20 @@ function SurveyRounds({ rounds, selected, showAll, onSelect, fetchedAt }: Survey
             answers={round.answers}
             respondents={round.respondents}
             minutes={round.minutes}
-            selected={round.academicYear === selected}
-            onSelect={() => onSelect(round.academicYear)}
+            selected={!isAll && shown.includes(round)}
+            onSelect={() => onSelect(roundKey(round))}
           />
         ))}
-        {showAll && (
+        {rounds.length > 1 && (
           <RoundRow
-            label="All years"
+            label="All rounds"
             mean={questionMean(rounds, "overall")}
             counts={pooledAnswerCounts(rounds, "overall")}
             answers={sumOf(rounds, "answers")}
             respondents={sumOf(rounds, "respondents")}
             minutes={null}
-            selected={selected === "all"}
-            onSelect={() => onSelect("all")}
+            selected={isAll}
+            onSelect={() => onSelect(ALL_ROUNDS)}
           />
         )}
       </ul>

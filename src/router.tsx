@@ -29,10 +29,8 @@ const listRoute = createRoute({
 
 const courseSearchSchema = z.object({
   part: z.number().int().nonnegative().optional().catch(undefined),
-  survey: z
-    .union([z.number().int(), z.literal("all")])
-    .optional()
-    .catch(undefined),
+  /** A round key such as "2025-LP3". Coerced because the router reads a bare year as a number. */
+  survey: z.coerce.string().optional().catch(undefined),
 });
 
 const courseRoute = createRoute({
