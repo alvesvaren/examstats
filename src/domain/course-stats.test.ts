@@ -1,12 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { averageGradeOf, emptyCounts, passRateOf, type GradeCounts } from "./grades.ts";
-import { academicYear, orderParts, summarizeCourse } from "./course-stats.ts";
+import { academicYear, latestExam, orderParts, summarizeCourse } from "./course-stats.ts";
 import type { Part } from "./snapshot.ts";
 
 const grades = (partial: Partial<GradeCounts>): GradeCounts => ({ ...emptyCounts(), ...partial });
 const sitting = (date: string, partial: Partial<GradeCounts>) => ({ date, grades: grades(partial) });
 const TODAY = new Date("2026-09-27");
 const course = { code: "TMA970", name: "Inledande matematisk analys", programme: "TKTFY" };
+
+const exam: Part = {
+  type: "Tentamen",
+  code: "0197",
+  sittings: [
+    sitting("2021-10-27", { U: 90, "3": 10 }),
+    sitting("2023-10-25", { U: 50, "3": 30, "4": 20 }),
+    sitting("2024-10-30", { U: 40, "3": 40, "5": 20 }),
+    sitting("2025-10-29", { U: 30, "4": 50, "5": 20 }),
+    sitting("2026-01-08", { U: 2, "3": 1 }),
+    sitting("2026-09-01", { U: 1, "3": 9 }),
+  ],
+};
 
 describe("academicYear", () => {
   it("starts in September", () => {
@@ -24,19 +37,6 @@ describe("orderParts", () => {
 });
 
 describe("summarizeCourse", () => {
-  const exam: Part = {
-    type: "Tentamen",
-    code: "0197",
-    sittings: [
-      sitting("2021-10-27", { U: 90, "3": 10 }),
-      sitting("2023-10-25", { U: 50, "3": 30, "4": 20 }),
-      sitting("2024-10-30", { U: 40, "3": 40, "5": 20 }),
-      sitting("2025-10-29", { U: 30, "4": 50, "5": 20 }),
-      sitting("2026-01-08", { U: 2, "3": 1 }),
-      sitting("2026-09-01", { U: 1, "3": 9 }),
-    ],
-  };
-
   it("uses the last three finished academic years for pass rate, grade and size", () => {
     const summary = summarizeCourse(course, [exam], TODAY);
     // 2023/24, 2024/25 and 2025/26: 303 attempts, 122 fails. The 2026/27 sitting has not finished its year.
@@ -46,15 +46,14 @@ describe("summarizeCourse", () => {
     expect(summary.attemptsPerYear).toBe(101);
   });
 
-  it("skips tiny sittings when picking the latest exam", () => {
-    const summary = summarizeCourse(course, [exam], TODAY);
-    expect(summary.latestExam).toEqual({ date: "2025-10-29", passRate: 0.7, attempts: 100 });
-  });
-
   it("builds a trend per academic year before the current one", () => {
     const summary = summarizeCourse(course, [exam], TODAY);
-    expect(summary.trend.map((t) => t.academicYear)).toEqual([2021, 2023, 2024, 2025]);
-    expect(summary.trend.at(-1)).toEqual({ academicYear: 2025, passRate: 71 / 103, attempts: 103 });
+    expect(summary.trend).toEqual([
+      [2021, 0.1],
+      [2023, 0.5],
+      [2024, 0.6],
+      [2025, 71 / 103],
+    ]);
   });
 
   it("marks a course as ended after 18 months without results", () => {
@@ -77,7 +76,16 @@ describe("summarizeCourse", () => {
       lastResult: null,
       ended: true,
       trend: [],
-      latestExam: null,
     });
+  });
+});
+
+describe("latestExam", () => {
+  it("skips tiny sittings", () => {
+    expect(latestExam(exam.sittings)).toEqual({ date: "2025-10-29", passRate: 0.7, attempts: 100 });
+  });
+
+  it("is null without sittings", () => {
+    expect(latestExam([])).toBeNull();
   });
 });

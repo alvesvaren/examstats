@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { evaluationRoundSchema, evaluationSummarySchema } from "./evaluation.ts";
+import { answerCountsSchema, evaluationRoundSchema } from "./evaluation.ts";
 import { gradeCountsSchema } from "./grades.ts";
 
 const isoDate = z.iso.date();
@@ -39,11 +39,8 @@ export const courseDetailSchema = z.object({
   evaluations: z.array(evaluationRoundSchema),
 });
 
-const trendPointSchema = z.object({
-  academicYear: z.number().int(),
-  passRate: z.number(),
-  attempts: z.number().int(),
-});
+/** A pass rate in one academic year. A tuple, since the list loads thousands of them. */
+const trendPointSchema = z.tuple([z.number().int(), z.number()]);
 
 export const courseSummarySchema = z.object({
   code: z.string(),
@@ -54,9 +51,10 @@ export const courseSummarySchema = z.object({
   attemptsPerYear: z.number().int(),
   lastResult: isoDate.nullable(),
   ended: z.boolean(),
+  /** Pass rate on the main part per academic year, oldest first, as `[academicYear, passRate]`. */
   trend: z.array(trendPointSchema),
-  latestExam: z.object({ date: isoDate, passRate: z.number(), attempts: z.number().int() }).nullable(),
-  evaluation: evaluationSummarySchema.nullable(),
+  /** Answers to the overall impression question over all survey rounds, or null when too few to rate. */
+  overallAnswers: answerCountsSchema.nullable(),
 });
 
 export const snapshotSchema = z.object({

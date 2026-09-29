@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { catalogQuery, courseQuery } from "@/data/queries";
 import { normalize, partLabel, type CatalogCourse } from "@/domain/catalog";
+import { latestExam } from "@/domain/course-stats";
 import { gradeSpreadOf } from "@/domain/grades";
 import { formatCount, formatDay, formatGrade, formatNumber, formatPercent } from "@/lib/format";
 import { GradeBreakdown, OtherInstances, OtherParts } from "./course-sections";
@@ -31,6 +32,8 @@ export function CoursePage() {
 
   const selected = detail.parts[partIndex] ? partIndex : 0;
   const part = detail.parts[selected];
+  const [mainPart] = detail.parts;
+  const latest = latestExam(mainPart?.sittings ?? []);
   const otherInstances = snapshot.courses
     .filter((c) => c.code !== code && normalize(c.name) === normalize(course.name))
     .toSorted((a, b) => (b.lastResult ?? "").localeCompare(a.lastResult ?? ""));
@@ -58,7 +61,7 @@ export function CoursePage() {
         </div>
       </header>
 
-      <StatStrip course={course} />
+      <StatStrip course={course} latest={latest} />
 
       {part ? (
         <section className="flex flex-col gap-3">
@@ -94,8 +97,7 @@ export function CoursePage() {
   );
 }
 
-function StatStrip({ course }: { course: CatalogCourse }) {
-  const { latestExam } = course;
+function StatStrip({ course, latest }: { course: CatalogCourse; latest: ReturnType<typeof latestExam> }) {
   const gradeSpread = gradeSpreadOf(course.recentGrades);
   return (
     <dl className="grid grid-cols-2 overflow-hidden rounded-lg border md:grid-cols-4">
@@ -112,8 +114,8 @@ function StatStrip({ course }: { course: CatalogCourse }) {
       <Stat label={<MetricLabel metric="attemptsPerYear">Attempts per year</MetricLabel>} value={formatCount(course.attemptsPerYear)} />
       <Stat
         label="Latest exam"
-        value={latestExam ? formatPercent(latestExam.passRate) : "–"}
-        detail={latestExam && `${formatDay(latestExam.date)} · ${formatCount(latestExam.attempts)} attempts`}
+        value={latest ? formatPercent(latest.passRate) : "–"}
+        detail={latest && `${formatDay(latest.date)} · ${formatCount(latest.attempts)} attempts`}
       />
     </dl>
   );

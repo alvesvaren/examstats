@@ -27,7 +27,8 @@ export function orderParts(parts: readonly Part[]): Part[] {
   return parts.toSorted((a, b) => Number(isExam(b)) - Number(isExam(a)) || partAttempts(b) - partAttempts(a));
 }
 
-function latestExam(sittings: readonly Sitting[]) {
+/** The newest sitting of a part that is not a straggler, or null without sittings. Takes sittings oldest first. */
+export function latestExam(sittings: readonly Sitting[]) {
   const sizes = sittings.map((s) => attemptsOf(s.grades)).toSorted((a, b) => a - b);
   const median = sizes[Math.floor(sizes.length / 2)] ?? 0;
   const floor = Math.max(LATEST_EXAM_MIN_ATTEMPTS, median * LATEST_EXAM_MIN_SHARE);
@@ -42,11 +43,8 @@ function trendOf(sittings: readonly Sitting[], currentYear: number): TrendPoint[
     (s) => academicYear(s.date),
   );
   return [...byYear]
-    .map(([year, group]) => {
-      const counts = sumCounts(group.map((s) => s.grades));
-      return { academicYear: year, passRate: passRateOf(counts) ?? 0, attempts: attemptsOf(counts) };
-    })
-    .toSorted((a, b) => a.academicYear - b.academicYear)
+    .map(([year, group]): TrendPoint => [year, passRateOf(sumCounts(group.map((s) => s.grades))) ?? 0])
+    .toSorted(([a], [b]) => a - b)
     .slice(-TREND_YEARS);
 }
 
@@ -58,7 +56,7 @@ export function summarizeCourse(
   course: Pick<CourseSummary, "code" | "name" | "programme">,
   parts: readonly Part[],
   today: Date,
-): Omit<CourseSummary, "evaluation"> {
+): Omit<CourseSummary, "overallAnswers"> {
   const [main] = orderParts(parts);
   const dates = parts.flatMap((p) => p.sittings.map((s) => s.date)).toSorted();
   const lastResult = dates.at(-1) ?? null;
@@ -83,6 +81,5 @@ export function summarizeCourse(
     lastResult,
     ended,
     trend: trendOf(sittings, currentYear),
-    latestExam: latestExam(sittings),
   };
 }

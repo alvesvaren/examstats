@@ -17,9 +17,9 @@ const env = z
   })
   .parse(process.env);
 
-const DECIMALS = 1e4;
+const DECIMALS = 1e2;
 
-/** Rates need four decimals at most. */
+/** The list shows rates in whole percent, so two decimals are enough. */
 const roundNumbers = (_key: string, value: unknown) =>
   typeof value === "number" && !Number.isInteger(value) ? Math.round(value * DECIMALS) / DECIMALS : value;
 
@@ -45,7 +45,7 @@ async function main() {
     const rounds = roundsOf(course.code);
     const detail: CourseDetail = { code: course.code, parts, evaluations: rounds };
     await writeFile(path.join(coursesDir, `${course.code}.json`), JSON.stringify(detail));
-    courses.push({ ...summarizeCourse(course, parts, today), evaluation: summarizeEvaluations(rounds) });
+    courses.push({ ...summarizeCourse(course, parts, today), overallAnswers: summarizeEvaluations(rounds)?.overallAnswers ?? null });
   }
 
   const snapshot: Snapshot = {

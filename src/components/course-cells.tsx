@@ -4,7 +4,7 @@ import { GradeBar, GradeTally } from "@/components/grade";
 import { DistributionMark } from "@/components/marks";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { RECENT_YEARS } from "@/domain/course-stats";
-import { ANSWER_SCALE, EVALUATION_YEARS, answerFrequencies, type EvaluationSummary } from "@/domain/evaluation";
+import { ANSWER_SCALE, EVALUATION_YEARS, answerFrequencies, meanAnswer } from "@/domain/evaluation";
 import { gradeSpreadOf, passRateOf, type GradeCounts } from "@/domain/grades";
 import { spreadOf, type Frequencies } from "@/domain/spread";
 import { formatGrade, formatPercent, formatScore, formatSpread } from "@/lib/format";
@@ -109,12 +109,12 @@ export function AverageGradeCell({ grades, interactive }: Pick<CellProps, "inter
 }
 
 /** Overall impression from course surveys. Shared by the course list and the course page. */
-export function RatingCell({ evaluation, muted, interactive }: CellProps & { evaluation: EvaluationSummary | null }) {
-  if (!evaluation) return emptyCell("w-12");
+export function RatingCell({ answers, muted, interactive }: CellProps & { answers: readonly number[] | null }) {
+  if (!answers) return emptyCell("w-12");
   return (
     <DistributionCell
-      value={formatScore(evaluation.mean)}
-      frequencies={answerFrequencies(evaluation.overallAnswers)}
+      value={formatScore(meanAnswer(answers))}
+      frequencies={answerFrequencies(answers)}
       scale={ANSWER_SCALE}
       label={RATING_LABEL}
       muted={muted}
