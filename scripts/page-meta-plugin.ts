@@ -18,15 +18,21 @@ import {
   SITE_NAME,
 } from "../src/lib/page-meta.ts";
 
+/** Open Graph wants absolute URLs. Vercel names the deployment's domains at build time. */
 const env = z
   .object({
-    /** Open Graph wants absolute URLs. Vercel sets this to the production domain at build time. */
+    VERCEL_ENV: z.enum(["production", "preview", "development"]).optional(),
     VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(),
+    VERCEL_BRANCH_URL: z.string().optional(),
   })
   .parse(process.env);
 
-/** Local builds point at `pnpm preview`. */
-const ORIGIN = env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:4173";
+/**
+ * Production links to the production domain. A preview links to its branch's domain, so its previews show its own
+ * images, which production may not have yet. Local builds point at `pnpm preview`.
+ */
+const host = env.VERCEL_ENV === "production" ? env.VERCEL_PROJECT_PRODUCTION_URL : env.VERCEL_BRANCH_URL;
+const ORIGIN = host ? `https://${host}` : "http://localhost:4173";
 
 interface PageImage {
   /** Relative to the base path. */
