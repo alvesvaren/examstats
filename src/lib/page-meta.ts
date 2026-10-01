@@ -12,6 +12,9 @@ export const SITE_NAME = "U345";
 export const HOME_HEADING = "Chalmers exam results";
 export const HOME_DESCRIPTION = "Pass rate, grades, every exam date on record and course survey ratings for every Chalmers course.";
 
+/** The size of a course page's link preview image, drawn by `api/og.tsx`. */
+export const COURSE_IMAGE_SIZE = { width: 1200, height: 630 } as const;
+
 export const pageTitle = (heading: string) => `${heading} · ${SITE_NAME}`;
 
 export const courseHeading = ({ code, name }: Pick<CourseSummary, "code" | "name">) => `${code} ${name}`;

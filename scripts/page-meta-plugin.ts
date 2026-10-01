@@ -8,7 +8,15 @@ import path from "node:path";
 import type { Plugin } from "vite";
 import { z } from "zod";
 import { snapshotSchema } from "../src/domain/snapshot.ts";
-import { courseDescription, courseHeading, HOME_DESCRIPTION, HOME_HEADING, pageTitle, SITE_NAME } from "../src/lib/page-meta.ts";
+import {
+  COURSE_IMAGE_SIZE,
+  courseDescription,
+  courseHeading,
+  HOME_DESCRIPTION,
+  HOME_HEADING,
+  pageTitle,
+  SITE_NAME,
+} from "../src/lib/page-meta.ts";
 
 const env = z
   .object({
@@ -19,16 +27,37 @@ const env = z
 
 /** Local builds point at `pnpm preview`. */
 const ORIGIN = env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:4173";
-const IMAGE = "icon-512.png";
+
+interface PageImage {
+  /** Relative to the base path. */
+  path: string;
+  width: number;
+  height: number;
+  /** A large image spans the preview. A small one sits beside the text. */
+  card: "summary" | "summary_large_image";
+}
 
 interface PageMeta {
   heading: string;
   description: string;
   /** Relative to the base path. */
   path: string;
+  image: PageImage;
 }
 
-const HOME: PageMeta = { heading: HOME_HEADING, description: HOME_DESCRIPTION, path: "" };
+const HOME: PageMeta = {
+  heading: HOME_HEADING,
+  description: HOME_DESCRIPTION,
+  path: "",
+  image: { path: "icon-512.png", width: 512, height: 512, card: "summary" },
+};
+
+/** Drawn on request by `api/og.tsx`. `v` changes with each build, so caches never serve an image from older data. */
+const courseImage = (code: string, version: string): PageImage => ({
+  path: `api/og?${new URLSearchParams({ code, v: version }).toString()}`,
+  ...COURSE_IMAGE_SIZE,
+  card: "summary_large_image",
+});
 
 const escapeHtml = (text: string) =>
   text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
@@ -38,7 +67,7 @@ export function pageMeta(): Plugin {
   let publicDir = "public";
   const url = (pagePath: string) => new URL(base + pagePath, ORIGIN).href;
 
-  const headTags = ({ heading, description, path: pagePath }: PageMeta) =>
+  const headTags = ({ heading, description, path: pagePath, image }: PageMeta) =>
     [
       `<title>${escapeHtml(pageTitle(heading))}</title>`,
       `<meta name="description" content="${escapeHtml(description)}" />`,
@@ -48,9 +77,11 @@ export function pageMeta(): Plugin {
         "og:title": heading,
         "og:description": description,
         "og:url": url(pagePath),
-        "og:image": url(IMAGE),
+        "og:image": url(image.path),
+        "og:image:width": String(image.width),
+        "og:image:height": String(image.height),
       }).map(([property, content]) => `<meta property="${property}" content="${escapeHtml(content)}" />`),
-      `<meta name="twitter:card" content="summary" />`,
+      `<meta name="twitter:card" content="${image.card}" />`,
     ].join("\n    ");
 
   const homeTags = headTags(HOME);
@@ -74,11 +105,13 @@ export function pageMeta(): Plugin {
         });
         const snapshot = snapshotSchema.parse(JSON.parse(json));
         const { source } = index;
+        const version = Date.parse(snapshot.generatedAt).toString(36);
         for (const course of snapshot.courses) {
           const tags = headTags({
             heading: courseHeading(course),
             description: courseDescription(course),
             path: `course/${encodeURIComponent(course.code)}`,
+            image: courseImage(course.code, version),
           });
           this.emitFile({ type: "asset", fileName: `course/${course.code}.html`, source: source.replace(homeTags, () => tags) });
         }

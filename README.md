@@ -2,7 +2,7 @@
 
 Exam results and course ratings for every Chalmers course: pass rate, grades, every exam date on record, and what students thought of the course.
 
-Exam results come from the public [stats.ftek.se API](https://github.com/Fysikteknologsektionen/chalmers-course-stats/blob/main/API.md). Course ratings come from [Chalmers course surveys](https://www.chalmers.se/en/education/your-studies/plan-and-conduct-your-studies/course-evaluation/), over the last five academic years. There is no server.
+Exam results come from the public [stats.ftek.se API](https://github.com/Fysikteknologsektionen/chalmers-course-stats/blob/main/API.md). Course ratings come from [Chalmers course surveys](https://www.chalmers.se/en/education/your-studies/plan-and-conduct-your-studies/course-evaluation/), over the last five academic years. The site is static, apart from one Vercel Function that draws the link preview image of each course.
 
 GitHub Actions fetch both sources and commit them to `data/`:
 
