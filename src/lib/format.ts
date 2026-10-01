@@ -1,4 +1,4 @@
-import type { Spread } from "@/domain/spread";
+import type { Spread } from "../domain/spread.ts";
 
 const LOCALE = "en-GB";
 

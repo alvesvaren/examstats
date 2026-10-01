@@ -3,5 +3,6 @@
   "framework": "vite",
   "buildCommand": "pnpm test --run && pnpm snapshot && pnpm build",
   "outputDirectory": "dist",
+  "cleanUrls": true,
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

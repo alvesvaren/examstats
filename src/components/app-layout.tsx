@@ -1,4 +1,4 @@
-import { Link, Outlet, type ErrorComponentProps } from "@tanstack/react-router";
+import { HeadContent, Link, Outlet, type ErrorComponentProps } from "@tanstack/react-router";
 import { ArrowUpIcon, MoonIcon, SunIcon } from "lucide-react";
 import { cn } from "cn";
 import { GradeChip } from "@/components/grade";
@@ -47,6 +47,7 @@ function ScrollToTop() {
 export function AppLayout() {
   return (
     <div className="mx-auto flex min-h-svh max-w-6xl flex-col px-4">
+      <HeadContent />
       <header className="flex items-center justify-between py-4">
         <Link to="/" className="flex items-center gap-2.5 font-medium">
           <span className="flex gap-0.5" aria-hidden>
