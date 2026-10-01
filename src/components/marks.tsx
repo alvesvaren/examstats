@@ -1,7 +1,8 @@
 import { cn } from "cn";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { TrendPoint } from "@/domain/snapshot";
-import { spreadOf, type Frequencies } from "@/domain/spread";
+import type { Frequencies } from "@/domain/spread";
+import { distributionMark } from "@/lib/distribution-mark";
 import { formatAcademicYear, formatPercent } from "@/lib/format";
 
 /**
@@ -63,14 +64,6 @@ export function Sparkline({ trend, interactive = true, className }: SparklinePro
   );
 }
 
-/** The scales are whole steps, so each step gets a slot this wide on either side and values at the ends stay inside. */
-const HALF_STEP = 0.5;
-
-/** A value with this share of all answers or more gets the darkest shade. */
-const FULL_SHARE = 0.6;
-/** The darkest shade, in percent of the foreground colour. */
-const DARKEST = 70;
-
 interface DistributionMarkProps {
   frequencies: Frequencies;
   min: number;
@@ -84,18 +77,13 @@ interface DistributionMarkProps {
  * A tick that reaches past the track marks the median.
  */
 export function DistributionMark({ frequencies, min, max, className }: DistributionMarkProps) {
-  const at = (value: number) => ((value - min + HALF_STEP) / (max - min + 2 * HALF_STEP)) * 100;
-  const total = frequencies.reduce((sum, [, count]) => sum + count, 0);
-  const shade = (count: number) => (total ? Math.min(1, count / total / FULL_SHARE) * DARKEST : 0);
-  const stops = frequencies
-    .toSorted(([a], [b]) => a - b)
-    .map(([value, count]) => `color-mix(in oklab, var(--foreground) ${shade(count)}%, transparent) ${at(value)}%`);
-  const median = spreadOf(frequencies)?.median;
+  const { stops, median } = distributionMark(frequencies, min, max);
+  const gradient = stops.map(({ at, shade }) => `color-mix(in oklab, var(--foreground) ${shade * 100}%, transparent) ${at}%`);
   return (
     <span className={cn("relative h-2 w-12 rounded-sm bg-foreground/10", className)} aria-hidden>
-      <span className="absolute inset-0 rounded-sm" style={{ backgroundImage: `linear-gradient(to right, ${stops.join(", ")})` }} />
-      {median !== undefined && (
-        <span className="absolute -inset-y-0.5 w-0.5 -translate-x-1/2 rounded-full bg-foreground" style={{ left: `${at(median)}%` }} />
+      <span className="absolute inset-0 rounded-sm" style={{ backgroundImage: `linear-gradient(to right, ${gradient.join(", ")})` }} />
+      {median !== null && (
+        <span className="absolute -inset-y-0.5 w-0.5 -translate-x-1/2 rounded-full bg-foreground" style={{ left: `${median}%` }} />
       )}
     </span>
   );

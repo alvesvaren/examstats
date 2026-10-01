@@ -10,16 +10,21 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { Resvg } from "@resvg/resvg-js";
 import satori from "satori";
+import type { ReactNode } from "react";
 import { z } from "zod";
 import { toCatalogCourse } from "../src/domain/catalog.ts";
 import { RECENT_YEARS } from "../src/domain/course-stats.ts";
 import { GRADES } from "../src/domain/grades.ts";
 import { snapshotSchema, type CourseSummary, type TrendPoint } from "../src/domain/snapshot.ts";
+import { ANSWER_SCALE, answerFrequencies } from "../src/domain/evaluation.ts";
+import type { Frequencies } from "../src/domain/spread.ts";
+import { distributionMark } from "../src/lib/distribution-mark.ts";
 import { formatAcademicYear, formatCount, formatGrade, formatPercent, formatScore } from "../src/lib/format.ts";
 import { GRADE_COLOURS } from "../src/lib/grade-colours.ts";
 import { COURSE_IMAGE_SIZE, SITE_NAME } from "../src/lib/page-meta.ts";
 
-const FOREGROUND = "#0a0a0a";
+const FOREGROUND_RGB = "10, 10, 10";
+const FOREGROUND = `rgb(${FOREGROUND_RGB})`;
 const MUTED = "#737373";
 const TRACK = "#f0f0f0";
 
@@ -27,6 +32,10 @@ const PADDING = 72;
 const SPARK_WIDTH = 220;
 const SPARK_HEIGHT = 64;
 const SPARK_PAD = 6;
+const MARK_WIDTH = 120;
+const MARK_HEIGHT = 12;
+const TICK_WIDTH = 4;
+const TICK_OVERHANG = 4;
 
 /** Pass rate per academic year on a fixed 0 to 100% scale, like the sparkline in the course list. */
 function Sparkline({ trend }: { trend: readonly TrendPoint[] }) {
@@ -50,11 +59,47 @@ function Sparkline({ trend }: { trend: readonly TrendPoint[] }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+/** The course page's distribution mark, with `rgba` in place of `color-mix`, which Satori cannot draw. */
+function DistributionMark({ frequencies, min, max }: { frequencies: Frequencies; min: number; max: number }) {
+  const { stops, median } = distributionMark(frequencies, min, max);
+  const gradient = stops.map(({ at, shade }) => `rgba(${FOREGROUND_RGB}, ${shade}) ${at}%`);
+  return (
+    <div style={{ display: "flex", position: "relative", width: MARK_WIDTH, height: MARK_HEIGHT }}>
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          borderRadius: 4,
+          backgroundColor: `rgba(${FOREGROUND_RGB}, 0.1)`,
+          backgroundImage: `linear-gradient(to right, ${gradient.join(", ")})`,
+        }}
+      />
+      {median !== null && (
+        <div
+          style={{
+            position: "absolute",
+            top: -TICK_OVERHANG,
+            bottom: -TICK_OVERHANG,
+            left: (median / 100) * MARK_WIDTH - TICK_WIDTH / 2,
+            width: TICK_WIDTH,
+            borderRadius: TICK_WIDTH / 2,
+            backgroundColor: FOREGROUND,
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function Stat({ label, value, children }: { label: string; value: string; children?: ReactNode }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       <span style={{ fontSize: 24, color: MUTED }}>{label}</span>
       <span style={{ fontSize: 64, fontWeight: 600, letterSpacing: -2 }}>{value}</span>
+      {children}
     </div>
   );
 }
@@ -92,7 +137,7 @@ interface CourseImageProps {
 }
 
 export function CourseImage({ course, programme, icon }: CourseImageProps) {
-  const { code, name, recentGrades, trend, passRate, averageGrade, attemptsPerYear, rating } = toCatalogCourse(course);
+  const { code, name, recentGrades, trend, overallAnswers, passRate, averageGrade, attemptsPerYear, rating } = toCatalogCourse(course);
   return (
     <div
       style={{
@@ -121,7 +166,9 @@ export function CourseImage({ course, programme, icon }: CourseImageProps) {
             <Stat label="Pass rate" value={formatPercent(passRate)} />
             <Stat label="Average grade" value={formatGrade(averageGrade)} />
             <Stat label="Attempts per year" value={formatCount(attemptsPerYear)} />
-            <Stat label="Rating" value={formatScore(rating)} />
+            <Stat label="Rating" value={formatScore(rating)}>
+              {overallAnswers && <DistributionMark frequencies={answerFrequencies(overallAnswers)} {...ANSWER_SCALE} />}
+            </Stat>
           </div>
           <Sparkline trend={trend} />
         </div>
