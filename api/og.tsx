@@ -14,47 +14,43 @@ import type { ReactNode } from "react";
 import { z } from "zod";
 import { toCatalogCourse } from "../src/domain/catalog.ts";
 import { RECENT_YEARS } from "../src/domain/course-stats.ts";
-import { GRADES } from "../src/domain/grades.ts";
-import { snapshotSchema, type CourseSummary, type TrendPoint } from "../src/domain/snapshot.ts";
+import { attemptsOf, GRADES } from "../src/domain/grades.ts";
+import { snapshotSchema, type CourseSummary } from "../src/domain/snapshot.ts";
 import { ANSWER_SCALE, answerFrequencies } from "../src/domain/evaluation.ts";
 import type { Frequencies } from "../src/domain/spread.ts";
 import { distributionMark } from "../src/lib/distribution-mark.ts";
-import { formatAcademicYear, formatCount, formatGrade, formatPercent, formatScore } from "../src/lib/format.ts";
+import { formatPercent, formatScore } from "../src/lib/format.ts";
 import { GRADE_COLOURS } from "../src/lib/grade-colours.ts";
-import { COURSE_IMAGE_SIZE, SITE_NAME } from "../src/lib/page-meta.ts";
+import { COURSE_IMAGE_SIZE } from "../src/lib/page-meta.ts";
 
 const FOREGROUND_RGB = "10, 10, 10";
 const FOREGROUND = `rgb(${FOREGROUND_RGB})`;
 const MUTED = "#737373";
-const TRACK = "#f0f0f0";
+const TRACK = `rgba(${FOREGROUND_RGB}, 0.1)`;
 
 const PADDING = 72;
-const SPARK_WIDTH = 220;
-const SPARK_HEIGHT = 64;
-const SPARK_PAD = 6;
-const MARK_WIDTH = 120;
-const MARK_HEIGHT = 12;
-const TICK_WIDTH = 4;
-const TICK_OVERHANG = 4;
+const COLUMN_GAP = 96;
+const BAR_HEIGHT = 40;
+const BAR_RADIUS = 8;
+const TICK_WIDTH = 6;
+const TICK_OVERHANG = 8;
+/** Grades with a smaller share than this leave out their letter, so letters never crowd each other. */
+const MIN_LABELLED_SHARE = 0.06;
 
-/** Pass rate per academic year on a fixed 0 to 100% scale, like the sparkline in the course list. */
-function Sparkline({ trend }: { trend: readonly TrendPoint[] }) {
-  const first = trend[0];
-  const last = trend.at(-1);
-  if (!first || !last || trend.length < 2) return null;
-  const x = (i: number) => SPARK_PAD + ((SPARK_WIDTH - 2 * SPARK_PAD) * i) / (trend.length - 1);
-  const y = (rate: number) => SPARK_PAD + (SPARK_HEIGHT - 2 * SPARK_PAD) * (1 - rate);
-  const line = trend.map(([, rate], i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(rate).toFixed(1)}`).join("");
+const labelStyle = { display: "flex", height: 36, fontSize: 28, fontWeight: 600 } as const;
+
+/** Grade distribution as one bar, U first, with each grade's letter below its segment. */
+function GradeBar({ grades }: { grades: CourseSummary["recentGrades"] }) {
+  const total = attemptsOf(grades);
+  const present = GRADES.filter((grade) => grades[grade] > 0);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <svg width={SPARK_WIDTH} height={SPARK_HEIGHT} viewBox={`0 0 ${SPARK_WIDTH} ${SPARK_HEIGHT}`}>
-        <path d={line} fill="none" stroke={MUTED} strokeWidth={3} strokeLinejoin="round" />
-        <circle cx={x(trend.length - 1)} cy={y(last[1])} r={6} fill={FOREGROUND} />
-      </svg>
-      <div style={{ display: "flex", justifyContent: "space-between", width: SPARK_WIDTH, fontSize: 20, color: MUTED }}>
-        <span>{formatAcademicYear(first[0])}</span>
-        <span>{formatAcademicYear(last[0])}</span>
-      </div>
+    <div style={{ display: "flex", gap: 4 }}>
+      {present.map((grade) => (
+        <div key={grade} style={{ display: "flex", flexDirection: "column", gap: 10, flexGrow: grades[grade], flexBasis: 0, minWidth: 0 }}>
+          <div style={{ height: BAR_HEIGHT, borderRadius: BAR_RADIUS, backgroundColor: GRADE_COLOURS[grade] }} />
+          <span style={{ ...labelStyle, justifyContent: "center" }}>{grades[grade] / total >= MIN_LABELLED_SHARE ? grade : ""}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -64,67 +60,62 @@ function DistributionMark({ frequencies, min, max }: { frequencies: Frequencies;
   const { stops, median } = distributionMark(frequencies, min, max);
   const gradient = stops.map(({ at, shade }) => `rgba(${FOREGROUND_RGB}, ${shade}) ${at}%`);
   return (
-    <div style={{ display: "flex", position: "relative", width: MARK_WIDTH, height: MARK_HEIGHT }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div
         style={{
-          position: "absolute",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          left: 0,
-          borderRadius: 4,
-          backgroundColor: `rgba(${FOREGROUND_RGB}, 0.1)`,
+          display: "flex",
+          position: "relative",
+          height: BAR_HEIGHT,
+          borderRadius: BAR_RADIUS,
+          backgroundColor: TRACK,
           backgroundImage: `linear-gradient(to right, ${gradient.join(", ")})`,
         }}
-      />
-      {median !== null && (
-        <div
-          style={{
-            position: "absolute",
-            top: -TICK_OVERHANG,
-            bottom: -TICK_OVERHANG,
-            left: (median / 100) * MARK_WIDTH - TICK_WIDTH / 2,
-            width: TICK_WIDTH,
-            borderRadius: TICK_WIDTH / 2,
-            backgroundColor: FOREGROUND,
-          }}
-        />
-      )}
+      >
+        {median !== null && (
+          <div
+            style={{
+              position: "absolute",
+              top: -TICK_OVERHANG,
+              bottom: -TICK_OVERHANG,
+              left: `${median}%`,
+              marginLeft: -TICK_WIDTH / 2,
+              width: TICK_WIDTH,
+              borderRadius: TICK_WIDTH / 2,
+              backgroundColor: FOREGROUND,
+            }}
+          />
+        )}
+      </div>
+      <div style={{ ...labelStyle, color: MUTED }}>
+        {frequencies.map(([value]) => (
+          <span key={value} style={{ flexGrow: 1, flexBasis: 0, justifyContent: "center" }}>
+            {value}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
 
-function Stat({ label, value, children }: { label: string; value: string; children?: ReactNode }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <span style={{ fontSize: 24, color: MUTED }}>{label}</span>
-      <span style={{ fontSize: 64, fontWeight: 600, letterSpacing: -2 }}>{value}</span>
-      {children}
-    </div>
-  );
+interface MetricProps {
+  label: string;
+  value: string;
+  unit?: string;
+  /** Drawn below the value, or null to say why there is no value. */
+  chart: ReactNode;
+  missing: string;
 }
 
-/** Grade distribution as one bar, U first, with each grade's share below it. */
-function GradeBar({ grades }: { grades: CourseSummary["recentGrades"] }) {
-  const present = GRADES.filter((grade) => grades[grade] > 0);
-  const total = present.reduce((sum, grade) => sum + grades[grade], 0);
+/** One headline number over the chart it comes from. */
+function Metric({ label, value, unit, chart, missing }: MetricProps) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", height: 24, gap: 3, borderRadius: 6, overflow: "hidden", backgroundColor: TRACK }}>
-        {present.map((grade) => (
-          <div key={grade} style={{ flexGrow: grades[grade], backgroundColor: GRADE_COLOURS[grade] }} />
-        ))}
+    <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, flexBasis: 0 }}>
+      <span style={{ fontSize: 30, color: MUTED }}>{label}</span>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 12, marginBottom: 24 }}>
+        <span style={{ fontSize: 112, fontWeight: 600, letterSpacing: -4, lineHeight: 1 }}>{value}</span>
+        {unit && <span style={{ fontSize: 44, color: MUTED, lineHeight: 1, marginBottom: 4 }}>{unit}</span>}
       </div>
-      <div style={{ display: "flex", gap: 28, fontSize: 22, color: MUTED }}>
-        <span>Main exam, last {RECENT_YEARS} years</span>
-        {present.map((grade) => (
-          <div key={grade} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 16, height: 16, borderRadius: 4, backgroundColor: GRADE_COLOURS[grade] }} />
-            <span style={{ color: FOREGROUND, fontWeight: 600 }}>{grade}</span>
-            <span>{formatPercent(grades[grade] / total)}</span>
-          </div>
-        ))}
-      </div>
+      {chart ?? <span style={{ fontSize: 28, color: MUTED }}>{missing}</span>}
     </div>
   );
 }
@@ -136,8 +127,12 @@ interface CourseImageProps {
   icon: string;
 }
 
+/**
+ * What a shared link most needs to answer: how hard the course is and what students think of it. The link preview's
+ * text carries the other numbers.
+ */
 export function CourseImage({ course, programme, icon }: CourseImageProps) {
-  const { code, name, recentGrades, trend, overallAnswers, passRate, averageGrade, attemptsPerYear, rating } = toCatalogCourse(course);
+  const { code, name, recentGrades, overallAnswers, passRate, rating } = toCatalogCourse(course);
   return (
     <div
       style={{
@@ -151,28 +146,28 @@ export function CourseImage({ course, programme, icon }: CourseImageProps) {
         fontFamily: "Geist",
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 26, color: MUTED }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 30, color: MUTED }}>
           <img src={icon} width={40} height={40} />
-          <span style={{ color: FOREGROUND, fontWeight: 600 }}>{SITE_NAME}</span>
           <span>{[code, programme].filter(Boolean).join(" · ")}</span>
         </div>
-        <span style={{ display: "block", fontSize: 60, fontWeight: 600, letterSpacing: -2, lineHeight: 1.1, lineClamp: 2 }}>{name}</span>
+        <span style={{ display: "block", fontSize: 64, fontWeight: 600, letterSpacing: -2, lineHeight: 1.1, lineClamp: 2 }}>{name}</span>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 36 }}>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", gap: 64 }}>
-            <Stat label="Pass rate" value={formatPercent(passRate)} />
-            <Stat label="Average grade" value={formatGrade(averageGrade)} />
-            <Stat label="Attempts per year" value={formatCount(attemptsPerYear)} />
-            <Stat label="Rating" value={formatScore(rating)}>
-              {overallAnswers && <DistributionMark frequencies={answerFrequencies(overallAnswers)} {...ANSWER_SCALE} />}
-            </Stat>
-          </div>
-          <Sparkline trend={trend} />
-        </div>
-        <GradeBar grades={recentGrades} />
+      <div style={{ display: "flex", gap: COLUMN_GAP }}>
+        <Metric
+          label={`Pass rate, last ${RECENT_YEARS} years`}
+          value={formatPercent(passRate)}
+          chart={passRate === null ? null : <GradeBar grades={recentGrades} />}
+          missing="No recent exam results"
+        />
+        <Metric
+          label="Student rating"
+          value={formatScore(rating)}
+          unit={rating === null ? undefined : `/ ${ANSWER_SCALE.max}`}
+          chart={overallAnswers && <DistributionMark frequencies={answerFrequencies(overallAnswers)} {...ANSWER_SCALE} />}
+          missing="Too few survey answers"
+        />
       </div>
     </div>
   );
