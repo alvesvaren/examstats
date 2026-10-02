@@ -6,7 +6,7 @@
   "cleanUrls": true,
   "functions": {
     "api/og.tsx": {
-      "includeFiles": "{public/data/index.json,public/favicon.svg,node_modules/@fontsource/geist/files/geist-latin-[46]00-normal.woff,node_modules/.pnpm/harfbuzzjs@*/node_modules/harfbuzzjs/hb.wasm}"
+      "includeFiles": "{public/data/index.json,node_modules/@fontsource/geist/files/geist-latin-[46]00-normal.woff,node_modules/.pnpm/harfbuzzjs@*/node_modules/harfbuzzjs/hb.wasm}"
     }
   },
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
