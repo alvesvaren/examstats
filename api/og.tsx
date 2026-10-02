@@ -117,8 +117,7 @@ interface CourseImageProps {
 }
 
 /**
- * What a shared link most needs to answer: how hard the course is and what students think of it. The link preview's
- * text carries the other numbers.
+ * What a shared link most needs to answer: how hard the course is and what students think of it.
  */
 export function CourseImage({ course, programme }: CourseImageProps) {
   const { code, name, recentGrades, overallAnswers, passRate, rating } = toCatalogCourse(course);

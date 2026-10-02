@@ -10,7 +10,7 @@ import { z } from "zod";
 import { snapshotSchema } from "../src/domain/snapshot.ts";
 import {
   COURSE_IMAGE_SIZE,
-  courseDescription,
+  COURSE_DESCRIPTION,
   courseHeading,
   HOME_DESCRIPTION,
   HOME_HEADING,
@@ -115,7 +115,7 @@ export function pageMeta(): Plugin {
         for (const course of snapshot.courses) {
           const tags = headTags({
             heading: courseHeading(course),
-            description: courseDescription(course),
+            description: COURSE_DESCRIPTION,
             path: `course/${encodeURIComponent(course.code)}`,
             image: courseImage(course.code, version),
           });
