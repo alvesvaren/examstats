@@ -7,8 +7,9 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
-# Both data workflows push to main, so they take turns.
+# Both data workflows merge into main, so they take turns.
 concurrency: data-commit
 
 jobs:
@@ -24,11 +25,17 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # Fails while the survey site is down, which leaves the committed surveys as they are.
       - run: pnpm evaluations
-      # The file carries its fetch time, so there is always a commit. A push deploys the site.
-      - run: |
+      # The file carries its fetch time, so there is always a commit. main only takes pull
+      # requests, so the commit goes through one that merges at once. The merge deploys the site.
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          branch="data/surveys-${{ github.run_id }}"
+          git switch -c "$branch"
           git add data/evaluations.json
           git commit -m "Update course surveys"
-          git pull --rebase
-          git push
+          git push origin "$branch"
+          gh pr create --base main --head "$branch" --title "Update course surveys" --body "From the monthly crawl."
+          gh pr merge "$branch" --squash --delete-branch
