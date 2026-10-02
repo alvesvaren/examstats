@@ -34,22 +34,13 @@ const BAR_HEIGHT = 40;
 const BAR_RADIUS = 8;
 const TICK_WIDTH = 6;
 const TICK_OVERHANG = 8;
-/** Grade distribution as one bar, U first. */
+/** Grade distribution as one bar, U first. Like the site's bar, only its outer corners are round. */
 function GradeBar({ grades }: { grades: CourseSummary["recentGrades"] }) {
   const present = GRADES.filter((grade) => grades[grade] > 0);
   return (
-    <div style={{ display: "flex", gap: 4 }}>
+    <div style={{ display: "flex", gap: 4, overflow: "hidden", borderRadius: BAR_RADIUS }}>
       {present.map((grade) => (
-        <div
-          key={grade}
-          style={{
-            height: BAR_HEIGHT,
-            flexGrow: grades[grade],
-            flexBasis: 0,
-            borderRadius: BAR_RADIUS,
-            backgroundColor: GRADE_COLOURS[grade],
-          }}
-        />
+        <div key={grade} style={{ height: BAR_HEIGHT, flexGrow: grades[grade], flexBasis: 0, backgroundColor: GRADE_COLOURS[grade] }} />
       ))}
     </div>
   );
