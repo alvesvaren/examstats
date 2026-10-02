@@ -3,10 +3,9 @@
  * the descriptions, into the HTML that link previews read. The build imports this file, so imports use relative paths.
  */
 import { toCatalogCourse } from "../domain/catalog.ts";
-import { RECENT_YEARS } from "../domain/course-stats.ts";
 import { ANSWER_SCALE } from "../domain/evaluation.ts";
 import type { CourseSummary } from "../domain/snapshot.ts";
-import { formatCount, formatGrade, formatPercent, formatScore } from "./format.ts";
+import { formatPercent, formatScore } from "./format.ts";
 
 export const SITE_NAME = "U345";
 export const HOME_HEADING = "Chalmers exam results";
@@ -19,19 +18,15 @@ export const pageTitle = (heading: string) => `${heading} · ${SITE_NAME}`;
 
 export const courseHeading = ({ code, name }: Pick<CourseSummary, "code" | "name">) => `${code} ${name}`;
 
-/** The headline numbers of the course page, in a few sentences. Numbers a course lacks are left out. */
+/**
+ * The course's two headline numbers, kept short so chat apps show a compact preview. A course with neither gets a
+ * plain sentence.
+ */
 export function courseDescription(course: CourseSummary) {
-  const { passRate, averageGrade, attemptsPerYear, rating } = toCatalogCourse(course);
-  const recent = [
-    passRate !== null && `${formatPercent(passRate)} pass rate`,
-    averageGrade !== null && `average grade ${formatGrade(averageGrade)}`,
-    attemptsPerYear > 0 && `${formatCount(attemptsPerYear)} attempts per year`,
+  const { passRate, rating } = toCatalogCourse(course);
+  const facts = [
+    passRate !== null && `${formatPercent(passRate)} pass rate.`,
+    rating !== null && `Rated ${formatScore(rating)} of ${ANSWER_SCALE.max}.`,
   ].filter((fact) => fact !== false);
-  return [
-    recent.length > 0 && `Main exam, last ${RECENT_YEARS} years: ${recent.join(", ")}.`,
-    rating !== null && `Rated ${formatScore(rating)} of ${ANSWER_SCALE.max} in course surveys.`,
-    "Every exam date on record for this Chalmers course.",
-  ]
-    .filter((sentence) => sentence !== false)
-    .join(" ");
+  return facts.length > 0 ? facts.join(" ") : "Every exam date on record for this Chalmers course.";
 }
