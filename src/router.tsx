@@ -6,8 +6,10 @@ import { courseQuery, queryClient, snapshotQuery } from "@/data/queries";
 import { SORT_KEYS, toCatalogCourse } from "@/domain/catalog";
 import { CoursePage } from "@/features/course/course-page";
 import { CourseListPage } from "@/features/course-list/course-list-page";
+import { courseHeading, HOME_HEADING, pageTitle } from "@/lib/page-meta";
 
 const rootRoute = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  head: () => ({ meta: [{ title: pageTitle(HOME_HEADING) }] }),
   component: AppLayout,
 });
 
@@ -44,6 +46,7 @@ const courseRoute = createRoute({
     await context.queryClient.ensureQueryData(courseQuery(params.code));
     return { course: toCatalogCourse(course) };
   },
+  head: ({ loaderData }) => ({ meta: loaderData ? [{ title: pageTitle(courseHeading(loaderData.course)) }] : [] }),
   component: CoursePage,
 });
 

@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.node.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "../node_modules/.tmp/tsconfig.api.tsbuildinfo",
+    "jsx": "react-jsx",
+    // Vercel compiles the function from a temporary config that extends this one, so type roots need a fixed path.
+    "typeRoots": ["../node_modules/@types"]
+  },
+  "include": ["."]
+}
