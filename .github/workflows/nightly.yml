@@ -7,8 +7,9 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
-# Both data workflows push to main, so they take turns.
+# Both data workflows merge into main, so they take turns.
 concurrency: data-commit
 
 jobs:
@@ -24,8 +25,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # Fails while stats.ftek.se is down, which leaves the committed results as they are.
       - run: pnpm fetch-results
-      # Results change a few times per study period. A push deploys the site.
-      - run: |
+      # Results change a few times per study period. main only takes pull requests, so the
+      # commit goes through one that merges at once. The merge deploys the site.
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/results.json
@@ -33,6 +37,9 @@ jobs:
             echo "No new results"
             exit 0
           fi
+          branch="data/results-${{ github.run_id }}"
+          git switch -c "$branch"
           git commit -m "Update exam results"
-          git pull --rebase
-          git push
+          git push origin "$branch"
+          gh pr create --base main --head "$branch" --title "Update exam results" --body "From the nightly fetch."
+          gh pr merge "$branch" --squash --delete-branch
