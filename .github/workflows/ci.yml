@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+    # The data workflows open data-only pull requests with GITHUB_TOKEN and merge them at once.
+    # CI on them waits for approval and fails when the merge closes the pull request unapproved.
+    paths-ignore: ["data/**"]
 
 jobs:
   check:
