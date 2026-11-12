@@ -88,3 +88,21 @@ export function summarizeEvaluations(rounds: readonly EvaluationRound[]) {
 /** Newest round first, then by study period. */
 export const compareRounds = (a: EvaluationRound, b: EvaluationRound) =>
   b.academicYear - a.academicYear || (b.periods ?? "").localeCompare(a.periods ?? "");
+
+/**
+ * Standard questions missing from more than `maxShare` of the answered rounds of an academic year. Every answered
+ * round has had every standard question, so a high share means the survey reworded a question and the crawl no
+ * longer recognises it.
+ */
+export function missingQuestions(rounds: readonly EvaluationRound[], maxShare: number) {
+  const answered = Map.groupBy(
+    rounds.filter((r) => r.answers > 0),
+    (r) => r.academicYear,
+  );
+  return [...answered].flatMap(([academicYear, yearRounds]) =>
+    QUESTIONS.flatMap((question) => {
+      const missing = yearRounds.filter((r) => r.means[question] === undefined).length;
+      return missing > yearRounds.length * maxShare ? [{ academicYear, question, missing, rounds: yearRounds.length }] : [];
+    }),
+  );
+}
