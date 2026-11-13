@@ -5,7 +5,7 @@ import { AppLayout, ErrorState, NotFoundState, PageSkeleton } from "@/components
 import { courseQuery, plansQuery, queryClient, snapshotQuery } from "@/data/queries";
 import { SORT_KEYS, toCatalogCourse } from "@/domain/catalog";
 import { PLANNER_SORT_KEYS } from "@/domain/planner";
-import { STUDY_PERIODS } from "@/domain/programme-plans";
+import { cohortOf, STUDY_PERIODS } from "@/domain/programme-plans";
 import { getLanguage } from "@/hooks/use-language";
 import { CoursePage } from "@/features/course/course-page";
 import { CourseListPage } from "@/features/course-list/course-list-page";
@@ -56,6 +56,8 @@ const courseRoute = createRoute({
 
 const plannerSearchSchema = z.object({
   programme: z.string().optional().catch(undefined),
+  /** The year the student started the programme in, as the first calendar year of that academic year, such as 2024. */
+  start: z.number().int().optional().catch(undefined),
   /** The year of study, counted on into the master's programme. */
   year: z.number().int().positive().optional().catch(undefined),
   /** The master's programme after the programme, as its code. */
@@ -72,8 +74,13 @@ const plannerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/planner",
   validateSearch: plannerSearchSchema,
-  loader: ({ context }) =>
-    Promise.all([context.queryClient.ensureQueryData(snapshotQuery), context.queryClient.ensureQueryData(plansQuery(getLanguage()))]),
+  loaderDeps: ({ search }) => ({ programme: search.programme, start: search.start }),
+  loader: async ({ context, deps }) => {
+    const snapshot = await context.queryClient.ensureQueryData(snapshotQuery);
+    const { start, masterPlans } = cohortOf(snapshot.plans, deps.programme, deps.start);
+    // A start year this device remembers loads in the page instead.
+    await Promise.all([start, masterPlans].map((year) => context.queryClient.ensureQueryData(plansQuery(getLanguage(), year))));
+  },
   head: () => ({ meta: [{ title: pageTitle(PLANNER_HEADING) }] }),
   component: PlannerPage,
 });

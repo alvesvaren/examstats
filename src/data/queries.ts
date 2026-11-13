@@ -38,12 +38,23 @@ export const courseQuery = (code: string) =>
     queryFn: ({ signal }) => getJson(`${DATA_URL}/courses/${encodeURIComponent(code)}.json`, courseDetailSchema, signal),
   });
 
-const publishedPlansQuery = queryOptions({
-  queryKey: ["plans"],
-  queryFn: ({ signal }) => getJson(`${DATA_URL}/plans.json`, z.array(publishedPlanSchema), signal),
-});
+const namedPlansQuery = (language: Language, start: number) =>
+  queryOptions({
+    queryKey: ["plans", start],
+    queryFn: ({ signal }) => getJson(`${DATA_URL}/plans/${start}.json`, z.array(publishedPlanSchema), signal),
+    select: (plans) => plans.map((plan) => planInLanguage(plan, language)),
+  });
 
-/** Every programme's plan for the current academic year, named in `language`. Only the course planner loads it. */
-export const plansQuery = perLanguage((language) =>
-  queryOptions({ ...publishedPlansQuery, select: (plans) => plans.map((plan) => planInLanguage(plan, language)) }),
-);
+/** One query per language and start year, so each keeps a stable `select`. */
+const plansQueries = new Map<string, ReturnType<typeof namedPlansQuery>>();
+
+/**
+ * Every programme as the students who started it in `start` study it, named in `language`. Only the course planner
+ * loads them.
+ */
+export function plansQuery(language: Language, start: number) {
+  const key = `${language}.${start}`;
+  const query = plansQueries.get(key) ?? namedPlansQuery(language, start);
+  plansQueries.set(key, query);
+  return query;
+}

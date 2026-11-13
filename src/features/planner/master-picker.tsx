@@ -1,8 +1,8 @@
-import { ChevronRightIcon, ExternalLinkIcon } from "lucide-react";
+import { ChevronRightIcon, ExternalLinkIcon, InfoIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Catalog } from "@/domain/catalog";
 import { masterSummary, otherNameOf } from "@/domain/planner";
-import { programmeUrl, type ProgrammePlan } from "@/domain/programme-plans";
+import { academicYearOf, programmeUrl, type ProgrammePlan } from "@/domain/programme-plans";
 import { formatCount, formatCredits, formatPercent, formatScore } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -132,5 +132,31 @@ export function ChalmersLink({ code, className }: { code: string; className?: st
       chalmers.se
       <ExternalLinkIcon className="size-3.5" />
     </a>
+  );
+}
+
+/** Chalmers' list of the master's programmes of the next admission. */
+const MASTERS_URL = "https://www.chalmers.se/en/education/find-masters-programme/";
+
+interface MastersNotPublishedProps {
+  /** The year the student's master's programme starts, as its first calendar year. */
+  year: number;
+  /** The academic year of the plans shown instead. */
+  shown: string;
+}
+
+/** Says that the master's programmes shown are this year's, since Chalmers has not published those of the student's fourth year yet. */
+export function MastersNotPublished({ year, shown }: MastersNotPublishedProps) {
+  return (
+    <p role="note" className="flex gap-2 rounded-xl border border-dashed px-3 py-2 text-sm text-muted-foreground">
+      <InfoIcon className="mt-0.5 size-4 shrink-0" />
+      <span>
+        Chalmers has not published the master's programmes of {academicYearOf(year)} yet. Until it does, these are the ones of {shown}, and
+        the programmes on offer can change.{" "}
+        <a href={MASTERS_URL} target="_blank" rel="noreferrer" className="text-foreground underline underline-offset-4">
+          Master's programmes on chalmers.se
+        </a>
+      </span>
+    </p>
   );
 }

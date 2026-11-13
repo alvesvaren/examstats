@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  cohortOf,
+  cohortPlans,
   courseYearSummary,
   placementsByCourse,
   plannedCourses,
@@ -7,6 +9,7 @@ import {
   roundKey,
   roundOf,
   studyYears,
+  type DatedPlan,
   type PlanChoice,
   type PlanCourse,
   type ProgrammePlan,
@@ -265,5 +268,87 @@ describe("plannedCourses", () => {
       { programme: "TKDAT", year: 1, key: roundKey("DAT151", ["LP1"]) },
     ];
     expect(codes(plannedCourses([plan, mpalg], picks))).toEqual(["DAT017", "EDA322", "TDA251", "DAT060"]);
+  });
+});
+
+const choice = (id: number): PlanChoice => ({ id, kind: "pick", text: null, minCourses: 1, minCredits: null });
+/** A plan of `academicYear` in which each year of study holds one course, named for the year and the plan, such as "Y2.2024". */
+const dated = (academicYear: string, numbers: number[], overrides: Partial<DatedPlan> = {}): DatedPlan => ({
+  academicYear,
+  code: "TKAUT",
+  name: "Automation",
+  choices: [],
+  requirements: [],
+  masters: [],
+  prerequisites: [],
+  years: numbers.map((year) => ({ year, courses: [course(`Y${year}.${academicYear.slice(0, 4)}`)] })),
+  ...overrides,
+});
+const codesOf = (plan: ProgrammePlan | undefined) => plan?.years.map((y) => [y.year, y.courses.map((c) => c.code)]);
+
+describe("cohortPlans", () => {
+  it("takes each year of study from the plan of the academic year the students take it in", () => {
+    const plans = [dated("2023/2024", [1, 2, 3]), dated("2024/2025", [1, 2, 3]), dated("2025/2026", [1, 2, 3])];
+
+    expect(codesOf(cohortPlans(plans, 2023)[0])).toEqual([
+      [1, ["Y1.2023"]],
+      [2, ["Y2.2024"]],
+      [3, ["Y3.2025"]],
+    ]);
+  });
+
+  it("follows the newest plan for years that are not planned yet", () => {
+    const plans = [dated("2024/2025", [1, 2, 3]), dated("2025/2026", [1, 2, 3])];
+
+    expect(codesOf(cohortPlans(plans, 2025)[0])).toEqual([
+      [1, ["Y1.2025"]],
+      [2, ["Y2.2025"]],
+      [3, ["Y3.2025"]],
+    ]);
+  });
+
+  it("follows the newest plan before that has the year when the plan of its academic year does not", () => {
+    const plans = [dated("2024/2025", [1, 2, 3]), dated("2025/2026", [1, 3])];
+
+    expect(codesOf(cohortPlans(plans, 2024)[0])).toEqual([
+      [1, ["Y1.2024"]],
+      [2, ["Y2.2024"]],
+      [3, ["Y3.2025"]],
+    ]);
+  });
+
+  it("takes the syllabus of the start year, and the choices of the plans its years come from", () => {
+    const first = dated("2024/2025", [1], { masters: ["MPAME"], choices: [choice(1), choice(9)] });
+    first.years[0]!.courses[0]!.choices = [1];
+    const second = dated("2025/2026", [1, 2], { masters: ["MPAME", "MPCAS"], choices: [choice(2)] });
+    second.years[1]!.courses[0]!.choices = [2];
+
+    const [cohort] = cohortPlans([first, second], 2024);
+
+    expect(cohort?.masters).toEqual(["MPAME"]);
+    expect(cohort?.choices).toEqual([choice(1), choice(2)]);
+    expect(cohort).not.toHaveProperty("academicYear");
+  });
+
+  it("leaves out a programme without a plan in the start year", () => {
+    expect(cohortPlans([dated("2025/2026", [1])], 2024)).toEqual([]);
+  });
+});
+
+describe("cohortOf", () => {
+  const info = { academicYear: "2026/2027", ruleNames: {}, starts: { TKAUT: [2021, 2022, 2023, 2024, 2025, 2026], MPNEW: [2026] } };
+
+  it("shows the requested start year, with the master's programme of three years later", () => {
+    expect(cohortOf(info, "TKAUT", 2022)).toMatchObject({ start: 2022, masterStart: 2025, masterPlans: 2025, mastersPublished: true });
+  });
+
+  it("follows the current plans for a master's programme that starts after them", () => {
+    expect(cohortOf(info, "TKAUT", 2024)).toMatchObject({ start: 2024, masterStart: 2027, masterPlans: 2026, mastersPublished: false });
+  });
+
+  it("shows the newest start year when the programme admitted no students in the requested one, or none is requested", () => {
+    expect(cohortOf(info, "MPNEW", 2022).start).toBe(2026);
+    expect(cohortOf(info, "TKAUT").start).toBe(2026);
+    expect(cohortOf(info, undefined, 2022).start).toBe(2026);
   });
 });
