@@ -70,7 +70,7 @@ export const programmePlanSchema = z.object({
 });
 
 export const planInfoSchema = z.object({
-  /** Academic year of the plans, such as "2026/2027". */
+  /** Academic year of the current plans, such as "2026/2027". */
   academicYear: z.string(),
   /** Chalmers' name of each rule code, such as "Compulsory courses". */
   ruleNames: z.record(z.string(), z.string()),
@@ -91,8 +91,19 @@ export const planInLanguage = (plan: PublishedPlan, language: Language) => ({
   years: plan.years.map((year) => ({ ...year, courses: year.courses.map((course) => inLanguage(course, language)) })),
 });
 
-/** The committed file that `pnpm programme-plans` writes and `pnpm snapshot` reads. */
-export const programmePlansFileSchema = planInfoSchema.extend({ programmes: z.array(programmePlanSchema) });
+/** A programme plan of one academic year, with the programme syllabus of that year. */
+export const datedPlanSchema = programmePlanSchema.extend({ academicYear: z.string() });
+export type DatedPlan = z.infer<typeof datedPlanSchema>;
+
+/** The committed file that `pnpm programme-plans` writes and `pnpm snapshot` reads: the plans of every academic year, oldest first. */
+export const programmePlansFileSchema = planInfoSchema.extend({ programmes: z.array(datedPlanSchema) });
+
+/** What the app knows of the plans before it loads one start year's. */
+export const publishedPlanInfoSchema = planInfoSchema.extend({
+  /** The years each programme admitted students in, oldest first, by programme code. */
+  starts: z.record(z.string(), z.array(z.number().int())),
+});
+export type PublishedPlanInfo = z.infer<typeof publishedPlanInfoSchema>;
 
 export type PlanCourse = z.infer<typeof planCourseSchema>;
 export type PlanChoice = z.infer<typeof planChoiceSchema>;
@@ -317,3 +328,47 @@ export const syllabusUrl = (code: string) =>
 /** The programme's overview on chalmers.se: its syllabus and plan of this year. */
 export const programmeUrl = (code: string) =>
   `https://www.chalmers.se/en/education/your-studies/find-course-and-programme-syllabi/programme-overview/${encodeURIComponent(code)}/`;
+
+/** An academic year by its first calendar year, such as 2026 for "2026/2027". */
+export const startYearOf = (academicYear: string) => Number(academicYear.slice(0, 4));
+export const academicYearOf = (start: number) => `${start}/${start + 1}`;
+
+const byAcademicYear = (a: DatedPlan, b: DatedPlan) => a.academicYear.localeCompare(b.academicYear);
+
+/**
+ * Every programme as the students who started it in `start` study it. The syllabus is the one of their first year, and
+ * each year of study follows the plan of the academic year they take it in, or the newest plan before it that has
+ * the year. Years that are not planned yet follow the newest plan. A programme without a plan in `start` is left out.
+ */
+export function cohortPlans(plans: readonly DatedPlan[], start: number): ProgrammePlan[] {
+  return [...Map.groupBy(plans, (p) => p.code).values()].flatMap((group) => {
+    const dated = group.toSorted(byAcademicYear);
+    const first = dated.find((p) => p.academicYear === academicYearOf(start));
+    if (!first) return [];
+    const numbers = [...new Set(dated.flatMap((p) => p.years.map((y) => y.year)))].toSorted((a, b) => a - b);
+    const years = numbers.flatMap((number) => {
+      const taken = academicYearOf(start + number - 1);
+      return (
+        dated.findLast((p) => p.academicYear <= taken && p.years.some((y) => y.year === number))?.years.find((y) => y.year === number) ?? []
+      );
+    });
+    const ids = new Set(years.flatMap((y) => y.courses.flatMap((c) => c.choices)));
+    const choices = new Map(dated.flatMap((p) => p.choices.filter((c) => ids.has(c.id)).map((c) => [c.id, c])));
+    const { academicYear: _, ...syllabus } = first;
+    return [{ ...syllabus, choices: [...choices.values()].toSorted((a, b) => a.id - b.id), years }];
+  });
+}
+
+/**
+ * The start year the planner shows a programme for: `requested` when the programme admitted students then, else the
+ * newest it did, or the current year without a programme. The master's programme after it starts
+ * `MASTER_START_YEAR - 1` years later. Until Chalmers publishes the plans of that year, it follows the current plans,
+ * and `mastersPublished` is false.
+ */
+export function cohortOf({ academicYear, starts }: PublishedPlanInfo, programme: string | undefined, requested?: number) {
+  const current = startYearOf(academicYear);
+  const admitted = starts[programme ?? ""] ?? [];
+  const start = requested !== undefined && admitted.includes(requested) ? requested : (admitted.at(-1) ?? current);
+  const masterStart = start + MASTER_START_YEAR - 1;
+  return { start, admitted, masterStart, masterPlans: Math.min(masterStart, current), mastersPublished: masterStart <= current };
+}

@@ -1,13 +1,25 @@
 import { z } from "zod";
 import type { StudyPick, StudyYear } from "./programme-plans.ts";
 
-/** What the planner remembers on a device: the plan last worked on, the picks of every year planned, and the master's programme after each programme. */
+/**
+ * What the planner remembers on a device: the plan last worked on, the picks of every year planned, and the start
+ * year of and master's programme after each programme.
+ */
 const plannerMemorySchema = z.object({
-  last: z.object({ programme: z.string(), year: z.number().int().positive().optional(), track: z.string().optional() }).optional(),
+  last: z
+    .object({
+      programme: z.string(),
+      start: z.number().int().optional(),
+      year: z.number().int().positive().optional(),
+      track: z.string().optional(),
+    })
+    .optional(),
   /** Round keys by programme and year of its plan, such as "TKITE.3" or "MPALG.1". */
   picks: z.record(z.string(), z.array(z.string())),
   /** Master's programme codes by programme code. */
   masters: z.record(z.string(), z.string()).default({}),
+  /** Start years by programme code. */
+  starts: z.record(z.string(), z.number().int()).default({}),
 });
 export type PlannerMemory = z.infer<typeof plannerMemorySchema>;
 
@@ -18,7 +30,7 @@ export function parsePlannerMemory(stored: string | null): PlannerMemory {
   try {
     return plannerMemorySchema.parse(JSON.parse(stored ?? ""));
   } catch {
-    return { picks: {}, masters: {} };
+    return { picks: {}, masters: {}, starts: {} };
   }
 }
 
@@ -45,3 +57,9 @@ export function withMaster(memory: PlannerMemory, programme: string, master: str
   const { [programme]: _, ...others } = memory.masters;
   return { ...memory, masters: master ? { ...others, [programme]: master } : others };
 }
+
+/** The memory after the start year of `programme` changed. */
+export const withStart = (memory: PlannerMemory, programme: string, start: number): PlannerMemory => ({
+  ...memory,
+  starts: { ...memory.starts, [programme]: start },
+});

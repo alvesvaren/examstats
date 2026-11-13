@@ -6,12 +6,12 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { catalogQuery, plansQuery } from "@/data/queries";
 import { otherNameOf } from "@/domain/planner";
-import { rememberedPicks, withMaster } from "@/domain/planner-memory";
-import { MASTER_START_YEAR, studyYears, tracksOf, type StudyYear } from "@/domain/programme-plans";
+import { rememberedPicks, withMaster, withStart } from "@/domain/planner-memory";
+import { academicYearOf, cohortOf, MASTER_START_YEAR, studyYears, tracksOf, type StudyYear } from "@/domain/programme-plans";
 import { useLanguage } from "@/hooks/use-language";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import { PLANNER_HEADING } from "@/lib/page-meta";
-import { ChalmersLink, MasterPicker, Prerequisites } from "./master-picker";
+import { ChalmersLink, MasterPicker, MastersNotPublished, Prerequisites } from "./master-picker";
 import { ProgrammeSearch } from "./programme-search";
 import { YearPlanner } from "./year-planner";
 
@@ -26,16 +26,19 @@ export function PlannerPage() {
   const search = route.useSearch();
   const navigate = route.useNavigate();
   const language = useLanguage();
-  const { data: plans } = useSuspenseQuery(plansQuery(language));
   const { data: catalog } = useSuspenseQuery(catalogQuery(language));
   const { memory, remember } = usePlannerMemory();
+  // A start year in the URL is a shared plan and wins. Without one, it is the one this device remembers.
+  const cohort = cohortOf(catalog.plans, search.programme, search.start ?? memory.starts[search.programme ?? ""]);
+  const { data: plans } = useSuspenseQuery(plansQuery(language, cohort.start));
+  const { data: masterPlans } = useSuspenseQuery(plansQuery(language, cohort.masterPlans));
 
   const programme = plans.find((p) => p.code === search.programme);
   if (!programme) return <ProgrammeSearch programmes={plans} names={catalog.programmes} />;
 
   const update = (changes: Partial<PlannerSearch>) =>
     navigate({ search: (prev) => ({ ...prev, ...changes }), replace: true, resetScroll: false });
-  const masters = plans.filter((p) => programme.masters.includes(p.code));
+  const masters = masterPlans.filter((p) => programme.masters.includes(p.code));
   // A master's programme in the URL is a shared plan and wins. Without one, the degree is as this device remembers it.
   const masterCode = search.master ?? memory.masters[programme.code];
   const master = masters.find((p) => p.code === masterCode);
@@ -48,10 +51,12 @@ export function PlannerPage() {
   const otherName = otherNameOf(catalog.programmes, programme.code);
 
   const picksIn = (shown: StudyYear | undefined) => shown && rememberedPicks(memory, shown.plan.code, shown.year);
-  // The header's link to the planner comes back to the year and track last shown.
+  const start = cohort.start;
+  // The header's link to the planner comes back to the start year, year and track last shown.
   const showYear = (next: number) => {
-    remember((m) => ({ ...m, last: { programme: programme.code, year: next } }));
+    remember((m) => ({ ...m, last: { programme: programme.code, start, year: next } }));
     void update({
+      start,
       year: next,
       master: master?.code,
       track: undefined,
@@ -60,7 +65,7 @@ export function PlannerPage() {
     });
   };
   const showTrack = (next: string | undefined) => {
-    remember((m) => ({ ...m, last: { programme: programme.code, year: current?.number, track: next } }));
+    remember((m) => ({ ...m, last: { programme: programme.code, start, year: current?.number, track: next } }));
     void update({ track: next });
   };
   const chooseMaster = (code: string | undefined) => {
@@ -68,8 +73,9 @@ export function PlannerPage() {
       programme,
       masters.find((p) => p.code === code),
     );
-    remember((m) => ({ ...withMaster(m, programme.code, code), last: { programme: programme.code, year: MASTER_START_YEAR } }));
+    remember((m) => ({ ...withMaster(m, programme.code, code), last: { programme: programme.code, start, year: MASTER_START_YEAR } }));
     void update({
+      start,
       year: MASTER_START_YEAR,
       master: code,
       track: undefined,
@@ -77,6 +83,11 @@ export function PlannerPage() {
       picked: picksIn(chosen.find((y) => y.number === MASTER_START_YEAR)),
     });
   };
+  const showStart = (next: number) => {
+    remember((m) => ({ ...withStart(m, programme.code, next), last: { programme: programme.code, start: next, year: current?.number } }));
+    void update({ start: next, track: undefined, period: undefined });
+  };
+  const showsMasters = Boolean(master) || choosingMaster;
 
   return (
     <div className="flex flex-col gap-5">
@@ -106,6 +117,20 @@ export function PlannerPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
+        {cohort.admitted.length > 1 && (
+          <NativeSelect
+            aria-label="Year you started the programme"
+            className={FIELD_SIZE}
+            value={String(start)}
+            onChange={(event) => showStart(Number(event.target.value))}
+          >
+            {cohort.admitted.toReversed().map((year) => (
+              <NativeSelectOption key={year} value={String(year)}>
+                Started {academicYearOf(year)}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        )}
         <div className="flex flex-wrap items-center gap-2">
           <ToggleGroup
             type="single"
@@ -154,6 +179,8 @@ export function PlannerPage() {
           </NativeSelect>
         )}
       </div>
+
+      {showsMasters && !cohort.mastersPublished && <MastersNotPublished year={cohort.masterStart} shown={catalog.plans.academicYear} />}
 
       {choosingMaster ? (
         <MasterPicker programme={programme} masters={masters} catalog={catalog} onChoose={chooseMaster} />

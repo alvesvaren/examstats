@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { answerCountsSchema, evaluationRoundSchema } from "./evaluation.ts";
 import { gradeCountsSchema } from "./grades.ts";
-import { coursePlacementSchema, planInfoSchema } from "./programme-plans.ts";
+import { coursePlacementSchema, publishedPlanInfoSchema } from "./programme-plans.ts";
 
 const isoDate = z.iso.date();
 
@@ -66,8 +66,8 @@ export const snapshotSchema = z.object({
   generatedAt: z.iso.datetime(),
   /** When the course surveys were last crawled. */
   evaluationsFetchedAt: z.iso.datetime(),
-  /** The academic year and rule names of the programme plans. */
-  plans: planInfoSchema,
+  /** The academic year, rule names and start years of the programme plans. */
+  plans: publishedPlanInfoSchema,
   /** Programme names by code. */
   programmes: z.record(z.string(), namedSchema),
   courses: z.array(courseSummarySchema),

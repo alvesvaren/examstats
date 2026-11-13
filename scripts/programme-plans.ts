@@ -1,8 +1,10 @@
 /**
- * Fetches every Chalmers programme plan for the current academic year from the JSON API behind chalmers.se and writes
- * `data/programme-plans.json`: per programme and year of study, the courses with their study periods and rules. The
- * plans name no examiners, so it also fetches each planned course's syllabus for the examiners of its rounds. The
- * degree requirements of a programme, and the prerequisites of a master's programme, come from its programme syllabus.
+ * Fetches every Chalmers programme plan of each academic year from 2021/2022 to the current one from the JSON API behind
+ * chalmers.se and writes `data/programme-plans.json`: per academic year, programme and year of study, the courses with
+ * their study periods and rules. Students follow the plan of the year they take a year of study in, so the planner
+ * builds each start year's degree from them. The plans name no examiners, so it also fetches the syllabus of each
+ * course in the current plans for the examiners of its rounds. The degree requirements of a programme, and the
+ * prerequisites of a master's programme, come from its programme syllabus of each year.
  * It also writes `data/names.json`, the English and Swedish names of every course and programme since 2021/2022.
  * A weekly GitHub Action runs it and commits the files when they change. The only code that knows that API.
  */
@@ -10,7 +12,9 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import {
+  academicYearOf,
   roundOf,
+  startYearOf,
   STUDY_PERIODS,
   type CourseRound,
   type PlanChoice,
@@ -28,6 +32,8 @@ import { paragraphsOf } from "./plain-text.ts";
 
 /** Plans for the next academic year replace the current ones in July, ahead of course registration. */
 const ACADEMIC_YEAR_START_MONTH = 7;
+/** The first academic year the API has plans for. */
+const FIRST_START_YEAR = 2021;
 
 function currentAcademicYear(today: Date) {
   const year = today.getFullYear() - (today.getMonth() + 1 < ACADEMIC_YEAR_START_MONTH ? 1 : 0);
@@ -110,7 +116,11 @@ const programmeSchema = z.object({
     results: z.array(
       z.object({
         programCode: z.string(),
-        yearClasses: z.array(z.object({ grade: z.number().int().positive(), courseMoments: z.array(momentSchema) })),
+        /** A programme without a plan can list one year class whose fields are all null. */
+        yearClasses: z
+          .array(z.looseObject({ grade: z.number().nullable() }))
+          .transform((classes) => classes.filter((c) => c.grade !== null))
+          .pipe(z.array(z.object({ grade: z.number().int().positive(), courseMoments: z.array(momentSchema) }))),
       }),
     ),
   }),
@@ -247,10 +257,10 @@ function toRequirements(syllabus: Syllabus): PlanRequirement[] {
 
 /**
  * The degree requirements of a programme, the master's programmes it leads on to, and its prerequisites, from its
- * syllabus for this academic year or the newest one before it. Empty when it has none.
+ * syllabus for `academicYear` or the newest one before it. Empty when it has none.
  */
-async function syllabusOf(code: string): Promise<Pick<ProgrammePlan, "requirements" | "masters" | "prerequisites">> {
-  const [start = 0] = env.ACADEMIC_YEAR.split("/").map(Number);
+async function syllabusOf(code: string, academicYear: string): Promise<Pick<ProgrammePlan, "requirements" | "masters" | "prerequisites">> {
+  const start = startYearOf(academicYear);
   for (let year = start; year >= start - SYLLABUS_YEARS_BACK; year--) {
     const { search } = await get("Syllabuses", { language: "en", acYear: `${year}/${year + 1}`, pCode: code }, syllabusSchema);
     const [syllabus] = search.results;
@@ -316,29 +326,29 @@ async function fetchNames(): Promise<NamesFile> {
   return names;
 }
 
-async function main() {
-  const names = fetchNames();
+/** Every programme plan of `academicYear` with its syllabus, without examiners. Records the name of each rule in `ruleNames`. */
+async function plansOf(academicYear: string, ruleNames: Map<string, string>) {
   const { results } = await get(
     "list",
-    { size: LIST_SIZE, language: "en", indexes: ["PewStudyprogrammes"], filter: { acYear: { _eq: env.ACADEMIC_YEAR } } },
+    { size: LIST_SIZE, language: "en", indexes: ["PewStudyprogrammes"], filter: { acYear: { _eq: academicYear } } },
     listSchema,
   );
-  const listed = results.filter((p) => p.acYear === env.ACADEMIC_YEAR).toSorted((a, b) => a.programCode.localeCompare(b.programCode));
-  if (listed.length < MIN_PROGRAMMES) throw new Error(`Only ${listed.length} programmes for ${env.ACADEMIC_YEAR}`);
-  console.log(`Fetching ${listed.length} programme plans for ${env.ACADEMIC_YEAR}`);
+  const listed = results.filter((p) => p.acYear === academicYear).toSorted((a, b) => a.programCode.localeCompare(b.programCode));
+  if (listed.length < MIN_PROGRAMMES) throw new Error(`Only ${listed.length} programmes for ${academicYear}`);
+  console.log(`Fetching ${listed.length} programme plans for ${academicYear}`);
 
-  const ruleNames = new Map<string, string>();
   const programmes = await mapConcurrent(listed, env.CONCURRENCY, async ({ programCode, name }) => {
-    const filter = { acYear: { _eq: env.ACADEMIC_YEAR }, programCode: { _eq: programCode } };
+    const filter = { acYear: { _eq: academicYear }, programCode: { _eq: programCode } };
     const [{ search }, syllabus] = await Promise.all([
       get("PewStudyprogrammes", { language: "en", filter }, programmeSchema),
-      syllabusOf(programCode),
+      syllabusOf(programCode, academicYear),
     ]);
     const plan = search.results.find((r) => r.programCode === programCode);
-    if (!plan) throw new Error(`No plan for ${programCode}`);
+    if (!plan) throw new Error(`No plan for ${programCode} in ${academicYear}`);
     for (const moment of plan.yearClasses.flatMap((y) => y.courseMoments)) ruleNames.set(moment.rule, moment.ruleName.trim());
     const years = Map.groupBy(plan.yearClasses, (y) => y.grade);
     return {
+      academicYear,
       code: programCode,
       name: name.trim(),
       choices: toChoices(plan.yearClasses.flatMap((y) => y.courseMoments)),
@@ -349,8 +359,20 @@ async function main() {
         .toSorted((a, b) => a.year - b.year),
     };
   });
+  return programmes.filter((p) => p.years.length);
+}
 
-  const codes = [...new Set(programmes.flatMap((p) => p.years.flatMap((y) => y.courses.map((c) => c.code))))].toSorted();
+async function main() {
+  const names = fetchNames();
+  const ruleNames = new Map<string, string>();
+  const plans = [];
+  // One academic year at a time, so the API sees no more than `CONCURRENCY` requests at once.
+  for (let start = FIRST_START_YEAR; start <= startYearOf(env.ACADEMIC_YEAR); start++) {
+    plans.push(...(await plansOf(academicYearOf(start), ruleNames)));
+  }
+
+  const current = plans.filter((p) => p.academicYear === env.ACADEMIC_YEAR);
+  const codes = [...new Set(current.flatMap((p) => p.years.flatMap((y) => y.courses.map((c) => c.code))))].toSorted();
   console.log(`Fetching ${codes.length} course syllabi for their examiners`);
   let failed = 0;
   const rounds = new Map(
@@ -366,19 +388,16 @@ async function main() {
   );
   if (failed > codes.length * MAX_FAILED_SHARE) throw new Error(`${failed} of ${codes.length} syllabi failed`);
 
-  const planned = programmes.filter((p) => p.years.length);
-  const codesPlanned = new Set(planned.map((p) => p.code));
   const file: ProgrammePlansFile = {
     academicYear: env.ACADEMIC_YEAR,
     ruleNames: Object.fromEntries([...ruleNames].toSorted(([a], [b]) => a.localeCompare(b))),
-    programmes: planned.map((programme) => ({
-      ...programme,
-      // A master's programme without a plan this year has no courses to plan.
-      masters: programme.masters.filter((code) => codesPlanned.has(code)),
-      years: programme.years.map(({ year, courses }) => ({
+    programmes: plans.map((plan) => ({
+      ...plan,
+      years: plan.years.map(({ year, courses }) => ({
         year,
         courses: courses.map((course) => {
-          const round = roundOf(course, rounds.get(course.code) ?? []);
+          // Only the current year's rounds are fetched. Earlier rounds keep no examiners.
+          const round = plan.academicYear === env.ACADEMIC_YEAR ? roundOf(course, rounds.get(course.code) ?? []) : null;
           return { ...course, examiners: [...(round?.examiners ?? [])], modules: [...(round?.modules ?? [])] };
         }),
       })),
