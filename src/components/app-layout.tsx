@@ -84,7 +84,8 @@ export function AppLayout() {
               <GradeChip key={grade} grade={grade} />
             ))}
           </span>
-          Chalmers exam results
+          {/* Phones have room for the logo alone. The name still labels the link. */}
+          <span className="sr-only sm:not-sr-only">Chalmers exam results</span>
         </Link>
         <nav className="flex items-center gap-1">
           <Button variant="ghost" size="sm" asChild>
