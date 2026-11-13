@@ -1,5 +1,5 @@
 import { compareSortValues, normalize, type CatalogCourse } from "./catalog.ts";
-import type { Named } from "./snapshot.ts";
+import type { InLanguage } from "./names.ts";
 import {
   isElective,
   plannedCourses,
@@ -74,7 +74,7 @@ export const firstOpenPeriod = (periods: readonly StudyPeriod[], plan: readonly 
 export function candidatesIn(candidates: readonly PlannerRound[], period: StudyPeriod, sort: PlannerSortKey): PlannerRound[] {
   return candidates
     .filter((r) => r.periods.includes(period))
-    .toSorted((a, b) => compareSortValues(a.stats?.[sort] ?? null, b.stats?.[sort] ?? null, "desc") || a.name.localeCompare(b.name, "en"));
+    .toSorted((a, b) => compareSortValues(a.stats?.[sort] ?? null, b.stats?.[sort] ?? null, "desc") || a.name.localeCompare(b.name, "sv"));
 }
 
 /** The picks after adding `round`, or after removing it when it is one. A course has one round in a plan, so adding another round of it moves it. */
@@ -185,23 +185,23 @@ export function masterSummary(master: ProgrammePlan, stats: ReadonlyMap<string, 
   };
 }
 
-/** A programme's Swedish name, or undefined when Chalmers names it the same in both languages. */
-export function swedishNameOf(names: Readonly<Record<string, Named>>, code: string) {
+/** A programme's name in the language not shown, or undefined when Chalmers names it the same in both languages. */
+export function otherNameOf(names: Readonly<Record<string, InLanguage>>, code: string) {
   const named = names[code];
-  return named && normalize(named.swedishName) !== normalize(named.name) ? named.swedishName : undefined;
+  return named && normalize(named.otherName) !== normalize(named.name) ? named.otherName : undefined;
 }
 
-/** Programmes whose code, name or Swedish name holds every word of `query`, by name. Every programme without a query. */
+/** Programmes whose code or name in either language holds every word of `query`, by name. Every programme without a query. */
 export function searchProgrammes<P extends Pick<ProgrammePlan, "code" | "name">>(
   programmes: readonly P[],
-  names: Readonly<Record<string, Named>>,
+  names: Readonly<Record<string, InLanguage>>,
   query: string,
 ): P[] {
   const words = normalize(query).split(/\s+/).filter(Boolean);
   return programmes
     .filter((p) => {
-      const text = normalize(`${p.code} ${p.name} ${names[p.code]?.swedishName ?? ""}`);
+      const text = normalize(`${p.code} ${p.name} ${names[p.code]?.otherName ?? ""}`);
       return words.every((word) => text.includes(word));
     })
-    .toSorted((a, b) => a.name.localeCompare(b.name, "en"));
+    .toSorted((a, b) => a.name.localeCompare(b.name, "sv"));
 }

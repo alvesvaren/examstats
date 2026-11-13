@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { catalogQuery, plansQuery } from "@/data/queries";
-import { swedishNameOf } from "@/domain/planner";
+import { otherNameOf } from "@/domain/planner";
 import { rememberedPicks, withMaster } from "@/domain/planner-memory";
 import { MASTER_START_YEAR, studyYears, tracksOf, type StudyYear } from "@/domain/programme-plans";
+import { useLanguage } from "@/hooks/use-language";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import { PLANNER_HEADING } from "@/lib/page-meta";
 import { MasterPicker, Prerequisites } from "./master-picker";
@@ -24,8 +25,9 @@ const FIELD_SIZE = "[&_select]:h-10 [&_select]:text-base md:[&_select]:text-sm";
 export function PlannerPage() {
   const search = route.useSearch();
   const navigate = route.useNavigate();
-  const { data: plans } = useSuspenseQuery(plansQuery);
-  const { data: catalog } = useSuspenseQuery(catalogQuery);
+  const language = useLanguage();
+  const { data: plans } = useSuspenseQuery(plansQuery(language));
+  const { data: catalog } = useSuspenseQuery(catalogQuery(language));
   const { memory, remember } = usePlannerMemory();
 
   const programme = plans.find((p) => p.code === search.programme);
@@ -43,7 +45,7 @@ export function PlannerPage() {
   const current = years.find((y) => y.number === search.year) ?? years[0];
   const tracks = choosingMaster ? [] : tracksOf(current?.plan.years.find((y) => y.year === current.year)?.courses ?? []);
   const track = tracks.find((t) => t === search.track);
-  const swedishName = swedishNameOf(catalog.programmes, programme.code);
+  const otherName = otherNameOf(catalog.programmes, programme.code);
 
   const picksIn = (shown: StudyYear | undefined) => shown && rememberedPicks(memory, shown.plan.code, shown.year);
   // The header's link to the planner comes back to the year and track last shown.
@@ -87,7 +89,7 @@ export function PlannerPage() {
         </Button>
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h1 className="text-2xl font-semibold">{programme.name}</h1>
-          <span className="text-muted-foreground">{[programme.code, swedishName].filter(Boolean).join(" · ")}</span>
+          <span className="text-muted-foreground">{[programme.code, otherName].filter(Boolean).join(" · ")}</span>
         </div>
         {master && (
           <p className="text-muted-foreground">

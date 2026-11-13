@@ -6,6 +6,7 @@ import { courseQuery, plansQuery, queryClient, snapshotQuery } from "@/data/quer
 import { SORT_KEYS, toCatalogCourse } from "@/domain/catalog";
 import { PLANNER_SORT_KEYS } from "@/domain/planner";
 import { STUDY_PERIODS } from "@/domain/programme-plans";
+import { getLanguage } from "@/hooks/use-language";
 import { CoursePage } from "@/features/course/course-page";
 import { CourseListPage } from "@/features/course-list/course-list-page";
 import { PlannerPage } from "@/features/planner/planner-page";
@@ -47,7 +48,7 @@ const courseRoute = createRoute({
     const course = snapshot.courses.find((c) => c.code === params.code);
     if (!course) throw notFound();
     await context.queryClient.ensureQueryData(courseQuery(params.code));
-    return { course: toCatalogCourse(course) };
+    return { course: toCatalogCourse(course, getLanguage()) };
   },
   head: ({ loaderData }) => ({ meta: loaderData ? [{ title: pageTitle(courseHeading(loaderData.course)) }] : [] }),
   component: CoursePage,
@@ -72,7 +73,7 @@ const plannerRoute = createRoute({
   path: "/planner",
   validateSearch: plannerSearchSchema,
   loader: ({ context }) =>
-    Promise.all([context.queryClient.ensureQueryData(snapshotQuery), context.queryClient.ensureQueryData(plansQuery)]),
+    Promise.all([context.queryClient.ensureQueryData(snapshotQuery), context.queryClient.ensureQueryData(plansQuery(getLanguage()))]),
   head: () => ({ meta: [{ title: pageTitle(PLANNER_HEADING) }] }),
   component: PlannerPage,
 });

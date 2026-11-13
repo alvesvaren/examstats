@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { inLanguage, type Language } from "./names.ts";
 
 /** Study periods in calendar order. Summer and "outside study periods" come after the four regular ones. */
 export const STUDY_PERIODS = ["LP1", "LP2", "LP3", "LP4", "Summer", "Other"] as const;
@@ -71,6 +72,21 @@ export const planInfoSchema = z.object({
   academicYear: z.string(),
   /** Chalmers' name of each rule code, such as "Compulsory courses". */
   ruleNames: z.record(z.string(), z.string()),
+});
+
+const swedishName = z.string();
+
+/** A programme plan as the app loads it, with the Swedish name of the programme and of each course. */
+export const publishedPlanSchema = programmePlanSchema.extend({
+  swedishName,
+  years: z.array(programmePlanSchema.shape.years.element.extend({ courses: z.array(planCourseSchema.extend({ swedishName })) })),
+});
+export type PublishedPlan = z.infer<typeof publishedPlanSchema>;
+
+/** A plan with the programme and each course named in `language`. */
+export const planInLanguage = (plan: PublishedPlan, language: Language) => ({
+  ...inLanguage(plan, language),
+  years: plan.years.map((year) => ({ ...year, courses: year.courses.map((course) => inLanguage(course, language)) })),
 });
 
 /** The committed file that `pnpm programme-plans` writes and `pnpm snapshot` reads. */
@@ -176,7 +192,7 @@ export function placementsByCourse(
 export const tracksOf = (courses: readonly PlanCourse[]) =>
   [...new Set(courses.flatMap((c) => c.track ?? []))].toSorted((a, b) => a.localeCompare(b));
 
-const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, "en");
+const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, "sv");
 
 /** A round's id within a year of a plan: the course and the study periods it runs in. Safe in a URL. */
 export const roundKey = (code: string, periods: readonly StudyPeriod[]) => `${code}.${periods.join("-")}`;

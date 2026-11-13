@@ -15,7 +15,7 @@ import {
   plannerYear,
   requirementProgress,
   searchProgrammes,
-  swedishNameOf,
+  otherNameOf,
   togglePick,
 } from "./planner.ts";
 import {
@@ -381,8 +381,8 @@ describe("searchProgrammes", () => {
     { code: "MPALG", name: "Computer Science - Algorithms, Languages and Logic" },
   ];
   const names = {
-    TKITE: { name: "Software Engineering", swedishName: "Informationsteknik, civilingenjör" },
-    TKDAT: { name: "Computer Science and Engineering", swedishName: "Datateknik, civilingenjör" },
+    TKITE: { name: "Software Engineering", otherName: "Informationsteknik, civilingenjör" },
+    TKDAT: { name: "Computer Science and Engineering", otherName: "Datateknik, civilingenjör" },
   };
   const found = (query: string) => searchProgrammes(programmes, names, query).map((p) => p.code);
 
@@ -398,13 +398,13 @@ describe("searchProgrammes", () => {
   });
 });
 
-describe("swedishNameOf", () => {
+describe("otherNameOf", () => {
   const names = {
-    TKDAT: { name: "Computer Science and Engineering", swedishName: "Datateknik" },
-    MPSOF: { name: "Software Engineering and Technology", swedishName: "Software engineering and technology" },
+    TKDAT: { name: "Computer Science and Engineering", otherName: "Datateknik" },
+    MPSOF: { name: "Software Engineering and Technology", otherName: "Software engineering and technology" },
   };
 
-  it("gives the Swedish name only when it differs from the English one", () => {
-    expect(["TKDAT", "MPSOF", "MBATT"].map((code) => swedishNameOf(names, code))).toEqual(["Datateknik", undefined, undefined]);
+  it("gives the name in the other language only when it differs", () => {
+    expect(["TKDAT", "MPSOF", "MBATT"].map((code) => otherNameOf(names, code))).toEqual(["Datateknik", undefined, undefined]);
   });
 });

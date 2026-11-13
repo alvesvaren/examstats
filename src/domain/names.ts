@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Named } from "./snapshot.ts";
 
 const namesSchema = z.object({ en: z.string(), sv: z.string() });
 
@@ -10,8 +11,22 @@ export const namesFileSchema = z.object({
 export type NamesFile = z.infer<typeof namesFileSchema>;
 export type Names = z.infer<typeof namesSchema>;
 
-/** A name the UI shows in English, and its Swedish name for search. Both are `fallback` when Chalmers has no names for it. */
+/** A name in English and in Swedish. Both are `fallback` when Chalmers has no names for it. */
 export const nameOf = (names: Names | undefined, fallback: string) => ({
   name: names?.en || fallback,
   swedishName: names?.sv || fallback,
 });
+
+export const languageSchema = z.enum(["en", "sv"]);
+export const LANGUAGES = languageSchema.options;
+export type Language = z.infer<typeof languageSchema>;
+
+/** Named in a language: `name` in it, and `otherName` in the other one, which search also matches. */
+export interface InLanguage {
+  name: string;
+  otherName: string;
+}
+
+/** `named` with `name` in `language`. Its `swedishName` stays Swedish. */
+export const inLanguage = <T extends Named>(named: T, language: Language): T & InLanguage =>
+  language === "sv" ? { ...named, name: named.swedishName, otherName: named.name } : { ...named, otherName: named.swedishName };
