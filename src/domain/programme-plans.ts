@@ -4,6 +4,10 @@ import { z } from "zod";
 export const STUDY_PERIODS = ["LP1", "LP2", "LP3", "LP4", "Summer", "Other"] as const;
 export type StudyPeriod = (typeof STUDY_PERIODS)[number];
 
+/** Chalmers' themes that a degree asks for credits in: "Human, technology and society", and "Environment and sustainable development". */
+export const THEMES = ["mts", "environment"] as const;
+export type Theme = (typeof THEMES)[number];
+
 export const planCourseSchema = z.object({
   code: z.string(),
   name: z.string(),
@@ -21,6 +25,8 @@ export const planCourseSchema = z.object({
   block: z.string().nullable(),
   /** Ids of the programme's choices the course is part of. */
   choices: z.array(z.number().int()),
+  /** Credits the course gives in each theme it is part of. Often fewer than the course's credits. */
+  themes: z.array(z.object({ theme: z.enum(THEMES), credits: z.number().positive() })),
   /** Examiners of the course round, by name. Empty when the round is unknown. */
   examiners: z.array(z.string()),
 });
@@ -38,10 +44,20 @@ export const planChoiceSchema = z.object({
   minCredits: z.number().positive().nullable(),
 });
 
+/**
+ * What the programme syllabus asks of the whole degree, on top of the plan of each year: credits in a theme, or some
+ * of a list of courses, which need not all be in the plan.
+ */
+export const planRequirementSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("theme"), theme: z.enum(THEMES), minCredits: z.number().positive() }),
+  z.object({ kind: z.literal("courses"), courses: z.array(z.string()).min(1), minCourses: z.number().int().positive() }),
+]);
+
 export const programmePlanSchema = z.object({
   code: z.string(),
   name: z.string(),
   choices: z.array(planChoiceSchema),
+  requirements: z.array(planRequirementSchema),
   /** Years of study, from 1, with the courses planned in each. */
   years: z.array(z.object({ year: z.number().int().positive(), courses: z.array(planCourseSchema) })),
 });
@@ -58,6 +74,7 @@ export const programmePlansFileSchema = planInfoSchema.extend({ programmes: z.ar
 
 export type PlanCourse = z.infer<typeof planCourseSchema>;
 export type PlanChoice = z.infer<typeof planChoiceSchema>;
+export type PlanRequirement = z.infer<typeof planRequirementSchema>;
 export type ProgrammePlan = z.infer<typeof programmePlanSchema>;
 export type PlanInfo = z.infer<typeof planInfoSchema>;
 export type ProgrammePlansFile = z.infer<typeof programmePlansFileSchema>;
@@ -188,9 +205,9 @@ export function planYear(
   );
   const rounds = [...Map.groupBy(entries, (c) => roundKey(c.code, c.periods))]
     .map(([key, group]) => {
-      const { code, name, credits, periods, periodCredits, block } = group[0]!;
+      const { code, name, credits, periods, periodCredits, block, themes } = group[0]!;
       /** `codes` holds one course. The planner joins thesis courses that fill the year alike into one round. */
-      return { key, codes: [code], name, credits, periods, periodCredits, block, ...courses.get(code)! };
+      return { key, codes: [code], name, credits, periods, periodCredits, block, themes, ...courses.get(code)! };
     })
     .toSorted((a, b) => comparePeriods(a.periods, b.periods) || byName(a, b));
   return {
@@ -200,6 +217,21 @@ export function planYear(
   };
 }
 export type PlanRound = ReturnType<typeof planYear>["rounds"][number];
+
+/**
+ * The courses a student's whole plan holds, each once: the compulsory ones of every year, with those of `track`, and
+ * the rounds picked in each year.
+ */
+export function plannedCourses(programme: ProgrammePlan, picks: readonly { year: number; key: string }[], track?: string): PlanCourse[] {
+  const held = programme.years.flatMap(({ year, courses }) =>
+    courses.filter(
+      (c) =>
+        (c.rule === COMPULSORY && (c.track === null || c.track === track)) ||
+        picks.some((p) => p.year === year && p.key === roundKey(c.code, c.periods)),
+    ),
+  );
+  return [...new Map(held.map((c) => [c.code, c])).values()];
+}
 
 /**
  * A course's academic year in short: its rounds with their examiners, and the programmes that plan it, grouped by

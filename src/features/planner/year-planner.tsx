@@ -6,23 +6,35 @@ import { MetricInfo } from "@/components/metric-label";
 import { Badge } from "@/components/ui/badge";
 import type { Catalog } from "@/domain/catalog";
 import {
+  amountTowards,
   candidatesIn,
   creditsIn,
   exclusiveWith,
   findElsewhere,
   firstOpenPeriod,
   lectureClash,
+  openRequirements,
   PERIOD_CREDITS,
   periodsOf,
   pickProgress,
   plannerYear,
+  requirementProgress,
   togglePick,
   type PlanElsewhere,
   type PlannerRound,
   type PlannerSortKey,
 } from "@/domain/planner";
 import { otherPicks, rememberedPicks, withPicks } from "@/domain/planner-memory";
-import { planYear, syllabusUrl, type PlanChoice, type ProgrammePlan, type StudyPeriod } from "@/domain/programme-plans";
+import {
+  plannedCourses,
+  planYear,
+  syllabusUrl,
+  type PlanChoice,
+  type PlanRequirement,
+  type ProgrammePlan,
+  type StudyPeriod,
+  type Theme,
+} from "@/domain/programme-plans";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import { formatCount, formatCredits, formatNumber, formatPercent, formatPeriods } from "@/lib/format";
 
@@ -34,6 +46,11 @@ const COLUMNS = [
   { key: "passRate", label: "Pass rate" },
   { key: "rating", label: "Rating" },
 ] as const satisfies readonly { key: PlannerSortKey; label: string }[];
+
+const THEME_LABELS = {
+  mts: { short: "MTS", name: "Human, technology and society" },
+  environment: { short: "Environment", name: "Environment and sustainable development" },
+} as const satisfies Record<Theme, { short: string; name: string }>;
 
 interface YearSearch {
   period?: StudyPeriod;
@@ -71,6 +88,18 @@ export function YearPlanner({ programme, year, track, search, onChange, catalog 
 
   const listed = candidatesIn(candidates, period, sort);
   const planned = plan.reduce((sum, r) => sum + r.credits, 0);
+  // Degree requirements count the whole plan: the compulsory courses and the picks of every year.
+  const allPicks = [...other, ...picked.map((r) => ({ year, key: r.key }))];
+  const degreeRules = openRequirements(programme, track).map((requirement) => ({
+    requirement,
+    ...requirementProgress(requirement, plannedCourses(programme, allPicks, track)),
+  }));
+  const offered = new Set(programme.years.flatMap((y) => y.courses.map((c) => c.code)));
+  const marksOf = (round: PlannerRound) =>
+    degreeRules.flatMap((rule) => {
+      const amount = Math.max(...round.codes.map((code) => amountTowards(rule.requirement, { code, themes: round.themes })));
+      return amount > 0 ? { ...rule, amount } : [];
+    });
   const inPeriod = (round: PlannerRound) => round.periods.includes(period);
   const setPicks = (keys: string[], changes: YearSearch = {}) => {
     remember((m) => ({ ...withPicks(m, programme.code, year, keys), last: { programme: programme.code, year, track } }));
@@ -115,6 +144,9 @@ export function YearPlanner({ programme, year, track, search, onChange, catalog 
           {picks.map((pick) => (
             <PickRule key={pick.id} pick={pick} picked={picked} />
           ))}
+          {degreeRules.map((rule) => (
+            <DegreeRule key={requirementKey(rule.requirement)} rule={rule} offered={offered} />
+          ))}
           <p className="flex items-center gap-3 text-muted-foreground">
             {formatCredits(planned)} in your year
             {picked.length > 0 && (
@@ -145,6 +177,7 @@ export function YearPlanner({ programme, year, track, search, onChange, catalog 
               picked={picked.includes(round)}
               elsewhere={findElsewhere(round, picked, other)}
               warnings={warningsOf(round)}
+              marks={marksOf(round)}
               onToggle={() => toggle(round)}
             />
           ))}
@@ -279,6 +312,70 @@ function PickRule({ pick, picked }: { pick: PlanChoice; picked: readonly Planner
   );
 }
 
+/** A degree requirement the student has to choose courses for, with how far the whole plan goes towards it. */
+interface DegreeRuleProgress extends ReturnType<typeof requirementProgress> {
+  requirement: PlanRequirement;
+}
+
+const requirementKey = (requirement: PlanRequirement) => (requirement.kind === "theme" ? requirement.theme : requirement.courses.join());
+
+/** Marks the courses of a list the degree needs some of. Faded once the plan has enough of them. */
+function ListMarker({ done }: { done: boolean }) {
+  return <span className={cn("inline-block size-2 shrink-0 rotate-45 bg-primary", done && "opacity-40")} aria-hidden />;
+}
+
+/** What a degree requirement asks for. A list of one course names it, and says so when no year of the plan has it. */
+function requirementText(requirement: PlanRequirement, offered: ReadonlySet<string>) {
+  if (requirement.kind === "theme") {
+    return `The degree needs ${formatCredits(requirement.minCredits)} in the theme ${THEME_LABELS[requirement.theme].name}.`;
+  }
+  const [code, ...others] = requirement.courses;
+  if (code && others.length === 0) return `The degree needs ${code}${offered.has(code) ? "" : ", which is not in this plan"}.`;
+  const amount = `${formatCount(requirement.minCourses)} of the marked courses`;
+  return `The degree needs at least ${amount}. Some of them may only be in a master's programme.`;
+}
+
+/** A requirement of the whole degree, and how far the compulsory courses and the picks of every year go towards it. */
+function DegreeRule({ rule, offered }: { rule: DegreeRuleProgress; offered: ReadonlySet<string> }) {
+  const { requirement, have, need, unit, done } = rule;
+  return (
+    <p className="flex items-baseline gap-2">
+      {requirement.kind === "theme" ? (
+        <Badge variant="outline" className={cn(done && "opacity-50")}>
+          {THEME_LABELS[requirement.theme].short}
+        </Badge>
+      ) : (
+        <ListMarker done={done} />
+      )}
+      <span>
+        {requirementText(requirement, offered)}{" "}
+        <span className={cn("whitespace-nowrap", done ? "font-medium text-grade-4" : "text-muted-foreground")}>
+          {done && <CheckIcon className="mr-0.5 inline size-4 align-[-0.2em]" aria-hidden />}
+          {formatNumber(have)} of {unit === "courses" ? formatCount(need) : formatCredits(need)} in all your years
+        </span>
+      </span>
+    </p>
+  );
+}
+
+/** What a course gives towards a degree requirement. Faded once the plan meets the requirement. */
+function DegreeMark({ mark }: { mark: DegreeRuleProgress & { amount: number } }) {
+  const { requirement, done, amount } = mark;
+  if (requirement.kind === "courses") {
+    return (
+      <span className="inline-flex items-center">
+        <ListMarker done={done} />
+        <span className="sr-only">One of the courses the degree needs</span>
+      </span>
+    );
+  }
+  return (
+    <Badge variant="outline" className={cn(done && "opacity-50")}>
+      {THEME_LABELS[requirement.theme].short} {formatCredits(amount)}
+    </Badge>
+  );
+}
+
 interface SortHeaderProps {
   column: (typeof COLUMNS)[number];
   active: boolean;
@@ -331,10 +428,12 @@ interface CandidateProps {
   /** Where another round of the same course is in the plan. It greys this round out. */
   elsewhere: PlanElsewhere | undefined;
   warnings: string[];
+  /** What the course gives towards the degree requirements the student has to choose courses for. */
+  marks: (DegreeRuleProgress & { amount: number })[];
   onToggle: () => void;
 }
 
-function Candidate({ round, period, picked, elsewhere, warnings, onToggle }: CandidateProps) {
+function Candidate({ round, period, picked, elsewhere, warnings, marks, onToggle }: CandidateProps) {
   const { requirement, stats } = round;
   const inOtherYear = Boolean(elsewhere?.year);
   // A round over several study periods gives only part of its credits in the one listed.
@@ -384,6 +483,9 @@ function Candidate({ round, period, picked, elsewhere, warnings, onToggle }: Can
             <CourseLink round={round} />
           </span>
           {round.periods.length > 1 && <Badge variant="outline">Runs {formatPeriods(round.periods)}</Badge>}
+          {marks.map((mark) => (
+            <DegreeMark key={requirementKey(mark.requirement)} mark={mark} />
+          ))}
         </span>
         <span className="text-xs text-muted-foreground">{details}</span>
         {warnings.map((warning) => (

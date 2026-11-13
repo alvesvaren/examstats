@@ -1,5 +1,14 @@
 import { compareSortValues, normalize, type CatalogCourse } from "./catalog.ts";
-import { STUDY_PERIODS, type PlanChoice, type PlanRound, type ProgrammePlan, type StudyPeriod } from "./programme-plans.ts";
+import {
+  plannedCourses,
+  STUDY_PERIODS,
+  type PlanChoice,
+  type PlanCourse,
+  type PlanRequirement,
+  type PlanRound,
+  type ProgrammePlan,
+  type StudyPeriod,
+} from "./programme-plans.ts";
 
 export const PLANNER_SORT_KEYS = ["rating", "passRate"] as const;
 export type PlannerSortKey = (typeof PLANNER_SORT_KEYS)[number];
@@ -121,6 +130,24 @@ export function pickProgress(pick: PlanChoice, picked: readonly PlanRound[]) {
   const need = pick.minCourses ?? pick.minCredits;
   return { have, need, unit: inCourses ? "courses" : "credits", done: need !== null && have >= need } as const;
 }
+
+/** What a course gives towards a degree requirement, in the requirement's unit: its credits in the theme, or one course. */
+export const amountTowards = (requirement: PlanRequirement, { code, themes }: Pick<PlanCourse, "code" | "themes">) =>
+  requirement.kind === "theme"
+    ? (themes.find((t) => t.theme === requirement.theme)?.credits ?? 0)
+    : Number(requirement.courses.includes(code));
+
+/** How far the courses of a whole plan go towards a degree requirement. */
+export function requirementProgress(requirement: PlanRequirement, courses: readonly Pick<PlanCourse, "code" | "themes">[]) {
+  const have = tenths(courses.reduce((sum, course) => sum + amountTowards(requirement, course), 0));
+  const [need, unit] =
+    requirement.kind === "theme" ? ([requirement.minCredits, "credits"] as const) : ([requirement.minCourses, "courses"] as const);
+  return { have, need, unit, done: have >= need };
+}
+
+/** The degree requirements a student has to choose courses for: those the compulsory courses do not meet on their own. */
+export const openRequirements = (programme: ProgrammePlan, track?: string) =>
+  programme.requirements.filter((r) => !requirementProgress(r, plannedCourses(programme, [], track)).done);
 
 /** Programmes whose code, name or Swedish name holds every word of `query`, by name. Every programme without a query. */
 export function searchProgrammes<P extends Pick<ProgrammePlan, "code" | "name">>(

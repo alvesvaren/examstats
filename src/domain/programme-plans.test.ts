@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   courseYearSummary,
   placementsByCourse,
+  plannedCourses,
   planYear,
+  roundKey,
   roundOf,
   type PlanChoice,
   type PlanCourse,
@@ -22,6 +24,7 @@ const course = (code: string, overrides: Partial<PlanCourse> = {}): PlanCourse =
     track: null,
     block: null,
     choices: [],
+    themes: [],
     examiners: [],
     ...overrides,
   };
@@ -35,6 +38,7 @@ const tkdat: ProgrammePlan = {
   code: "TKDAT",
   name: "Computer Science and Engineering",
   choices: [pickTwo, onlyOne],
+  requirements: [],
   years: [
     {
       year: 3,
@@ -103,6 +107,7 @@ describe("placementsByCourse", () => {
       code: "TIDAL",
       name: "Computer Engineering",
       choices: [],
+      requirements: [],
       years: [{ year: 2, courses: [course("TDA357", { periods: ["LP2"], rule: "O", block: "D+" })] }],
     };
     const placements = placementsByCourse([tkdat, tidal], RULE_NAMES).get("TDA357");
@@ -140,6 +145,7 @@ describe("courseYearSummary", () => {
       code: "TIDAL",
       name: "Computer Engineering",
       choices: [],
+      requirements: [],
       years: [{ year: 2, courses: [course("TDA357", { periods: ["LP2"], rule: "O", examiners: ["Jonas"] })] }],
     };
     const withExaminers: ProgrammePlan = {
@@ -171,5 +177,37 @@ describe("courseYearSummary", () => {
         { requirement: { kind: "elective", rank: 2, label: "Elective" }, programmes: [{ code: "TKDAT", years: [2] }] },
       ],
     });
+  });
+});
+
+const codes = (courses: readonly PlanCourse[]) => courses.map((c) => c.code);
+
+describe("plannedCourses", () => {
+  const plan: ProgrammePlan = {
+    ...tkdat,
+    years: [{ year: 2, courses: [course("DAT017", { rule: "O" }), course("TDA357", { periods: ["LP2"] })] }, ...tkdat.years],
+  };
+
+  it("holds the compulsory courses of every year without any picks, and not those of a track", () => {
+    expect(codes(plannedCourses(plan, []))).toEqual(["DAT017", "EDA322"]);
+  });
+
+  it("adds the compulsory courses of the track", () => {
+    const withTrack = { ...plan, years: [{ year: 1, courses: [course("TIF100", { rule: "O", track: "Physics" })] }] };
+    expect(codes(plannedCourses(withTrack, []))).toEqual([]);
+    expect(codes(plannedCourses(withTrack, [], "Physics"))).toEqual(["TIF100"]);
+  });
+
+  it("adds the round picked in a year, and counts a course picked in two years once", () => {
+    const picks = [
+      { year: 2, key: roundKey("TDA357", ["LP2"]) },
+      { year: 3, key: roundKey("TDA357", ["LP3"]) },
+      { year: 3, key: roundKey("TMA001", ["LP3"]) },
+    ];
+    expect(codes(plannedCourses(plan, picks))).toEqual(["DAT017", "TDA357", "EDA322", "TMA001"]);
+  });
+
+  it("leaves out a round picked in a year the plan has it in no such study period", () => {
+    expect(codes(plannedCourses(plan, [{ year: 2, key: roundKey("TDA357", ["LP3"]) }]))).toEqual(["DAT017", "EDA322"]);
   });
 });

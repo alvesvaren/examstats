@@ -8,13 +8,23 @@ import {
   findElsewhere,
   firstOpenPeriod,
   lectureClash,
+  openRequirements,
   periodsOf,
   pickProgress,
   plannerYear,
+  requirementProgress,
   searchProgrammes,
   togglePick,
 } from "./planner.ts";
-import { roundKey, type PlanChoice, type PlanRound, type StudyPeriod } from "./programme-plans.ts";
+import {
+  roundKey,
+  type PlanChoice,
+  type PlanCourse,
+  type PlanRequirement,
+  type PlanRound,
+  type ProgrammePlan,
+  type StudyPeriod,
+} from "./programme-plans.ts";
 
 const REQUIREMENTS = {
   compulsory: { kind: "compulsory", rank: 0, label: "Compulsory" },
@@ -37,6 +47,7 @@ const round = (code: string, periods: StudyPeriod[], overrides: Partial<PlanRoun
     periods,
     periodCredits: periods.map(() => credits / periods.length),
     block: null,
+    themes: [],
     requirement: REQUIREMENTS.elective,
     choices: [],
     ...overrides,
@@ -220,6 +231,57 @@ describe("pickProgress", () => {
 
   it("counts credits for a choice that asks for credits", () => {
     expect(pickProgress(pickCredits, picked)).toEqual({ have: 15, need: 15, unit: "credits", done: true });
+  });
+});
+
+/** A plan entry of 7.5 credits in LP1 under a rule, with the credits it gives in themes. */
+const planCourse = (code: string, rule: string, themes: PlanCourse["themes"] = []): PlanCourse => ({
+  code,
+  name: `${code} name`,
+  credits: 7.5,
+  periods: ["LP1"],
+  periodCredits: [7.5],
+  rule,
+  track: null,
+  block: null,
+  choices: [],
+  themes,
+  examiners: [],
+});
+
+describe("degree requirements", () => {
+  const mts: PlanRequirement = { kind: "theme", theme: "mts", minCredits: 7.5 };
+  const environment: PlanRequirement = { kind: "theme", theme: "environment", minCredits: 7.5 };
+  const science: PlanRequirement = { kind: "courses", courses: ["FFY621", "TIF223", "FFR105"], minCourses: 1 };
+  const interfaces = planCourse("DAT216", "O", [{ theme: "mts", credits: 3 }]);
+  const agile = planCourse("DAT257", "O", [{ theme: "mts", credits: 1.5 }]);
+  const sustainability = planCourse("TEK830", "O", [{ theme: "environment", credits: 7.5 }]);
+  const games = planCourse("DAT510", "V", [{ theme: "mts", credits: 3 }]);
+  const physics = planCourse("TIF223", "V", [{ theme: "environment", credits: 1.5 }]);
+
+  it("counts the credits a course gives in the theme, not the credits of the course", () => {
+    expect(requirementProgress(mts, [interfaces, agile, physics])).toEqual({ have: 4.5, need: 7.5, unit: "credits", done: false });
+    expect(requirementProgress(mts, [interfaces, agile, games])).toEqual({ have: 7.5, need: 7.5, unit: "credits", done: true });
+  });
+
+  it("counts the courses of a list the degree needs some of", () => {
+    expect(requirementProgress(science, [interfaces])).toEqual({ have: 0, need: 1, unit: "courses", done: false });
+    expect(requirementProgress(science, [interfaces, physics])).toEqual({ have: 1, need: 1, unit: "courses", done: true });
+  });
+
+  it("keeps the requirements that the compulsory courses do not meet on their own", () => {
+    const tkite: ProgrammePlan = {
+      code: "TKITE",
+      name: "Software Engineering",
+      choices: [],
+      requirements: [environment, mts, science],
+      years: [
+        { year: 1, courses: [interfaces] },
+        { year: 2, courses: [agile, games] },
+        { year: 3, courses: [sustainability, physics] },
+      ],
+    };
+    expect(openRequirements(tkite)).toEqual([mts, science]);
   });
 });
 

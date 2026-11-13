@@ -1,7 +1,8 @@
 /**
  * Fetches every Chalmers programme plan for the current academic year from the JSON API behind chalmers.se and writes
  * `data/programme-plans.json`: per programme and year of study, the courses with their study periods and rules. The
- * plans name no examiners, so it also fetches each planned course's syllabus for the examiners of its rounds.
+ * plans name no examiners, so it also fetches each planned course's syllabus for the examiners of its rounds. The
+ * degree requirements of a programme come from its programme syllabus.
  * A weekly GitHub Action runs it and commits the file when it changes. The only code that knows that API.
  */
 import { mkdir, writeFile } from "node:fs/promises";
@@ -13,8 +14,10 @@ import {
   type CourseRound,
   type PlanChoice,
   type PlanCourse,
+  type PlanRequirement,
   type ProgrammePlansFile,
   type StudyPeriod,
+  type Theme,
 } from "../src/domain/programme-plans.ts";
 import { toJsonLines } from "./json-lines.ts";
 import { mapConcurrent } from "./map-concurrent.ts";
@@ -52,6 +55,11 @@ const tenths = (credits: number) => Math.round(credits * 10) / 10;
 
 const PERIOD_CODES: Record<string, StudyPeriod> = { LP1: "LP1", LP2: "LP2", LP3: "LP3", LP4: "LP4", LP5: "Summer" };
 const periodOf = (code: string | null) => PERIOD_CODES[code ?? ""] ?? "Other";
+/** The plans name more themes, such as the design projects of architecture. Only these two are degree requirements the plans can answer. */
+const THEME_NAMES: Record<string, Theme> = { MTS: "mts", Environment: "environment" };
+const THEME_REQUIREMENTS: Record<string, Theme> = { CRED_MTS: "mts", CRED_MJO: "environment" };
+/** A programme that admits no new students has no syllabus for this year. Its students follow the newest one before it. */
+const SYLLABUS_YEARS_BACK = 5;
 const CHOICE_KINDS: Record<string, PlanChoice["kind"]> = { MAN: "pick", OVER: "exclusive", REC: "recommended" };
 
 const listSchema = z.object({
@@ -69,6 +77,7 @@ const momentSchema = z.object({
   studyPerodId: z.string().nullable(),
   blockSchedule: z.string().nullable(),
   momentSpecialisation: z.object({ concName: z.string().nullable() }).nullable(),
+  momentThemes: z.array(z.object({ theme: z.string(), themeCredit: z.number().nullable() })),
   /** The plan entry. A course given twice a year has one entry per round. */
   ppId: z.number(),
   momentGroupings: z.array(
@@ -93,6 +102,19 @@ const programmeSchema = z.object({
     ),
   }),
 });
+
+const syllabusSchema = z.object({
+  search: z.object({
+    results: z.array(
+      z.object({
+        degreeWithDegreeRequirements: z.array(z.object({ reqCode: z.string(), reqCredit: z.number().nullable() })).nullable(),
+        /** Lists of courses of which the degree needs one. Rows with the same id are one list. */
+        degreeWithDegreeSpecRequirements: z.array(z.object({ degreeSpecId: z.number(), courseCode: z.string() })).nullable(),
+      }),
+    ),
+  }),
+});
+type Syllabus = z.infer<typeof syllabusSchema>["search"]["results"][number];
 
 const courseSchema = z.object({
   search: z.object({
@@ -164,6 +186,11 @@ function toCourses(moments: readonly Moment[]): Omit<PlanCourse, "examiners">[] 
     const periods = STUDY_PERIODS.filter((p) => byPeriod.has(p));
     const periodCredits = periods.map((p) => tenths((byPeriod.get(p) ?? []).reduce((sum, m) => sum + (m.momentCredit ?? 0), 0)));
     const blocks = new Set(group.flatMap((m) => m.blockSchedule?.trim() || []));
+    const themes = new Map(
+      group.flatMap((m) =>
+        m.momentThemes.flatMap((t) => (THEME_NAMES[t.theme] && t.themeCredit ? [[THEME_NAMES[t.theme]!, t.themeCredit] as const] : [])),
+      ),
+    );
     return {
       code: first.courseCode,
       name: first.courseName.trim(),
@@ -174,8 +201,35 @@ function toCourses(moments: readonly Moment[]): Omit<PlanCourse, "examiners">[] 
       track: trackOf(first),
       block: [...blocks].join(", ") || null,
       choices: [...new Set(group.flatMap((m) => m.momentGroupings.map((g) => g.varId)))].toSorted((a, b) => a - b),
+      themes: [...themes].map(([theme, credits]) => ({ theme, credits })).toSorted((a, b) => a.theme.localeCompare(b.theme)),
     };
   });
+}
+
+/** A programme can lead to several degrees that ask the same. Each theme keeps its largest demand, and each list of courses shows once. */
+function toRequirements(syllabus: Syllabus): PlanRequirement[] {
+  const themeCredits = Map.groupBy(
+    (syllabus.degreeWithDegreeRequirements ?? []).filter((r) => THEME_REQUIREMENTS[r.reqCode] && r.reqCredit),
+    (r) => THEME_REQUIREMENTS[r.reqCode]!,
+  );
+  const lists = Map.groupBy(syllabus.degreeWithDegreeSpecRequirements ?? [], (r) => r.degreeSpecId);
+  const courseLists = new Set([...lists.values()].map((rows) => [...new Set(rows.map((r) => r.courseCode))].toSorted().join()));
+  return [
+    ...[...themeCredits]
+      .map(([theme, rows]) => ({ kind: "theme" as const, theme, minCredits: Math.max(...rows.map((r) => r.reqCredit ?? 0)) }))
+      .toSorted((a, b) => a.theme.localeCompare(b.theme)),
+    ...[...courseLists].toSorted().map((codes) => ({ kind: "courses" as const, courses: codes.split(","), minCourses: 1 })),
+  ];
+}
+
+/** The degree requirements of a programme, from its syllabus for this academic year or the newest one before it. Empty when it has none. */
+async function requirementsOf(code: string): Promise<PlanRequirement[]> {
+  const [start = 0] = env.ACADEMIC_YEAR.split("/").map(Number);
+  for (let year = start; year >= start - SYLLABUS_YEARS_BACK; year--) {
+    const { search } = await get("Syllabuses", { language: "en", acYear: `${year}/${year + 1}`, pCode: code }, syllabusSchema);
+    if (search.results[0]) return toRequirements(search.results[0]);
+  }
+  return [];
 }
 
 /** The rounds of a course this academic year, from its syllabus. Empty when it has none. */
@@ -208,7 +262,10 @@ async function main() {
   const ruleNames = new Map<string, string>();
   const programmes = await mapConcurrent(listed, env.CONCURRENCY, async ({ programCode, name }) => {
     const filter = { acYear: { _eq: env.ACADEMIC_YEAR }, programCode: { _eq: programCode } };
-    const { search } = await get("PewStudyprogrammes", { language: "en", filter }, programmeSchema);
+    const [{ search }, requirements] = await Promise.all([
+      get("PewStudyprogrammes", { language: "en", filter }, programmeSchema),
+      requirementsOf(programCode),
+    ]);
     const plan = search.results.find((r) => r.programCode === programCode);
     if (!plan) throw new Error(`No plan for ${programCode}`);
     for (const moment of plan.yearClasses.flatMap((y) => y.courseMoments)) ruleNames.set(moment.rule, moment.ruleName.trim());
@@ -217,6 +274,7 @@ async function main() {
       code: programCode,
       name: name.trim(),
       choices: toChoices(plan.yearClasses.flatMap((y) => y.courseMoments)),
+      requirements,
       years: [...years]
         .map(([year, classes]) => ({ year, courses: toCourses(classes.flatMap((c) => c.courseMoments)) }))
         .filter((y) => y.courses.length)
