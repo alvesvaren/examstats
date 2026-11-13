@@ -1,6 +1,6 @@
 import { meanAnswer } from "./evaluation.ts";
 import { averageGradeOf, passRateOf } from "./grades.ts";
-import type { CourseSummary, Snapshot, TrendPoint } from "./snapshot.ts";
+import type { CourseSummary, Named, Snapshot, TrendPoint } from "./snapshot.ts";
 
 export const SORT_KEYS = ["name", "programme", "attemptsPerYear", "passRate", "trend", "averageGrade", "rating", "lastResult"] as const;
 export type SortKey = (typeof SORT_KEYS)[number];
@@ -47,13 +47,21 @@ export function toCatalogCourse(course: CourseSummary) {
     averageGrade: averageGradeOf(course.recentGrades),
     trendDelta: trendDelta(course.trend),
     rating: course.overallAnswers && meanAnswer(course.overallAnswers),
-    searchText: normalize(`${course.code} ${course.name} ${course.programme ?? ""}`),
+    searchText: normalize(`${course.code} ${course.name} ${course.swedishName} ${course.programme ?? ""}`),
   };
 }
 
 export type CatalogCourse = ReturnType<typeof toCatalogCourse>;
 
-export const toCatalog = (snapshot: Snapshot) => ({ ...snapshot, courses: snapshot.courses.map(toCatalogCourse) });
+export function toCatalog(snapshot: Snapshot) {
+  const withResults = new Set(snapshot.courses.map((c) => c.programme));
+  return {
+    ...snapshot,
+    courses: snapshot.courses.map(toCatalogCourse),
+    /** Programmes with courses with results, which the course list can show. */
+    listedProgrammes: Object.fromEntries(Object.entries(snapshot.programmes).filter(([code]) => withResults.has(code))),
+  };
+}
 export type Catalog = ReturnType<typeof toCatalog>;
 
 const sortValue: Record<SortKey, (c: CatalogCourse) => number | string | null> = {
@@ -106,16 +114,18 @@ export function queryCourses(
   return { active: rows.filter((c) => !c.ended), ended: rows.filter((c) => c.ended) };
 }
 
-/** Programmes whose code starts with a `;`-separated part of the query, or whose name contains one. */
-export function matchProgrammes(programmes: Readonly<Record<string, string>>, query: string, limit = 4) {
+/** Programmes whose code starts with a `;`-separated part of the query, or whose name in either language contains one. */
+export function matchProgrammes(programmes: Readonly<Record<string, Named>>, query: string, limit = 4) {
   const parts = searchParts(query)
     .map(normalize)
     .filter((part) => part.length >= MIN_PROGRAMME_QUERY);
   if (!parts.length) return [];
   return Object.entries(programmes)
-    .filter(([code, name]) => parts.some((part) => normalize(code).startsWith(part) || normalize(name).includes(part)))
+    .filter(([code, { name, swedishName }]) =>
+      parts.some((part) => normalize(code).startsWith(part) || normalize(`${name} ${swedishName}`).includes(part)),
+    )
     .slice(0, limit)
-    .map(([code, name]) => ({ code, name }));
+    .map(([code, { name }]) => ({ code, name }));
 }
 
 const PART_WORDS: readonly [sv: string, en: string][] = [

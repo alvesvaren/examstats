@@ -175,13 +175,6 @@ async function load() {
 /** Loaded on the first request, then kept for the life of the instance. Each deploy starts new instances. */
 let loaded: ReturnType<typeof load> | undefined;
 
-/** The source names a few programmes "-". Those show their code instead. */
-const PLACEHOLDER_NAME = "-";
-function programmeName(programmes: Record<string, string>, code: string) {
-  const name = programmes[code];
-  return name && name !== PLACEHOLDER_NAME ? name : code;
-}
-
 const querySchema = z.object({ code: z.string() });
 
 export async function GET(request: Request) {
@@ -190,7 +183,7 @@ export async function GET(request: Request) {
   const { snapshot, fonts } = await (loaded ??= load());
   const course = snapshot.courses.find((c) => c.code === query.data.code);
   if (!course) return new Response("No such course", { status: 404 });
-  const programme = course.programme && programmeName(snapshot.programmes, course.programme);
+  const programme = course.programme && (snapshot.programmes[course.programme]?.name ?? course.programme);
   const svg = await satori(<CourseImage course={course} programme={programme} />, { ...COURSE_IMAGE_SIZE, fonts });
   const png = new Resvg(svg).render().asPng();
   return new Response(new Uint8Array(png), { headers: { "Content-Type": "image/png", "Cache-Control": CACHE_FOREVER } });

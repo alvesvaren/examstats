@@ -6,6 +6,7 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { summarizeCourse } from "../src/domain/course-stats.ts";
+import { nameOf, namesFileSchema } from "../src/domain/names.ts";
 import { compareRounds, evaluationFileSchema, summarizeEvaluations, type EvaluationRound } from "../src/domain/evaluation.ts";
 import { resultsFileSchema, type CourseDetail, type Snapshot } from "../src/domain/snapshot.ts";
 import { placementsByCourse, programmePlansFileSchema } from "../src/domain/programme-plans.ts";
@@ -16,6 +17,7 @@ const env = z
     RESULTS_FILE: z.string().default("data/results.json"),
     EVALUATIONS_FILE: z.string().default("data/evaluations.json"),
     PLANS_FILE: z.string().default("data/programme-plans.json"),
+    NAMES_FILE: z.string().default("data/names.json"),
   })
   .parse(process.env);
 
@@ -29,11 +31,15 @@ const readJson = async <T>(file: string, schema: z.ZodType<T>) => schema.parse(J
 
 async function main() {
   const today = new Date();
-  const [results, evaluations, plans] = await Promise.all([
+  const [results, evaluations, plans, names] = await Promise.all([
     readJson(env.RESULTS_FILE, resultsFileSchema),
     readJson(env.EVALUATIONS_FILE, evaluationFileSchema),
     readJson(env.PLANS_FILE, programmePlansFileSchema),
+    readJson(env.NAMES_FILE, namesFileSchema),
   ]);
+  const courseNames = new Map(names.courses.map(({ code, ...n }) => [code, n]));
+  // A programme can have results under a code Chalmers no longer names, or a plan but no results yet.
+  const programmeCodes = new Set([...Object.keys(results.programmes), ...Object.keys(names.programmes)]);
   const { programmes: programmePlans, ...planInfo } = plans;
   const placements = placementsByCourse(programmePlans, planInfo.ruleNames);
   const roundsByCode = Map.groupBy(evaluations.rounds, (r) => r.code);
@@ -46,7 +52,7 @@ async function main() {
   await mkdir(coursesDir, { recursive: true });
 
   const courses: Snapshot["courses"] = [];
-  for (const { parts, ...course } of results.courses) {
+  for (const { parts, name, ...course } of results.courses) {
     const rounds = roundsOf(course.code);
     const detail: CourseDetail = {
       code: course.code,
@@ -55,19 +61,24 @@ async function main() {
       placements: placements.get(course.code) ?? [],
     };
     await writeFile(path.join(coursesDir, `${course.code}.json`), JSON.stringify(detail));
-    courses.push({ ...summarizeCourse(course, parts, today), overallAnswers: summarizeEvaluations(rounds)?.overallAnswers ?? null });
+    courses.push({
+      ...summarizeCourse({ ...course, ...nameOf(courseNames.get(course.code), name) }, parts, today),
+      overallAnswers: summarizeEvaluations(rounds)?.overallAnswers ?? null,
+    });
   }
 
   const snapshot: Snapshot = {
     generatedAt: today.toISOString(),
     evaluationsFetchedAt: evaluations.fetchedAt,
     plans: planInfo,
-    programmes: results.programmes,
+    programmes: Object.fromEntries(
+      [...programmeCodes].toSorted().map((code) => [code, nameOf(names.programmes[code], results.programmes[code] ?? code)]),
+    ),
     courses,
   };
   await writeFile(path.join(env.OUT_DIR, "index.json"), JSON.stringify(snapshot, roundNumbers));
   await writeFile(path.join(env.OUT_DIR, "plans.json"), JSON.stringify(programmePlans));
-  console.log(`Wrote ${courses.length} courses and ${Object.keys(results.programmes).length} programmes to ${env.OUT_DIR}`);
+  console.log(`Wrote ${courses.length} courses and ${Object.keys(snapshot.programmes).length} programmes to ${env.OUT_DIR}`);
 }
 
 await main();

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { catalogQuery, plansQuery } from "@/data/queries";
+import { swedishNameOf } from "@/domain/planner";
 import { rememberedPicks, withMaster } from "@/domain/planner-memory";
 import { MASTER_START_YEAR, studyYears, tracksOf, type StudyYear } from "@/domain/programme-plans";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
@@ -28,7 +29,7 @@ export function PlannerPage() {
   const { memory, remember } = usePlannerMemory();
 
   const programme = plans.find((p) => p.code === search.programme);
-  if (!programme) return <ProgrammeSearch programmes={plans} swedishNames={catalog.programmes} />;
+  if (!programme) return <ProgrammeSearch programmes={plans} names={catalog.programmes} />;
 
   const update = (changes: Partial<PlannerSearch>) =>
     navigate({ search: (prev) => ({ ...prev, ...changes }), replace: true, resetScroll: false });
@@ -42,7 +43,7 @@ export function PlannerPage() {
   const current = years.find((y) => y.number === search.year) ?? years[0];
   const tracks = choosingMaster ? [] : tracksOf(current?.plan.years.find((y) => y.year === current.year)?.courses ?? []);
   const track = tracks.find((t) => t === search.track);
-  const swedishName = catalog.programmes[programme.code];
+  const swedishName = swedishNameOf(catalog.programmes, programme.code);
 
   const picksIn = (shown: StudyYear | undefined) => shown && rememberedPicks(memory, shown.plan.code, shown.year);
   // The header's link to the planner comes back to the year and track last shown.

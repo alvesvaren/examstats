@@ -45,9 +45,11 @@ export const courseDetailSchema = z.object({
 /** A pass rate in one academic year. A tuple, since the list loads thousands of them. */
 const trendPointSchema = z.tuple([z.number().int(), z.number()]);
 
-export const courseSummarySchema = z.object({
+/** The UI shows names in English. Swedish names are for search, and are the English name when Chalmers names no other. */
+const namedSchema = z.object({ name: z.string(), swedishName: z.string() });
+
+export const courseSummarySchema = namedSchema.extend({
   code: z.string(),
-  name: z.string(),
   programme: z.string().nullable(),
   /** Grades on the main part over the recent academic years. Pass rate and average grade derive from these. */
   recentGrades: gradeCountsSchema,
@@ -66,7 +68,8 @@ export const snapshotSchema = z.object({
   evaluationsFetchedAt: z.iso.datetime(),
   /** The academic year and rule names of the programme plans. */
   plans: planInfoSchema,
-  programmes: z.record(z.string(), z.string()),
+  /** Programme names by code. */
+  programmes: z.record(z.string(), namedSchema),
   courses: z.array(courseSummarySchema),
 });
 
@@ -76,4 +79,5 @@ export type CourseDetail = z.infer<typeof courseDetailSchema>;
 export type CourseSummary = z.infer<typeof courseSummarySchema>;
 export type TrendPoint = z.infer<typeof trendPointSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
+export type Named = z.infer<typeof namedSchema>;
 export type ResultsFile = z.infer<typeof resultsFileSchema>;
