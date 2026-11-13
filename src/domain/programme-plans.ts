@@ -29,6 +29,8 @@ export const planCourseSchema = z.object({
   themes: z.array(z.object({ theme: z.enum(THEMES), credits: z.number().positive() })),
   /** Examiners of the course round, by name. Empty when the round is unknown. */
   examiners: z.array(z.string()),
+  /** Credits of each module of the course round, by the module code that results also use. Empty when the round is unknown. */
+  modules: z.array(z.object({ code: z.string(), credits: z.number().nonnegative() })),
 });
 
 /**
@@ -284,6 +286,7 @@ export function courseYearSummary(placements: readonly CoursePlacement[], ruleNa
       requirement: group[0]!.requirement,
       programmes: [...Map.groupBy(group, (p) => p.programme)].map(([code, entries]) => ({
         code,
+        name: entries[0]!.programmeName,
         years: [...new Set(entries.map((e) => e.year))].toSorted((a, b) => a - b),
       })),
     }))

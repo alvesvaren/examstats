@@ -65,10 +65,7 @@ export const snapshotSchema = z.object({
   /** When the course surveys were last crawled. */
   evaluationsFetchedAt: z.iso.datetime(),
   /** The academic year and rule names of the programme plans. */
-  plans: planInfoSchema.extend({
-    /** English name of each programme with a plan, by code. */
-    names: z.record(z.string(), z.string()),
-  }),
+  plans: planInfoSchema,
   programmes: z.record(z.string(), z.string()),
   courses: z.array(courseSummarySchema),
 });

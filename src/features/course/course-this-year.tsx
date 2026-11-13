@@ -1,9 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { courseYearSummary, type CoursePlacement } from "@/domain/programme-plans";
-import type { Snapshot } from "@/domain/snapshot";
-import { formatExaminers, formatPeriods } from "@/lib/format";
-
-const yearList = new Intl.ListFormat("en-GB", { style: "long", type: "conjunction" });
+import { courseYearSummary, type CoursePlacement, type PlanInfo } from "@/domain/programme-plans";
+import { formatList, formatPeriods } from "@/lib/format";
 
 /** Years as short ranges, such as "1–2" or "1, 3". */
 function formatYears(years: readonly number[]) {
@@ -18,7 +15,7 @@ function formatYears(years: readonly number[]) {
 
 interface CourseThisYearProps {
   placements: CoursePlacement[];
-  plans: Snapshot["plans"];
+  plans: PlanInfo;
 }
 
 /** When the course runs this academic year, who examines it, and what the programmes that plan it ask. */
@@ -26,26 +23,28 @@ export function CourseThisYear({ placements, plans }: CourseThisYearProps) {
   const { rounds, requirements } = courseYearSummary(placements, plans.ruleNames);
   return (
     <section className="flex flex-col gap-1.5 text-sm">
-      <h2 className="text-muted-foreground">{plans.academicYear}</h2>
+      <h2 className="text-muted-foreground">
+        {rounds.some((r) => r.examiners.length > 0) ? `Examiners ${plans.academicYear}` : plans.academicYear}
+      </h2>
       <ul className="flex flex-col gap-0.5">
         {rounds.map(({ periods, examiners }) => (
           <li key={periods.join("-")}>
             <span className="font-medium">{formatPeriods(periods)}</span>
-            {examiners.length > 0 && <span className="text-muted-foreground"> · {formatExaminers(examiners)}</span>}
+            {examiners.length > 0 && <span className="text-muted-foreground"> · {formatList(examiners)}</span>}
           </li>
         ))}
       </ul>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+      <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
         {requirements.map(({ requirement, programmes }) => (
           <div key={requirement.label} className="contents">
             <dt className="text-muted-foreground">{requirement.label}</dt>
             <dd className="flex flex-wrap gap-x-3 gap-y-0.5">
-              {programmes.map(({ code, years }) => (
+              {programmes.map(({ code, name, years }) => (
                 <Link
                   key={code}
                   to="/planner"
                   search={{ programme: code, year: years[0] }}
-                  title={`${plans.names[code] ?? code}, ${years.length > 1 ? "years" : "year"} ${yearList.format(years.map(String))}`}
+                  title={`${name}, ${years.length > 1 ? "years" : "year"} ${formatList(years.map(String))}`}
                   className="underline-offset-4 hover:underline"
                 >
                   {code}

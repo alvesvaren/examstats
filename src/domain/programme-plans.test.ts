@@ -27,6 +27,7 @@ const course = (code: string, overrides: Partial<PlanCourse> = {}): PlanCourse =
     choices: [],
     themes: [],
     examiners: [],
+    modules: [],
     ...overrides,
   };
   return { periodCredits: entry.periods.map(() => entry.credits / entry.periods.length), ...entry };
@@ -179,9 +180,18 @@ describe("courseYearSummary", () => {
         { periods: ["LP3"], examiners: ["Ana"] },
       ],
       requirements: [
-        { requirement: { kind: "compulsory", rank: 0, label: "Compulsory" }, programmes: [{ code: "TIDAL", years: [2] }] },
-        { requirement: { kind: "compulsoryElective", rank: 1, label: "Compulsory elective" }, programmes: [{ code: "TKDAT", years: [3] }] },
-        { requirement: { kind: "elective", rank: 2, label: "Elective" }, programmes: [{ code: "TKDAT", years: [2] }] },
+        {
+          requirement: { kind: "compulsory", rank: 0, label: "Compulsory" },
+          programmes: [{ code: "TIDAL", name: "Computer Engineering", years: [2] }],
+        },
+        {
+          requirement: { kind: "compulsoryElective", rank: 1, label: "Compulsory elective" },
+          programmes: [{ code: "TKDAT", name: "Computer Science and Engineering", years: [3] }],
+        },
+        {
+          requirement: { kind: "elective", rank: 2, label: "Elective" },
+          programmes: [{ code: "TKDAT", name: "Computer Science and Engineering", years: [2] }],
+        },
       ],
     });
   });

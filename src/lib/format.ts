@@ -46,7 +46,6 @@ export function formatPeriods(periods: readonly StudyPeriod[]) {
 const credits = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 1 });
 export const formatCredits = (value: number) => `${credits.format(value)} credits`;
 
-const names = new Intl.ListFormat(LOCALE, { style: "long", type: "conjunction" });
-/** "Examiner Ana Bove", or "Examiners …" for several. Null without names. */
-export const formatExaminers = (examiners: readonly string[]) =>
-  examiners.length ? `${examiners.length > 1 ? "Examiners" : "Examiner"} ${names.format(examiners)}` : null;
+const list = new Intl.ListFormat(LOCALE, { style: "long", type: "conjunction" });
+/** "Ana Bove and Moa Johansson". */
+export const formatList = (items: readonly string[]) => list.format(items);

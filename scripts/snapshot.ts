@@ -61,7 +61,7 @@ async function main() {
   const snapshot: Snapshot = {
     generatedAt: today.toISOString(),
     evaluationsFetchedAt: evaluations.fetchedAt,
-    plans: { ...planInfo, names: Object.fromEntries(programmePlans.map((p) => [p.code, p.name])) },
+    plans: planInfo,
     programmes: results.programmes,
     courses,
   };
