@@ -180,11 +180,17 @@ function PeriodCard({ period, fixed, picked, active, onFocus, onRemove }: Period
   return (
     <div
       className={cn(
-        "flex flex-col gap-1.5 rounded-xl border-2 p-2.5 transition-colors",
+        "relative flex flex-col gap-1.5 rounded-xl border-2 p-2.5 transition-colors",
         active ? "border-primary bg-card shadow-md" : "border-transparent bg-muted/60 hover:bg-muted",
       )}
     >
-      <button type="button" onClick={onFocus} aria-pressed={active} className="flex flex-col gap-1 text-left">
+      <button
+        type="button"
+        onClick={onFocus}
+        aria-pressed={active}
+        aria-label={`${formatPeriods([period])}, ${formatNumber(credits)} of ${formatCredits(PERIOD_CREDITS)}`}
+        className="flex flex-col gap-1 text-left outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-ring"
+      >
         <span className="flex items-baseline justify-between gap-2">
           <span className="text-lg leading-none font-semibold">{formatPeriods([period])}</span>
           <span className={cn("text-xs tabular-nums", free < 0 ? "font-semibold text-grade-u" : "text-muted-foreground")}>
@@ -199,35 +205,37 @@ function PeriodCard({ period, fixed, picked, active, onFocus, onRemove }: Period
         </span>
       </button>
       {fixed.map((round) => (
-        <span key={round.key} className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <span key={round.key} className="pointer-events-none flex items-center gap-1.5 text-sm text-muted-foreground">
           <LockIcon className="size-3 shrink-0" aria-hidden />
           <span className="truncate">{round.name}</span>
           <Span round={round} />
         </span>
       ))}
       {picked.map((round) => (
-        <span key={round.key} className="flex items-center gap-1.5 rounded-md bg-primary px-1.5 py-0.5 text-sm text-primary-foreground">
+        <span
+          key={round.key}
+          className="pointer-events-none flex items-center gap-1.5 rounded-md bg-primary px-1.5 py-0.5 text-sm text-primary-foreground"
+        >
           <span className="truncate">{round.name}</span>
           <Span round={round} />
           <button
             type="button"
-            onClick={() => onRemove(round)}
+            onClick={(event) => {
+              event.stopPropagation();
+              onRemove(round);
+            }}
             aria-label={`Remove ${round.name}`}
-            className="-mr-0.5 shrink-0 opacity-70 hover:opacity-100"
+            className="pointer-events-auto relative z-10 -mr-0.5 shrink-0 opacity-70 hover:opacity-100"
           >
             <XIcon className="size-3.5" />
           </button>
         </span>
       ))}
-      {clashing && <span className="text-xs font-medium text-grade-u">Two of these share lecture times</span>}
+      {clashing && <span className="pointer-events-none text-xs font-medium text-grade-u">Two of these share lecture times</span>}
       {free > 0 && (
-        <button
-          type="button"
-          onClick={onFocus}
-          className="rounded-md border border-dashed px-1.5 py-0.5 text-left text-sm text-muted-foreground"
-        >
+        <span className="pointer-events-none rounded-md border border-dashed px-1.5 py-0.5 text-left text-sm text-muted-foreground">
           Room for {formatCredits(free)}
-        </button>
+        </span>
       )}
     </div>
   );
