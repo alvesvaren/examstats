@@ -24,7 +24,7 @@ import {
 import { otherPicks, rememberedPicks, withPicks } from "@/domain/planner-memory";
 import { planYear, syllabusUrl, type PlanChoice, type ProgrammePlan, type StudyPeriod } from "@/domain/programme-plans";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
-import { formatCount, formatCredits, formatNumber, formatPeriods } from "@/lib/format";
+import { formatCount, formatCredits, formatNumber, formatPercent, formatPeriods } from "@/lib/format";
 
 const DEFAULT_SORT: PlannerSortKey = "rating";
 /** The add button, the course, its pass rate and its rating. Phones get narrower numbers, so the name keeps its room. */
@@ -176,6 +176,7 @@ function PeriodCard({ period, fixed, picked, active, onFocus, onRemove }: Period
   const rounds = [...fixed, ...picked];
   const credits = creditsIn(rounds, period);
   const free = PERIOD_CREDITS - credits;
+  const pace = credits > PERIOD_CREDITS ? formatPercent(credits / PERIOD_CREDITS) : null;
   const clashing = rounds.some((round) => lectureClash(round, rounds));
   return (
     <div
@@ -188,13 +189,14 @@ function PeriodCard({ period, fixed, picked, active, onFocus, onRemove }: Period
         type="button"
         onClick={onFocus}
         aria-pressed={active}
-        aria-label={`${formatPeriods([period])}, ${formatNumber(credits)} of ${formatCredits(PERIOD_CREDITS)}`}
+        aria-label={`${formatPeriods([period])}, ${formatNumber(credits)} of ${formatCredits(PERIOD_CREDITS)}${pace ? ` (${pace})` : ""}`}
         className="flex flex-col gap-1 text-left outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-ring"
       >
         <span className="flex items-baseline justify-between gap-2">
           <span className="text-lg leading-none font-semibold">{formatPeriods([period])}</span>
-          <span className={cn("text-xs tabular-nums", free < 0 ? "font-semibold text-grade-u" : "text-muted-foreground")}>
+          <span className={cn("text-right text-xs tabular-nums", free < 0 ? "font-semibold text-grade-u" : "text-muted-foreground")}>
             {formatNumber(credits)} of {formatCredits(PERIOD_CREDITS)}
+            {pace && ` (${pace})`}
           </span>
         </span>
         <span className="h-1.5 overflow-hidden rounded-full bg-border">
@@ -358,7 +360,7 @@ function Candidate({ round, period, picked, elsewhere, warnings, onToggle }: Can
         aria-pressed={picked}
         aria-label={
           inOtherYear
-            ? `${round.name} is in year ${elsewhere.year}`
+            ? `${round.name} is in year ${elsewhere?.year}`
             : picked
               ? `Remove ${round.name} from your year`
               : `Add ${round.name} to your year`
