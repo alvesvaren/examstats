@@ -54,6 +54,7 @@ export function toCatalogCourse(course: CourseSummary) {
 export type CatalogCourse = ReturnType<typeof toCatalogCourse>;
 
 export const toCatalog = (snapshot: Snapshot) => ({ ...snapshot, courses: snapshot.courses.map(toCatalogCourse) });
+export type Catalog = ReturnType<typeof toCatalog>;
 
 const sortValue: Record<SortKey, (c: CatalogCourse) => number | string | null> = {
   name: (c) => c.name,
@@ -66,14 +67,16 @@ const sortValue: Record<SortKey, (c: CatalogCourse) => number | string | null> =
   lastResult: (c) => c.lastResult,
 };
 
-function compareBy(key: SortKey, dir: SortDir) {
+/** Orders two sort values in `dir`, with nulls last either way. */
+export function compareSortValues(x: number | string | null, y: number | string | null, dir: SortDir) {
+  if (x === null || y === null) return Number(x === null) - Number(y === null);
   const sign = dir === "asc" ? 1 : -1;
+  return sign * (typeof x === "string" ? x.localeCompare(String(y), "sv") : x - Number(y));
+}
+
+function compareBy(key: SortKey, dir: SortDir) {
   const value = sortValue[key];
-  return (a: CatalogCourse, b: CatalogCourse) => {
-    const [x, y] = [value(a), value(b)];
-    if (x === null || y === null) return Number(x === null) - Number(y === null);
-    return sign * (typeof x === "string" ? x.localeCompare(String(y), "sv") : x - Number(y));
-  };
+  return (a: CatalogCourse, b: CatalogCourse) => compareSortValues(value(a), value(b), dir);
 }
 
 export interface CourseQuery {

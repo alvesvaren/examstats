@@ -9,5 +9,5 @@
       "includeFiles": "{public/data/index.json,node_modules/@fontsource/geist/files/geist-latin-[46]00-normal.woff,node_modules/.pnpm/harfbuzzjs@*/node_modules/harfbuzzjs/hb.wasm}"
     }
   },
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/" }]
 }

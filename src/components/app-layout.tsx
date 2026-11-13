@@ -4,6 +4,7 @@ import { cn } from "cn";
 import { GradeChip } from "@/components/grade";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import { useScrolledPast } from "@/hooks/use-scrolled-past";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -45,6 +46,8 @@ function ScrollToTop() {
 }
 
 export function AppLayout() {
+  // The planner link goes back to the programme and year last planned on this device.
+  const { memory } = usePlannerMemory();
   return (
     <div className="mx-auto flex min-h-svh max-w-6xl flex-col px-4">
       <HeadContent />
@@ -57,7 +60,15 @@ export function AppLayout() {
           </span>
           Chalmers exam results
         </Link>
-        <ThemeToggle />
+        <nav className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/planner" search={memory.last ?? {}} activeOptions={{ includeSearch: false }} activeProps={{ className: "bg-muted" }}>
+              <span className="sm:hidden">Planner</span>
+              <span className="hidden sm:inline">Course planner</span>
+            </Link>
+          </Button>
+          <ThemeToggle />
+        </nav>
       </header>
       <main className="flex-1 pb-16">
         <Outlet />
