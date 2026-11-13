@@ -287,10 +287,11 @@ describe("degree requirements", () => {
     expect(openRequirements([tkite])).toEqual([mts, science]);
   });
 
-  it("counts the compulsory courses of the master's programme towards the programme's requirements", () => {
+  it("keeps a requirement the programme's compulsory courses do not meet, also when the master's programme's meet it, so it shows as met", () => {
     const ethics = planCourse("TDA602", "O", [{ theme: "mts", credits: 3 }]);
     const mpsof: ProgrammePlan = { ...tkite, code: "MPSOF", requirements: [], masters: [], years: [{ year: 1, courses: [ethics] }] };
-    expect(openRequirements([tkite, mpsof])).toEqual([science]);
+    expect(openRequirements([tkite, mpsof])).toEqual([mts, science]);
+    expect(requirementProgress(mts, [interfaces, agile, ethics])).toMatchObject({ have: 7.5, done: true });
   });
 });
 

@@ -150,13 +150,11 @@ export function requirementProgress(requirement: PlanRequirement, courses: reado
 }
 
 /**
- * The degree requirements a student has to choose courses for: those of every plan of the degree that the compulsory
- * courses of all of them do not meet on their own.
+ * The degree requirements a student has to choose courses for: those of each plan that its own compulsory courses do
+ * not meet. A requirement that a master's programme's compulsory courses meet stays, so the plan shows it met.
  */
-export function openRequirements(plans: readonly ProgrammePlan[], track?: string) {
-  const compulsory = plannedCourses(plans, [], track);
-  return plans.flatMap((plan) => plan.requirements).filter((r) => !requirementProgress(r, compulsory).done);
-}
+export const openRequirements = (plans: readonly ProgrammePlan[], track?: string) =>
+  plans.flatMap((plan) => plan.requirements.filter((r) => !requirementProgress(r, plannedCourses([plan], [], track)).done));
 
 const meanOf = (values: readonly (number | null)[]) => {
   const known = values.filter((value) => value !== null);
