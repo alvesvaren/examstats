@@ -11,7 +11,7 @@ Exam results and course survey ratings for every Chalmers course, and a course p
 - `pnpm snapshot` builds `public/data` from the committed files in `data/`, offline. Run it once before `pnpm dev`.
 - `pnpm fetch-results` fetches stats.ftek.se into `data/results.json`. A nightly Action runs it and commits the file when it changes.
 - `pnpm evaluations` crawls the course surveys into `data/evaluations.json`. It takes about 25 minutes: reports render one at a time, and charts download in parallel. A monthly Action runs it and commits the file.
-- `pnpm programme-plans` fetches every programme plan of the current academic year, and the degree requirements and accredited master's programmes in each programme syllabus, from the JSON API behind chalmers.se into `data/programme-plans.json`, in about a minute. A weekly Action runs it and commits the file when it changes.
+- `pnpm programme-plans` fetches every programme plan of the current academic year, and the degree requirements, accredited master's programmes and master's prerequisites in each programme syllabus, from the JSON API behind chalmers.se into `data/programme-plans.json`, in about a minute. A weekly Action runs it and commits the file when it changes.
 - `pnpm dev`, `pnpm build`, `pnpm typecheck`
 - `pnpm lint` runs oxlint with type-aware rules. ESLint's TypeScript support needs the TypeScript API, which TypeScript 7 does not ship.
 - `pnpm format` runs Prettier, which also sorts Tailwind classes. `pnpm format:check` only checks.

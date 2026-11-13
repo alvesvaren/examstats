@@ -9,7 +9,7 @@ import { rememberedPicks, withMaster } from "@/domain/planner-memory";
 import { MASTER_START_YEAR, studyYears, tracksOf, type StudyYear } from "@/domain/programme-plans";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import { PLANNER_HEADING } from "@/lib/page-meta";
-import { MasterPicker } from "./master-picker";
+import { MasterPicker, Prerequisites } from "./master-picker";
 import { ProgrammeSearch } from "./programme-search";
 import { YearPlanner } from "./year-planner";
 
@@ -92,6 +92,11 @@ export function PlannerPage() {
           <p className="text-muted-foreground">
             Years 4 and 5: <span className="font-medium text-foreground">{master.name}</span> · {master.code}
           </p>
+        )}
+        {master && master.prerequisites.length > 0 && (
+          <Prerequisites paragraphs={master.prerequisites} className="text-sm">
+            Prerequisites of {master.code}
+          </Prerequisites>
         )}
       </div>
 

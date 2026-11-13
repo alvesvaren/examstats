@@ -260,6 +260,7 @@ describe("degree requirements", () => {
     choices: [],
     requirements: [environment, mts, science],
     masters: ["MPSOF"],
+    prerequisites: [],
     years: [
       { year: 1, courses: [interfaces] },
       { year: 2, courses: [agile, games] },
@@ -289,6 +290,7 @@ describe("pickProgress", () => {
     choices: [pickTwo, pickCredits],
     requirements: [],
     masters: [],
+    prerequisites: [],
     years: [
       { year: 2, courses: [withChoices("TDA357", [])] },
       {
@@ -329,6 +331,7 @@ describe("masterSummary", () => {
     choices: [],
     requirements: [],
     masters: [],
+    prerequisites: [],
     years: [
       {
         year: 1,

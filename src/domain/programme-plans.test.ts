@@ -41,6 +41,7 @@ const tkdat: ProgrammePlan = {
   choices: [pickTwo, onlyOne],
   requirements: [],
   masters: [],
+  prerequisites: [],
   years: [
     {
       year: 3,
@@ -111,6 +112,7 @@ describe("placementsByCourse", () => {
       choices: [],
       requirements: [],
       masters: [],
+      prerequisites: [],
       years: [{ year: 2, courses: [course("TDA357", { periods: ["LP2"], rule: "O", block: "D+" })] }],
     };
     const placements = placementsByCourse([tkdat, tidal], RULE_NAMES).get("TDA357");
@@ -150,6 +152,7 @@ describe("courseYearSummary", () => {
       choices: [],
       requirements: [],
       masters: [],
+      prerequisites: [],
       years: [{ year: 2, courses: [course("TDA357", { periods: ["LP2"], rule: "O", examiners: ["Jonas"] })] }],
     };
     const withExaminers: ProgrammePlan = {
@@ -190,6 +193,7 @@ const mpalg: ProgrammePlan = {
   choices: [],
   requirements: [],
   masters: [],
+  prerequisites: [],
   years: [
     { year: 1, courses: [course("TDA251", { periods: ["LP2"], rule: "O" }), course("DAT060"), course("DAT151")] },
     { year: 2, courses: [course("DATX05", { periods: ["LP1", "LP2", "LP3", "LP4"], rule: "X" })] },

@@ -2,7 +2,7 @@
  * Fetches every Chalmers programme plan for the current academic year from the JSON API behind chalmers.se and writes
  * `data/programme-plans.json`: per programme and year of study, the courses with their study periods and rules. The
  * plans name no examiners, so it also fetches each planned course's syllabus for the examiners of its rounds. The
- * degree requirements of a programme come from its programme syllabus.
+ * degree requirements of a programme, and the prerequisites of a master's programme, come from its programme syllabus.
  * A weekly GitHub Action runs it and commits the file when it changes. The only code that knows that API.
  */
 import { mkdir, writeFile } from "node:fs/promises";
@@ -22,6 +22,7 @@ import {
 } from "../src/domain/programme-plans.ts";
 import { toJsonLines } from "./json-lines.ts";
 import { mapConcurrent } from "./map-concurrent.ts";
+import { paragraphsOf } from "./plain-text.ts";
 
 /** Plans for the next academic year replace the current ones in July, ahead of course registration. */
 const ACADEMIC_YEAR_START_MONTH = 7;
@@ -113,6 +114,8 @@ const syllabusSchema = z.object({
         degreeWithDegreeSpecRequirements: z.array(z.object({ degreeSpecId: z.number(), courseCode: z.string() })).nullable(),
         /** Master's programmes whose degree the programme's students can finish with. */
         accreditations: z.object({ forMastersProgramme: z.array(z.object({ masterCode: z.string() })) }).nullable(),
+        /** A master's programme's specific prerequisites in courses and subjects, as text that may hold HTML. */
+        prerequisites: z.string().nullable(),
       }),
     ),
   }),
@@ -226,19 +229,23 @@ function toRequirements(syllabus: Syllabus): PlanRequirement[] {
 }
 
 /**
- * The degree requirements of a programme, and the master's programmes it leads on to, from its syllabus for this
- * academic year or the newest one before it. Empty when it has none.
+ * The degree requirements of a programme, the master's programmes it leads on to, and its prerequisites, from its
+ * syllabus for this academic year or the newest one before it. Empty when it has none.
  */
-async function syllabusOf(code: string): Promise<Pick<ProgrammePlan, "requirements" | "masters">> {
+async function syllabusOf(code: string): Promise<Pick<ProgrammePlan, "requirements" | "masters" | "prerequisites">> {
   const [start = 0] = env.ACADEMIC_YEAR.split("/").map(Number);
   for (let year = start; year >= start - SYLLABUS_YEARS_BACK; year--) {
     const { search } = await get("Syllabuses", { language: "en", acYear: `${year}/${year + 1}`, pCode: code }, syllabusSchema);
     const [syllabus] = search.results;
     if (!syllabus) continue;
     const masters = (syllabus.accreditations?.forMastersProgramme ?? []).map((m) => m.masterCode);
-    return { requirements: toRequirements(syllabus), masters: [...new Set(masters)].toSorted() };
+    return {
+      requirements: toRequirements(syllabus),
+      masters: [...new Set(masters)].toSorted(),
+      prerequisites: paragraphsOf(syllabus.prerequisites ?? ""),
+    };
   }
-  return { requirements: [], masters: [] };
+  return { requirements: [], masters: [], prerequisites: [] };
 }
 
 /** The rounds of a course this academic year, from its syllabus. Empty when it has none. */
