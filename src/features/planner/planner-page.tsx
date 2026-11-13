@@ -94,10 +94,9 @@ export function PlannerPage() {
           </p>
         )}
         {master && master.prerequisites.length > 0 && (
-          <details className="text-sm">
-            <summary className="w-fit cursor-pointer text-muted-foreground hover:text-foreground">Prerequisites of {master.code}</summary>
-            <Prerequisites paragraphs={master.prerequisites} className="mt-1 max-w-prose" />
-          </details>
+          <Prerequisites paragraphs={master.prerequisites} className="text-sm">
+            Prerequisites of {master.code}
+          </Prerequisites>
         )}
       </div>
 

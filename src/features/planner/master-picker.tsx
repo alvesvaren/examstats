@@ -1,3 +1,5 @@
+import { ChevronRightIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import type { Catalog } from "@/domain/catalog";
 import { masterSummary } from "@/domain/planner";
 import type { ProgrammePlan } from "@/domain/programme-plans";
@@ -60,51 +62,56 @@ function MasterOption({ master, summary, swedishName, onChoose }: MasterOptionPr
   const hasResults = passRate !== null || rating !== null;
 
   return (
-    <button
-      type="button"
-      onClick={onChoose}
-      className="flex h-full w-full flex-col gap-1 rounded-xl border px-3 py-2.5 text-left transition-colors hover:border-primary hover:bg-muted/50"
-    >
-      <span className="font-medium">{master.name}</span>
-      <span className="text-sm text-muted-foreground">{[master.code, swedishName].filter(Boolean).join(" · ")}</span>
-      <span className="text-sm">{facts}</span>
-      <span className="text-sm text-muted-foreground">
-        {hasResults ? (
-          <>
-            Pass rate <span className="font-medium text-foreground tabular-nums">{formatPercent(passRate)}</span> · Rating{" "}
-            <span className="font-medium text-foreground tabular-nums">{formatScore(rating)}</span>
-          </>
-        ) : (
-          "No results yet"
-        )}
-      </span>
-      {compulsory.length > 0 && (
-        <span className="line-clamp-2 text-xs text-muted-foreground">Compulsory: {compulsory.map((c) => c.name).join(", ")}</span>
-      )}
-      {master.prerequisites.length > 0 && (
-        <span className="mt-1 flex flex-col gap-0.5 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">Prerequisites</span>
-          <Prerequisites paragraphs={master.prerequisites} />
+    <div className="flex h-full flex-col rounded-xl border transition-colors has-[>button:hover]:border-primary has-[>button:hover]:bg-muted/50">
+      <button type="button" onClick={onChoose} className="flex flex-1 flex-col gap-1 px-3 pt-2.5 pb-2 text-left">
+        <span className="font-medium">{master.name}</span>
+        <span className="text-sm text-muted-foreground">{[master.code, swedishName].filter(Boolean).join(" · ")}</span>
+        <span className="text-sm">{facts}</span>
+        <span className="text-sm text-muted-foreground">
+          {hasResults ? (
+            <>
+              Pass rate <span className="font-medium text-foreground tabular-nums">{formatPercent(passRate)}</span> · Rating{" "}
+              <span className="font-medium text-foreground tabular-nums">{formatScore(rating)}</span>
+            </>
+          ) : (
+            "No results yet"
+          )}
         </span>
+        {compulsory.length > 0 && (
+          <span className="line-clamp-2 text-xs text-muted-foreground">Compulsory: {compulsory.map((c) => c.name).join(", ")}</span>
+        )}
+      </button>
+      {master.prerequisites.length > 0 && (
+        <Prerequisites paragraphs={master.prerequisites} className="px-3 pb-2.5 text-xs">
+          Prerequisites
+        </Prerequisites>
       )}
-    </button>
+    </div>
   );
 }
 
 interface PrerequisitesProps {
   /** Paragraphs of a master's programme's prerequisites, as its syllabus words them. */
   paragraphs: readonly string[];
+  /** The label of the button that shows them. */
+  children: ReactNode;
   className?: string;
 }
 
-/** A master's programme's prerequisites, a paragraph per line. Spans, so that it fits inside a button. */
-export function Prerequisites({ paragraphs, className }: PrerequisitesProps) {
+/** A master's programme's prerequisites behind a button, since they run to several lines. */
+export function Prerequisites({ paragraphs, children, className }: PrerequisitesProps) {
   return (
-    <span className={cn("flex flex-col gap-1", className)}>
-      {paragraphs.map((paragraph, index) => (
-        // The paragraphs never change order, and a short one such as "or" can repeat.
-        <span key={index}>{paragraph}</span>
-      ))}
-    </span>
+    <details className={cn("group", className)}>
+      <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+        <ChevronRightIcon className="size-3.5 transition-transform group-open:rotate-90" />
+        {children}
+      </summary>
+      <div className="mt-1 flex max-w-prose flex-col gap-1">
+        {paragraphs.map((paragraph, index) => (
+          // The paragraphs never change order, and a short one such as "or" can repeat.
+          <p key={index}>{paragraph}</p>
+        ))}
+      </div>
+    </details>
   );
 }
