@@ -60,6 +60,8 @@ export const programmePlanSchema = z.object({
   requirements: z.array(planRequirementSchema),
   /** Codes of the master's programmes that the programme's students can finish their degree with. */
   masters: z.array(z.string()),
+  /** What a master's programme asks its students to have studied before it, in Chalmers' words, one paragraph each. Empty when it asks nothing. */
+  prerequisites: z.array(z.string()),
   /** Years of study, from 1, with the courses planned in each. */
   years: z.array(z.object({ year: z.number().int().positive(), courses: z.array(planCourseSchema) })),
 });

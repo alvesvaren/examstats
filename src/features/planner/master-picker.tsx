@@ -2,6 +2,7 @@ import type { Catalog } from "@/domain/catalog";
 import { masterSummary } from "@/domain/planner";
 import type { ProgrammePlan } from "@/domain/programme-plans";
 import { formatCount, formatCredits, formatPercent, formatScore } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 interface MasterPickerProps {
   programme: ProgrammePlan;
@@ -80,6 +81,30 @@ function MasterOption({ master, summary, swedishName, onChoose }: MasterOptionPr
       {compulsory.length > 0 && (
         <span className="line-clamp-2 text-xs text-muted-foreground">Compulsory: {compulsory.map((c) => c.name).join(", ")}</span>
       )}
+      {master.prerequisites.length > 0 && (
+        <span className="mt-1 flex flex-col gap-0.5 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Prerequisites</span>
+          <Prerequisites paragraphs={master.prerequisites} />
+        </span>
+      )}
     </button>
+  );
+}
+
+interface PrerequisitesProps {
+  /** Paragraphs of a master's programme's prerequisites, as its syllabus words them. */
+  paragraphs: readonly string[];
+  className?: string;
+}
+
+/** A master's programme's prerequisites, a paragraph per line. Spans, so that it fits inside a button. */
+export function Prerequisites({ paragraphs, className }: PrerequisitesProps) {
+  return (
+    <span className={cn("flex flex-col gap-1", className)}>
+      {paragraphs.map((paragraph, index) => (
+        // The paragraphs never change order, and a short one such as "or" can repeat.
+        <span key={index}>{paragraph}</span>
+      ))}
+    </span>
   );
 }

@@ -55,6 +55,7 @@ const plan = (code: string, years: number[]): ProgrammePlan => ({
   choices: [],
   requirements: [],
   masters: [],
+  prerequisites: [],
   years: years.map((year) => ({ year, courses: [] })),
 });
 
