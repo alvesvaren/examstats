@@ -324,15 +324,12 @@ function ListMarker({ done }: { done: boolean }) {
   return <span className={cn("inline-block size-2 shrink-0 rotate-45 bg-primary", done && "opacity-40")} aria-hidden />;
 }
 
-/** What a degree requirement asks for. A list of one course names it, and says so when no year of the plan has it. */
+/** What a degree requirement asks for, in short. A list of one course names it, and says so when no year of the plan has it. */
 function requirementText(requirement: PlanRequirement, offered: ReadonlySet<string>) {
-  if (requirement.kind === "theme") {
-    return `The degree needs ${formatCredits(requirement.minCredits)} in the theme ${THEME_LABELS[requirement.theme].name}.`;
-  }
+  if (requirement.kind === "theme") return "Theme credits for the degree";
   const [code, ...others] = requirement.courses;
-  if (code && others.length === 0) return `The degree needs ${code}${offered.has(code) ? "" : ", which is not in this plan"}.`;
-  const amount = `${formatCount(requirement.minCourses)} of the marked courses`;
-  return `The degree needs at least ${amount}. Some of them may only be in a master's programme.`;
+  if (code && others.length === 0) return `${code} for the degree${offered.has(code) ? "" : ", not in this plan"}`;
+  return `${requirement.minCourses === 1 ? "One" : formatCount(requirement.minCourses)} of the marked courses for the degree`;
 }
 
 /** A requirement of the whole degree, and how far the compulsory courses and the picks of every year go towards it. */
@@ -341,7 +338,7 @@ function DegreeRule({ rule, offered }: { rule: DegreeRuleProgress; offered: Read
   return (
     <p className="flex items-baseline gap-2">
       {requirement.kind === "theme" ? (
-        <Badge variant="outline" className={cn(done && "opacity-50")}>
+        <Badge variant="outline" title={THEME_LABELS[requirement.theme].name} className={cn(done && "opacity-50")}>
           {THEME_LABELS[requirement.theme].short}
         </Badge>
       ) : (
@@ -351,7 +348,7 @@ function DegreeRule({ rule, offered }: { rule: DegreeRuleProgress; offered: Read
         {requirementText(requirement, offered)}{" "}
         <span className={cn("whitespace-nowrap", done ? "font-medium text-grade-4" : "text-muted-foreground")}>
           {done && <CheckIcon className="mr-0.5 inline size-4 align-[-0.2em]" aria-hidden />}
-          {formatNumber(have)} of {unit === "courses" ? formatCount(need) : formatCredits(need)} in all your years
+          {formatNumber(have)} of {unit === "courses" ? formatCount(need) : formatCredits(need)}
         </span>
       </span>
     </p>
@@ -370,7 +367,7 @@ function DegreeMark({ mark }: { mark: DegreeRuleProgress & { amount: number } })
     );
   }
   return (
-    <Badge variant="outline" className={cn(done && "opacity-50")}>
+    <Badge variant="outline" title={THEME_LABELS[requirement.theme].name} className={cn(done && "opacity-50")}>
       {THEME_LABELS[requirement.theme].short} {formatCredits(amount)}
     </Badge>
   );
