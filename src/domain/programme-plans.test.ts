@@ -6,6 +6,7 @@ import {
   planYear,
   roundKey,
   roundOf,
+  studyYears,
   type PlanChoice,
   type PlanCourse,
   type ProgrammePlan,
@@ -39,6 +40,7 @@ const tkdat: ProgrammePlan = {
   name: "Computer Science and Engineering",
   choices: [pickTwo, onlyOne],
   requirements: [],
+  masters: [],
   years: [
     {
       year: 3,
@@ -108,6 +110,7 @@ describe("placementsByCourse", () => {
       name: "Computer Engineering",
       choices: [],
       requirements: [],
+      masters: [],
       years: [{ year: 2, courses: [course("TDA357", { periods: ["LP2"], rule: "O", block: "D+" })] }],
     };
     const placements = placementsByCourse([tkdat, tidal], RULE_NAMES).get("TDA357");
@@ -146,6 +149,7 @@ describe("courseYearSummary", () => {
       name: "Computer Engineering",
       choices: [],
       requirements: [],
+      masters: [],
       years: [{ year: 2, courses: [course("TDA357", { periods: ["LP2"], rule: "O", examiners: ["Jonas"] })] }],
     };
     const withExaminers: ProgrammePlan = {
@@ -180,6 +184,35 @@ describe("courseYearSummary", () => {
   });
 });
 
+const mpalg: ProgrammePlan = {
+  code: "MPALG",
+  name: "Computer Science - Algorithms, Languages and Logic",
+  choices: [],
+  requirements: [],
+  masters: [],
+  years: [
+    { year: 1, courses: [course("TDA251", { periods: ["LP2"], rule: "O" }), course("DAT060"), course("DAT151")] },
+    { year: 2, courses: [course("DATX05", { periods: ["LP1", "LP2", "LP3", "LP4"], rule: "X" })] },
+  ],
+};
+
+const numbered = (years: ReturnType<typeof studyYears>) => years.map(({ number, plan, year }) => [number, plan.code, year]);
+
+describe("studyYears", () => {
+  it("numbers the years of a programme from its first", () => {
+    expect(numbered(studyYears(tkdat))).toEqual([[3, "TKDAT", 3]]);
+  });
+
+  it("puts the master's programme in the fourth and fifth year, also after a programme with no plan for its third year yet", () => {
+    const firstYearOnly = { ...tkdat, years: [{ year: 1, courses: [course("DAT017")] }] };
+    expect(numbered(studyYears(firstYearOnly, mpalg))).toEqual([
+      [1, "TKDAT", 1],
+      [4, "MPALG", 1],
+      [5, "MPALG", 2],
+    ]);
+  });
+});
+
 const codes = (courses: readonly PlanCourse[]) => courses.map((c) => c.code);
 
 describe("plannedCourses", () => {
@@ -189,25 +222,34 @@ describe("plannedCourses", () => {
   };
 
   it("holds the compulsory courses of every year without any picks, and not those of a track", () => {
-    expect(codes(plannedCourses(plan, []))).toEqual(["DAT017", "EDA322"]);
+    expect(codes(plannedCourses([plan], []))).toEqual(["DAT017", "EDA322"]);
   });
 
   it("adds the compulsory courses of the track", () => {
     const withTrack = { ...plan, years: [{ year: 1, courses: [course("TIF100", { rule: "O", track: "Physics" })] }] };
-    expect(codes(plannedCourses(withTrack, []))).toEqual([]);
-    expect(codes(plannedCourses(withTrack, [], "Physics"))).toEqual(["TIF100"]);
+    expect(codes(plannedCourses([withTrack], []))).toEqual([]);
+    expect(codes(plannedCourses([withTrack], [], "Physics"))).toEqual(["TIF100"]);
   });
 
   it("adds the round picked in a year, and counts a course picked in two years once", () => {
     const picks = [
-      { year: 2, key: roundKey("TDA357", ["LP2"]) },
-      { year: 3, key: roundKey("TDA357", ["LP3"]) },
-      { year: 3, key: roundKey("TMA001", ["LP3"]) },
+      { programme: "TKDAT", year: 2, key: roundKey("TDA357", ["LP2"]) },
+      { programme: "TKDAT", year: 3, key: roundKey("TDA357", ["LP3"]) },
+      { programme: "TKDAT", year: 3, key: roundKey("TMA001", ["LP3"]) },
     ];
-    expect(codes(plannedCourses(plan, picks))).toEqual(["DAT017", "TDA357", "EDA322", "TMA001"]);
+    expect(codes(plannedCourses([plan], picks))).toEqual(["DAT017", "TDA357", "EDA322", "TMA001"]);
   });
 
   it("leaves out a round picked in a year the plan has it in no such study period", () => {
-    expect(codes(plannedCourses(plan, [{ year: 2, key: roundKey("TDA357", ["LP3"]) }]))).toEqual(["DAT017", "EDA322"]);
+    const picks = [{ programme: "TKDAT", year: 2, key: roundKey("TDA357", ["LP3"]) }];
+    expect(codes(plannedCourses([plan], picks))).toEqual(["DAT017", "EDA322"]);
+  });
+
+  it("holds the courses of a master's programme after the programme, with the picks made in each plan's own years", () => {
+    const picks = [
+      { programme: "MPALG", year: 1, key: roundKey("DAT060", ["LP1"]) },
+      { programme: "TKDAT", year: 1, key: roundKey("DAT151", ["LP1"]) },
+    ];
+    expect(codes(plannedCourses([plan, mpalg], picks))).toEqual(["DAT017", "EDA322", "TDA251", "DAT060"]);
   });
 });

@@ -1,14 +1,15 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, PlusIcon, RepeatIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { catalogQuery, plansQuery } from "@/data/queries";
-import { rememberedPicks } from "@/domain/planner-memory";
-import { tracksOf } from "@/domain/programme-plans";
+import { rememberedPicks, withMaster } from "@/domain/planner-memory";
+import { MASTER_START_YEAR, studyYears, tracksOf, type StudyYear } from "@/domain/programme-plans";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import { PLANNER_HEADING } from "@/lib/page-meta";
+import { MasterPicker } from "./master-picker";
 import { ProgrammeSearch } from "./programme-search";
 import { YearPlanner } from "./year-planner";
 
@@ -31,19 +32,47 @@ export function PlannerPage() {
 
   const update = (changes: Partial<PlannerSearch>) =>
     navigate({ search: (prev) => ({ ...prev, ...changes }), replace: true, resetScroll: false });
-  const years = programme.years.map((y) => y.year);
-  const year = years.find((y) => y === search.year) ?? years[0];
-  const tracks = tracksOf(programme.years.find((y) => y.year === year)?.courses ?? []);
+  const masters = plans.filter((p) => programme.masters.includes(p.code));
+  // A master's programme in the URL is a shared plan and wins. Without one, the degree is as this device remembers it.
+  const masterCode = search.master ?? memory.masters[programme.code];
+  const master = masters.find((p) => p.code === masterCode);
+  const years = studyYears(programme, master);
+  // Without a master's programme, its first year is where to choose one.
+  const choosingMaster = !master && masters.length > 0 && search.year === MASTER_START_YEAR;
+  const current = years.find((y) => y.number === search.year) ?? years[0];
+  const tracks = choosingMaster ? [] : tracksOf(current?.plan.years.find((y) => y.year === current.year)?.courses ?? []);
   const track = tracks.find((t) => t === search.track);
   const swedishName = catalog.programmes[programme.code];
+
+  const picksIn = (shown: StudyYear | undefined) => shown && rememberedPicks(memory, shown.plan.code, shown.year);
   // The header's link to the planner comes back to the year and track last shown.
   const showYear = (next: number) => {
     remember((m) => ({ ...m, last: { programme: programme.code, year: next } }));
-    void update({ year: next, track: undefined, period: undefined, picked: rememberedPicks(memory, programme.code, next) });
+    void update({
+      year: next,
+      master: master?.code,
+      track: undefined,
+      period: undefined,
+      picked: picksIn(years.find((y) => y.number === next)),
+    });
   };
   const showTrack = (next: string | undefined) => {
-    remember((m) => ({ ...m, last: { programme: programme.code, year, track: next } }));
+    remember((m) => ({ ...m, last: { programme: programme.code, year: current?.number, track: next } }));
     void update({ track: next });
+  };
+  const chooseMaster = (code: string | undefined) => {
+    const chosen = studyYears(
+      programme,
+      masters.find((p) => p.code === code),
+    );
+    remember((m) => ({ ...withMaster(m, programme.code, code), last: { programme: programme.code, year: MASTER_START_YEAR } }));
+    void update({
+      year: MASTER_START_YEAR,
+      master: code,
+      track: undefined,
+      period: undefined,
+      picked: picksIn(chosen.find((y) => y.number === MASTER_START_YEAR)),
+    });
   };
 
   return (
@@ -59,22 +88,46 @@ export function PlannerPage() {
           <h1 className="text-2xl font-semibold">{programme.name}</h1>
           <span className="text-muted-foreground">{[programme.code, swedishName].filter(Boolean).join(" · ")}</span>
         </div>
+        {master && (
+          <p className="text-muted-foreground">
+            Years 4 and 5: <span className="font-medium text-foreground">{master.name}</span> · {master.code}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <ToggleGroup
-          type="single"
-          variant="outline"
-          value={String(year)}
-          onValueChange={(value) => value && showYear(Number(value))}
-          aria-label="Year of study"
-        >
-          {years.map((y) => (
-            <ToggleGroupItem key={y} value={String(y)}>
-              Year {y}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        <div className="flex flex-wrap items-center gap-2">
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            value={choosingMaster || !current ? "" : String(current.number)}
+            onValueChange={(value) => value && showYear(Number(value))}
+            aria-label="Year of study"
+          >
+            {years.map(({ number }) => (
+              <ToggleGroupItem key={number} value={String(number)}>
+                Year {number}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          {masters.length > 0 &&
+            (master ? (
+              <Button variant="ghost" onClick={() => chooseMaster(undefined)}>
+                <RepeatIcon />
+                Change master
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                aria-pressed={choosingMaster}
+                onClick={() => showYear(MASTER_START_YEAR)}
+                className="border-dashed aria-pressed:border-primary aria-pressed:bg-muted dark:aria-pressed:border-primary"
+              >
+                <PlusIcon />
+                Add master
+              </Button>
+            ))}
+        </div>
         {tracks.length > 0 && (
           <NativeSelect
             aria-label="Track"
@@ -92,10 +145,20 @@ export function PlannerPage() {
         )}
       </div>
 
-      {year === undefined ? (
+      {choosingMaster ? (
+        <MasterPicker programme={programme} masters={masters} catalog={catalog} onChoose={chooseMaster} />
+      ) : current === undefined ? (
         <p className="text-muted-foreground">{PLANNER_HEADING} has no courses for this programme yet.</p>
       ) : (
-        <YearPlanner programme={programme} year={year} track={track} search={search} onChange={update} catalog={catalog} />
+        <YearPlanner
+          programme={programme}
+          years={years}
+          current={current}
+          track={track}
+          search={search}
+          onChange={update}
+          catalog={catalog}
+        />
       )}
     </div>
   );

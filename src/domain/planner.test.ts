@@ -8,6 +8,7 @@ import {
   findElsewhere,
   firstOpenPeriod,
   lectureClash,
+  masterSummary,
   openRequirements,
   periodsOf,
   pickProgress,
@@ -180,11 +181,11 @@ describe("findElsewhere", () => {
   });
 
   it("finds the course when picked in another year", () => {
-    expect(findElsewhere(lp2, [], [{ year: 2, key: "TDA357.LP3" }])).toEqual({ year: 2, periods: ["LP3"] });
+    expect(findElsewhere(lp2, [], [{ number: 2, key: "TDA357.LP3" }])).toEqual({ year: 2, periods: ["LP3"] });
   });
 
   it("returns undefined when the course is not picked anywhere", () => {
-    expect(findElsewhere(lp2, [], [{ year: 2, key: "DAT026.LP1" }])).toBeUndefined();
+    expect(findElsewhere(lp2, [], [{ number: 2, key: "DAT026.LP1" }])).toBeUndefined();
   });
 });
 
@@ -269,19 +270,74 @@ describe("degree requirements", () => {
     expect(requirementProgress(science, [interfaces, physics])).toEqual({ have: 1, need: 1, unit: "courses", done: true });
   });
 
+  const tkite: ProgrammePlan = {
+    code: "TKITE",
+    name: "Software Engineering",
+    choices: [],
+    requirements: [environment, mts, science],
+    masters: ["MPSOF"],
+    years: [
+      { year: 1, courses: [interfaces] },
+      { year: 2, courses: [agile, games] },
+      { year: 3, courses: [sustainability, physics] },
+    ],
+  };
+
   it("keeps the requirements that the compulsory courses do not meet on their own", () => {
-    const tkite: ProgrammePlan = {
-      code: "TKITE",
-      name: "Software Engineering",
-      choices: [],
-      requirements: [environment, mts, science],
-      years: [
-        { year: 1, courses: [interfaces] },
-        { year: 2, courses: [agile, games] },
-        { year: 3, courses: [sustainability, physics] },
-      ],
-    };
-    expect(openRequirements(tkite)).toEqual([mts, science]);
+    expect(openRequirements([tkite])).toEqual([mts, science]);
+  });
+
+  it("counts the compulsory courses of the master's programme towards the programme's requirements", () => {
+    const ethics = planCourse("TDA602", "O", [{ theme: "mts", credits: 3 }]);
+    const mpsof: ProgrammePlan = { ...tkite, code: "MPSOF", requirements: [], masters: [], years: [{ year: 1, courses: [ethics] }] };
+    expect(openRequirements([tkite, mpsof])).toEqual([science]);
+  });
+});
+
+describe("masterSummary", () => {
+  const mpalg: ProgrammePlan = {
+    code: "MPALG",
+    name: "Computer Science - Algorithms, Languages and Logic",
+    choices: [],
+    requirements: [],
+    masters: [],
+    years: [
+      {
+        year: 1,
+        courses: [
+          planCourse("TDA251", "O"),
+          planCourse("DAT060", "V"),
+          { ...planCourse("DAT151", "V"), track: "Languages" },
+          { ...planCourse("TDA507", "O"), track: "Algorithms" },
+        ],
+      },
+      { year: 2, courses: [planCourse("DAT060", "V"), { ...planCourse("DATX05", "X"), credits: 30 }] },
+    ],
+  };
+
+  it("sums up the tracks, the courses every student takes, and the courses to choose, each once", () => {
+    const { tracks, compulsory, compulsoryCredits, electives } = masterSummary(mpalg, new Map());
+    expect({ tracks, compulsory: compulsory.map((c) => c.code), compulsoryCredits, electives }).toEqual({
+      tracks: ["Algorithms", "Languages"],
+      compulsory: ["TDA251"],
+      compulsoryCredits: 7.5,
+      electives: 2,
+    });
+  });
+
+  it("gives the mean pass rate and rating of its courses with results, each course alike", () => {
+    const results = new Map([
+      ["TDA251", stats("TDA251", 9, 1, [0, 0, 0, 0, 4])],
+      ["DAT060", stats("DAT060", 1, 1, [0, 0, 4, 0, 0])],
+      ["DAT151", stats("DAT151", 3, 1)],
+    ]);
+    const { passRate, rating } = masterSummary(mpalg, results);
+    expect(passRate).toBeCloseTo((0.9 + 0.5 + 0.75) / 3);
+    expect(rating).toBeCloseTo((5 + 3) / 2);
+  });
+
+  it("has no pass rate or rating when none of its courses has results", () => {
+    expect(masterSummary(mpalg, new Map())).toMatchObject({ passRate: null, rating: null });
   });
 });
 

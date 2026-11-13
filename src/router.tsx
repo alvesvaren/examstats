@@ -55,7 +55,10 @@ const courseRoute = createRoute({
 
 const plannerSearchSchema = z.object({
   programme: z.string().optional().catch(undefined),
+  /** The year of study, counted on into the master's programme. */
   year: z.number().int().positive().optional().catch(undefined),
+  /** The master's programme after the programme, as its code. */
+  master: z.string().optional().catch(undefined),
   track: z.string().optional().catch(undefined),
   /** The study period whose courses are listed. */
   period: z.enum(STUDY_PERIODS).optional().catch(undefined),

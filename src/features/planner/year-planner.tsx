@@ -33,6 +33,7 @@ import {
   type PlanRequirement,
   type ProgrammePlan,
   type StudyPeriod,
+  type StudyYear,
   type Theme,
 } from "@/domain/programme-plans";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
@@ -60,7 +61,9 @@ interface YearSearch {
 
 interface YearPlannerProps {
   programme: ProgrammePlan;
-  year: number;
+  /** Every year of study of the degree, the master's programme's included. Its requirements count them all. */
+  years: readonly StudyYear[];
+  current: StudyYear;
   track: string | undefined;
   search: YearSearch;
   onChange: (changes: YearSearch) => void;
@@ -71,14 +74,16 @@ interface YearPlannerProps {
  * A year of a programme to fill: the study periods with what every student takes already in them, and the courses
  * to choose between for one study period at a time.
  */
-export function YearPlanner({ programme, year, track, search, onChange, catalog }: YearPlannerProps) {
-  const { rounds, picks } = planYear(programme, year, { track, ruleNames: catalog.plans.ruleNames });
+export function YearPlanner({ programme, years, current, track, search, onChange, catalog }: YearPlannerProps) {
+  // The programme whose plan holds this year: the master's programme in years 4 and 5.
+  const { plan: yearProgramme, year } = current;
+  const { rounds, picks } = planYear(yearProgramme, year, { track, ruleNames: catalog.plans.ruleNames });
   const stats = new Map(catalog.courses.map((c) => [c.code, c]));
   const { fixed, candidates } = plannerYear(rounds, stats);
   const { memory, remember } = usePlannerMemory();
-  const other = otherPicks(memory, programme.code, year);
+  const other = otherPicks(memory, years, current.number);
   // Picks in the URL are a shared plan and win. Without them, the year is as this device remembers it.
-  const pickedKeys = search.picked ?? rememberedPicks(memory, programme.code, year) ?? [];
+  const pickedKeys = search.picked ?? rememberedPicks(memory, yearProgramme.code, year) ?? [];
   const picked = candidates.filter((c) => pickedKeys.includes(c.key));
   const plan = [...fixed, ...picked];
   const periods = periodsOf([...fixed, ...candidates]);
@@ -88,13 +93,14 @@ export function YearPlanner({ programme, year, track, search, onChange, catalog 
 
   const listed = candidatesIn(candidates, period, sort);
   const planned = plan.reduce((sum, r) => sum + r.credits, 0);
-  // Degree requirements count the whole plan: the compulsory courses and the picks of every year.
-  const allPicks = [...other, ...picked.map((r) => ({ year, key: r.key }))];
-  const degreeRules = openRequirements(programme, track).map((requirement) => ({
+  // Degree requirements count the whole degree: the compulsory courses and the picks of every year of every plan.
+  const plans = [...new Set(years.map((y) => y.plan))];
+  const allPicks = [...other, ...picked.map((r) => ({ programme: yearProgramme.code, year, key: r.key }))];
+  const degreeRules = openRequirements(plans, track).map((requirement) => ({
     requirement,
-    ...requirementProgress(requirement, plannedCourses(programme, allPicks, track)),
+    ...requirementProgress(requirement, plannedCourses(plans, allPicks, track)),
   }));
-  const offered = new Set(programme.years.flatMap((y) => y.courses.map((c) => c.code)));
+  const offered = new Set(plans.flatMap((p) => p.years.flatMap((y) => y.courses.map((c) => c.code))));
   const marksOf = (round: PlannerRound) =>
     degreeRules.flatMap((rule) => {
       const amount = Math.max(...round.codes.map((code) => amountTowards(rule.requirement, { code, themes: round.themes })));
@@ -102,7 +108,10 @@ export function YearPlanner({ programme, year, track, search, onChange, catalog 
     });
   const inPeriod = (round: PlannerRound) => round.periods.includes(period);
   const setPicks = (keys: string[], changes: YearSearch = {}) => {
-    remember((m) => ({ ...withPicks(m, programme.code, year, keys), last: { programme: programme.code, year, track } }));
+    remember((m) => ({
+      ...withPicks(m, yearProgramme.code, year, keys),
+      last: { programme: programme.code, year: current.number, track },
+    }));
     onChange({ ...changes, picked: keys.length ? keys : undefined });
   };
   // Picking keeps the list on its study period, even once that period is full.

@@ -58,6 +58,8 @@ export const programmePlanSchema = z.object({
   name: z.string(),
   choices: z.array(planChoiceSchema),
   requirements: z.array(planRequirementSchema),
+  /** Codes of the master's programmes that the programme's students can finish their degree with. */
+  masters: z.array(z.string()),
   /** Years of study, from 1, with the courses planned in each. */
   years: z.array(z.object({ year: z.number().int().positive(), courses: z.array(planCourseSchema) })),
 });
@@ -125,6 +127,9 @@ export function requirementOf(rule: string, choices: readonly Pick<PlanChoice, "
   return { kind: rule === THESIS ? "thesis" : "other", rank: 3, label } as const;
 }
 export type Requirement = ReturnType<typeof requirementOf>;
+
+/** Whether a plan lists a course as one to choose, as opposed to a compulsory course or a thesis. */
+export const isElective = ({ rule }: Pick<PlanCourse, "rule">) => rule === ELECTIVE;
 
 const periodRank = (periods: readonly StudyPeriod[]) => STUDY_PERIODS.indexOf(periods[0] ?? "Other");
 
@@ -218,16 +223,46 @@ export function planYear(
 }
 export type PlanRound = ReturnType<typeof planYear>["rounds"][number];
 
+/** A civil engineering programme leads on to a master's programme, which is the fourth and fifth year of the degree. */
+export const MASTER_START_YEAR = 4;
+
+/** A year of study of a degree: a year of the programme's plan or of the master's, numbered from the start of the programme. */
+export interface StudyYear {
+  number: number;
+  plan: ProgrammePlan;
+  year: number;
+}
+
+/** The years of study of a programme, and of the master's programme after it. */
+export function studyYears(programme: ProgrammePlan, master?: ProgrammePlan): StudyYear[] {
+  const yearsOf = (plan: ProgrammePlan, first: number) => plan.years.map(({ year }) => ({ number: first + year - 1, plan, year }));
+  return [...yearsOf(programme, 1), ...(master ? yearsOf(master, MASTER_START_YEAR) : [])];
+}
+
+/** A round picked in a year of a programme's plan. */
+export interface PlanPick {
+  programme: string;
+  year: number;
+  key: string;
+}
+
+/** A round picked in a year of study, with the year's number in the degree. */
+export interface StudyPick extends PlanPick {
+  number: number;
+}
+
 /**
- * The courses a student's whole plan holds, each once: the compulsory ones of every year, with those of `track`, and
- * the rounds picked in each year.
+ * The courses a student's whole plan holds, each once: the compulsory ones of every year of `plans`, with those of
+ * `track`, and the rounds picked in each year.
  */
-export function plannedCourses(programme: ProgrammePlan, picks: readonly { year: number; key: string }[], track?: string): PlanCourse[] {
-  const held = programme.years.flatMap(({ year, courses }) =>
-    courses.filter(
-      (c) =>
-        (c.rule === COMPULSORY && (c.track === null || c.track === track)) ||
-        picks.some((p) => p.year === year && p.key === roundKey(c.code, c.periods)),
+export function plannedCourses(plans: readonly ProgrammePlan[], picks: readonly PlanPick[], track?: string): PlanCourse[] {
+  const held = plans.flatMap((plan) =>
+    plan.years.flatMap(({ year, courses }) =>
+      courses.filter(
+        (c) =>
+          (c.rule === COMPULSORY && (c.track === null || c.track === track)) ||
+          picks.some((p) => p.programme === plan.code && p.year === year && p.key === roundKey(c.code, c.periods)),
+      ),
     ),
   );
   return [...new Map(held.map((c) => [c.code, c])).values()];

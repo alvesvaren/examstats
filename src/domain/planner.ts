@@ -1,13 +1,16 @@
 import { compareSortValues, normalize, type CatalogCourse } from "./catalog.ts";
 import {
+  isElective,
   plannedCourses,
   STUDY_PERIODS,
+  tracksOf,
   type PlanChoice,
   type PlanCourse,
   type PlanRequirement,
   type PlanRound,
   type ProgrammePlan,
   type StudyPeriod,
+  type StudyPick,
 } from "./programme-plans.ts";
 
 export const PLANNER_SORT_KEYS = ["rating", "passRate"] as const;
@@ -81,18 +84,19 @@ export function togglePick(picked: readonly string[], round: PlanRound, candidat
 }
 
 export interface PlanElsewhere {
+  /** The year of study, when it is not the current one. */
   year?: number;
   periods: readonly StudyPeriod[];
 }
 
 /**
  * Where another round of `round`'s course is in the plan: another study period of the current year, or another
- * year of study in `otherYears`.
+ * year of study in `otherPicks`.
  */
 export function findElsewhere(
   round: PlanRound,
   currentPicked: readonly PlanRound[],
-  otherPicks: readonly { year: number; key: string }[],
+  otherPicks: readonly Pick<StudyPick, "number" | "key">[],
 ): PlanElsewhere | undefined {
   const inCurrent = currentPicked.find((r) => sameCourse(r, round));
   if (inCurrent) {
@@ -103,7 +107,7 @@ export function findElsewhere(
     const [code, periodsStr] = pick.key.split(".");
     if (code && round.codes.includes(code)) {
       const periods = (periodsStr?.split("-") ?? []).filter(isStudyPeriod);
-      return { year: pick.year, periods };
+      return { year: pick.number, periods };
     }
   }
   return undefined;
@@ -145,9 +149,37 @@ export function requirementProgress(requirement: PlanRequirement, courses: reado
   return { have, need, unit, done: have >= need };
 }
 
-/** The degree requirements a student has to choose courses for: those the compulsory courses do not meet on their own. */
-export const openRequirements = (programme: ProgrammePlan, track?: string) =>
-  programme.requirements.filter((r) => !requirementProgress(r, plannedCourses(programme, [], track)).done);
+/**
+ * The degree requirements a student has to choose courses for: those of every plan of the degree that the compulsory
+ * courses of all of them do not meet on their own.
+ */
+export function openRequirements(plans: readonly ProgrammePlan[], track?: string) {
+  const compulsory = plannedCourses(plans, [], track);
+  return plans.flatMap((plan) => plan.requirements).filter((r) => !requirementProgress(r, compulsory).done);
+}
+
+const meanOf = (values: readonly (number | null)[]) => {
+  const known = values.filter((value) => value !== null);
+  return known.length ? known.reduce((sum, value) => sum + value, 0) / known.length : null;
+};
+
+/**
+ * A master's programme in short, to compare it with the others a programme leads on to: its tracks, what every
+ * student of it takes, how many courses it offers to choose, and how a typical course of it with results goes.
+ */
+export function masterSummary(master: ProgrammePlan, stats: ReadonlyMap<string, CatalogCourse>) {
+  const courses = [...new Map(master.years.flatMap((y) => y.courses).map((c) => [c.code, c])).values()];
+  const compulsory = plannedCourses([master], []);
+  const withStats = courses.flatMap((c) => stats.get(c.code) ?? []);
+  return {
+    tracks: tracksOf(courses),
+    compulsory,
+    compulsoryCredits: tenths(compulsory.reduce((sum, c) => sum + c.credits, 0)),
+    electives: courses.filter(isElective).length,
+    passRate: meanOf(withStats.map((c) => c.passRate)),
+    rating: meanOf(withStats.map((c) => c.rating)),
+  };
+}
 
 /** Programmes whose code, name or Swedish name holds every word of `query`, by name. Every programme without a query. */
 export function searchProgrammes<P extends Pick<ProgrammePlan, "code" | "name">>(

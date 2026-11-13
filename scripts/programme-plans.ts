@@ -15,6 +15,7 @@ import {
   type PlanChoice,
   type PlanCourse,
   type PlanRequirement,
+  type ProgrammePlan,
   type ProgrammePlansFile,
   type StudyPeriod,
   type Theme,
@@ -110,6 +111,8 @@ const syllabusSchema = z.object({
         degreeWithDegreeRequirements: z.array(z.object({ reqCode: z.string(), reqCredit: z.number().nullable() })).nullable(),
         /** Lists of courses of which the degree needs one. Rows with the same id are one list. */
         degreeWithDegreeSpecRequirements: z.array(z.object({ degreeSpecId: z.number(), courseCode: z.string() })).nullable(),
+        /** Master's programmes whose degree the programme's students can finish with. */
+        accreditations: z.object({ forMastersProgramme: z.array(z.object({ masterCode: z.string() })) }).nullable(),
       }),
     ),
   }),
@@ -222,14 +225,20 @@ function toRequirements(syllabus: Syllabus): PlanRequirement[] {
   ];
 }
 
-/** The degree requirements of a programme, from its syllabus for this academic year or the newest one before it. Empty when it has none. */
-async function requirementsOf(code: string): Promise<PlanRequirement[]> {
+/**
+ * The degree requirements of a programme, and the master's programmes it leads on to, from its syllabus for this
+ * academic year or the newest one before it. Empty when it has none.
+ */
+async function syllabusOf(code: string): Promise<Pick<ProgrammePlan, "requirements" | "masters">> {
   const [start = 0] = env.ACADEMIC_YEAR.split("/").map(Number);
   for (let year = start; year >= start - SYLLABUS_YEARS_BACK; year--) {
     const { search } = await get("Syllabuses", { language: "en", acYear: `${year}/${year + 1}`, pCode: code }, syllabusSchema);
-    if (search.results[0]) return toRequirements(search.results[0]);
+    const [syllabus] = search.results;
+    if (!syllabus) continue;
+    const masters = (syllabus.accreditations?.forMastersProgramme ?? []).map((m) => m.masterCode);
+    return { requirements: toRequirements(syllabus), masters: [...new Set(masters)].toSorted() };
   }
-  return [];
+  return { requirements: [], masters: [] };
 }
 
 /** The rounds of a course this academic year, from its syllabus. Empty when it has none. */
@@ -262,9 +271,9 @@ async function main() {
   const ruleNames = new Map<string, string>();
   const programmes = await mapConcurrent(listed, env.CONCURRENCY, async ({ programCode, name }) => {
     const filter = { acYear: { _eq: env.ACADEMIC_YEAR }, programCode: { _eq: programCode } };
-    const [{ search }, requirements] = await Promise.all([
+    const [{ search }, syllabus] = await Promise.all([
       get("PewStudyprogrammes", { language: "en", filter }, programmeSchema),
-      requirementsOf(programCode),
+      syllabusOf(programCode),
     ]);
     const plan = search.results.find((r) => r.programCode === programCode);
     if (!plan) throw new Error(`No plan for ${programCode}`);
@@ -274,7 +283,7 @@ async function main() {
       code: programCode,
       name: name.trim(),
       choices: toChoices(plan.yearClasses.flatMap((y) => y.courseMoments)),
-      requirements,
+      ...syllabus,
       years: [...years]
         .map(([year, classes]) => ({ year, courses: toCourses(classes.flatMap((c) => c.courseMoments)) }))
         .filter((y) => y.courses.length)
@@ -298,21 +307,23 @@ async function main() {
   );
   if (failed > codes.length * MAX_FAILED_SHARE) throw new Error(`${failed} of ${codes.length} syllabi failed`);
 
+  const planned = programmes.filter((p) => p.years.length);
+  const codesPlanned = new Set(planned.map((p) => p.code));
   const file: ProgrammePlansFile = {
     academicYear: env.ACADEMIC_YEAR,
     ruleNames: Object.fromEntries([...ruleNames].toSorted(([a], [b]) => a.localeCompare(b))),
-    programmes: programmes
-      .filter((p) => p.years.length)
-      .map((programme) => ({
-        ...programme,
-        years: programme.years.map(({ year, courses }) => ({
-          year,
-          courses: courses.map((course) => ({
-            ...course,
-            examiners: [...(roundOf(course, rounds.get(course.code) ?? [])?.examiners ?? [])],
-          })),
+    programmes: planned.map((programme) => ({
+      ...programme,
+      // A master's programme without a plan this year has no courses to plan.
+      masters: programme.masters.filter((code) => codesPlanned.has(code)),
+      years: programme.years.map(({ year, courses }) => ({
+        year,
+        courses: courses.map((course) => ({
+          ...course,
+          examiners: [...(roundOf(course, rounds.get(course.code) ?? [])?.examiners ?? [])],
         })),
       })),
+    })),
   };
   await mkdir(path.dirname(env.OUT_FILE), { recursive: true });
   const { programmes: lines, ...head } = file;
