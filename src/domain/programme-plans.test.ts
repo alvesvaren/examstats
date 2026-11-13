@@ -336,14 +336,33 @@ describe("cohortPlans", () => {
 });
 
 describe("cohortOf", () => {
-  const info = { academicYear: "2026/2027", ruleNames: {}, starts: { TKAUT: [2021, 2022, 2023, 2024, 2025, 2026], MPNEW: [2026] } };
+  const info = {
+    academicYear: "2026/2027",
+    ruleNames: {},
+    starts: { TKAUT: [2021, 2022, 2023, 2024, 2025, 2026], MPNEW: [2026] },
+    upcomingMasters: null,
+  };
+  const upcomingMasters = { academicYear: "2027/2028", matrix: "https://example.com/matrix.xlsx", accreditations: {}, masters: {} };
 
   it("shows the requested start year, with the master's programme of three years later", () => {
     expect(cohortOf(info, "TKAUT", 2022)).toMatchObject({ start: 2022, masterStart: 2025, masterPlans: 2025, mastersPublished: true });
   });
 
   it("follows the current plans for a master's programme that starts after them", () => {
-    expect(cohortOf(info, "TKAUT", 2024)).toMatchObject({ start: 2024, masterStart: 2027, masterPlans: 2026, mastersPublished: false });
+    expect(cohortOf(info, "TKAUT", 2024)).toMatchObject({
+      start: 2024,
+      masterStart: 2027,
+      masterPlans: 2026,
+      mastersPublished: false,
+      upcomingMasters: null,
+    });
+  });
+
+  it("follows the upcoming master's programmes for one that starts after the current plans, also in a later year", () => {
+    const withUpcoming = { ...info, upcomingMasters };
+    expect(cohortOf(withUpcoming, "TKAUT", 2024)).toMatchObject({ masterPlans: 2027, mastersPublished: false, upcomingMasters });
+    expect(cohortOf(withUpcoming, "TKAUT", 2026)).toMatchObject({ masterStart: 2029, masterPlans: 2027, upcomingMasters });
+    expect(cohortOf(withUpcoming, "TKAUT", 2022)).toMatchObject({ masterPlans: 2025, mastersPublished: true, upcomingMasters: null });
   });
 
   it("shows the newest start year when the programme admitted no students in the requested one, or none is requested", () => {
