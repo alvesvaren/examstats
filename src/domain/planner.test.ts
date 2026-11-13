@@ -234,6 +234,7 @@ const planCourse = (code: string, rule: string, themes: PlanCourse["themes"] = [
   choices: [],
   themes,
   examiners: [],
+  modules: [],
 });
 
 describe("degree requirements", () => {

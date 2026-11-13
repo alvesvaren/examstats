@@ -1,4 +1,5 @@
 import { attemptsOf, passRateOf, sumCounts } from "./grades.ts";
+import type { GradeCounts } from "./grades.ts";
 import type { CourseSummary, Part, Sitting, TrendPoint } from "./snapshot.ts";
 
 /** Academic years start in September, so an August retake belongs to the year before. */
@@ -21,6 +22,26 @@ export function academicYear(isoDate: string): number {
 export const isExam = (part: Pick<Part, "type">) => EXAM_TYPE.test(part.type);
 
 const partAttempts = (part: Part) => part.sittings.reduce((sum, s) => sum + attemptsOf(s.grades), 0);
+
+/**
+ * A course's results grouped into parts, one per module code. Chalmers sometimes renames a module, so a part takes
+ * the name of its newest sitting, and sittings on the same day add up. Results without attempts are left out.
+ */
+export function partsOf(results: readonly { type: string; code: string; date: string; grades: GradeCounts }[]): Part[] {
+  const parts = [
+    ...Map.groupBy(
+      results.filter((r) => attemptsOf(r.grades) > 0),
+      (r) => r.code,
+    ),
+  ].map(([code, group]) => {
+    const sittings = [...Map.groupBy(group, (r) => r.date)]
+      .map(([date, same]) => ({ date, grades: sumCounts(same.map((r) => r.grades)) }))
+      .toSorted((a, b) => a.date.localeCompare(b.date));
+    const newest = group.toSorted((a, b) => a.date.localeCompare(b.date)).at(-1)!;
+    return { type: newest.type, code, sittings };
+  });
+  return orderParts(parts);
+}
 
 /** Exams first, then by attempts. The first part is the course's main part. */
 export function orderParts(parts: readonly Part[]): Part[] {
