@@ -38,7 +38,7 @@ export function CoursePage() {
   const latest = latestExam(mainPart?.sittings ?? []);
   const credits = detail.placements[0]?.credits;
   const otherInstances = snapshot.courses
-    .filter((c) => c.code !== code && normalize(c.name) === normalize(course.name))
+    .filter((c) => c.code !== code && normalize(c.swedishName) === normalize(course.swedishName))
     .toSorted((a, b) => (b.lastResult ?? "").localeCompare(a.lastResult ?? ""));
   // Picking a survey round only swaps the summary beside the list, so the page stays where it is.
   const setSurvey = (key: string) => navigate({ search: (prev) => ({ ...prev, survey: key }), replace: true, resetScroll: false });
@@ -57,7 +57,7 @@ export function CoursePage() {
           <span className="tabular-nums">{course.code}</span>
           {course.programme && (
             <Link to="/" search={{ programme: course.programme }} className="underline-offset-4 hover:text-foreground hover:underline">
-              {snapshot.programmes[course.programme] ?? course.programme}
+              {snapshot.programmes[course.programme]?.name ?? course.programme}
             </Link>
           )}
           {credits !== undefined && <span className="tabular-nums">{formatCredits(credits)}</span>}

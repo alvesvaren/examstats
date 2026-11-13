@@ -2,24 +2,25 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { SearchIcon } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { searchProgrammes } from "@/domain/planner";
+import { searchProgrammes, swedishNameOf } from "@/domain/planner";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import type { ProgrammePlan } from "@/domain/programme-plans";
+import type { Named } from "@/domain/snapshot";
 import { PLANNER_HEADING } from "@/lib/page-meta";
 
 interface ProgrammeSearchProps {
   programmes: readonly ProgrammePlan[];
-  /** Swedish programme names by code, which is how most students know their programme. */
-  swedishNames: Readonly<Record<string, string>>;
+  /** Programme names by code. Most students know their programme by its Swedish name. */
+  names: Readonly<Record<string, Named>>;
 }
 
 /** The planner before a programme is picked: a search over every programme, by code or by name in either language. */
-export function ProgrammeSearch({ programmes, swedishNames }: ProgrammeSearchProps) {
+export function ProgrammeSearch({ programmes, names }: ProgrammeSearchProps) {
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
   const { remember } = usePlannerMemory();
   const rememberProgramme = (code: string) => remember((m) => ({ ...m, last: { programme: code } }));
-  const matches = searchProgrammes(programmes, swedishNames, query);
+  const matches = searchProgrammes(programmes, names, query);
   const [best] = matches;
 
   return (
@@ -61,7 +62,7 @@ export function ProgrammeSearch({ programmes, swedishNames }: ProgrammeSearchPro
             >
               <span className="font-medium">{programme.name}</span>
               <span className="text-sm text-muted-foreground">
-                {[programme.code, swedishNames[programme.code]].filter(Boolean).join(" · ")}
+                {[programme.code, swedishNameOf(names, programme.code)].filter(Boolean).join(" · ")}
               </span>
             </Link>
           </li>

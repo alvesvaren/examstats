@@ -53,7 +53,7 @@ function trendOf(sittings: readonly Sitting[], currentYear: number): TrendPoint[
  * Recent grades and size cover the main part's last {@link RECENT_YEARS} finished academic years with results.
  */
 export function summarizeCourse(
-  course: Pick<CourseSummary, "code" | "name" | "programme">,
+  course: Pick<CourseSummary, "code" | "name" | "swedishName" | "programme">,
   parts: readonly Part[],
   today: Date,
 ): Omit<CourseSummary, "overallAnswers"> {

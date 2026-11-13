@@ -22,6 +22,7 @@ const env = z
 
 const PAGE_SIZE = 1000;
 const RETRIES = 3;
+/** The source writes "-" for a missing programme, and for some programmes' long names. */
 const NO_PROGRAMME = "-";
 
 const upstreamCourseSchema = z.object({
@@ -95,7 +96,10 @@ async function main() {
   const programmes = Object.fromEntries(
     upstream
       .filter((c) => c.programShort !== NO_PROGRAMME)
-      .map((c) => [c.programShort, c.programLong?.trim() ? sentenceCase(c.programLong.trim()) : c.programShort] as const)
+      .map((c) => {
+        const long = c.programLong?.trim();
+        return [c.programShort, long && long !== NO_PROGRAMME ? sentenceCase(long) : c.programShort] as const;
+      })
       .toSorted(([a], [b]) => a.localeCompare(b)),
   );
 

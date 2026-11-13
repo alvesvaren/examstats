@@ -8,6 +8,7 @@ import { MetricInfo, type Metric } from "@/components/metric-label";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { defaultSortDir, type CatalogCourse, type SortDir, type SortKey } from "@/domain/catalog";
+import type { Named } from "@/domain/snapshot";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useScrollLeftSync } from "@/hooks/use-scroll-left-sync";
 import { useWindowVirtualList } from "@/hooks/use-window-virtual-list";
@@ -62,7 +63,7 @@ interface CourseTableProps {
   sort: SortKey;
   dir: SortDir;
   onSortChange: (sort: SortKey, dir: SortDir) => void;
-  programmes: Record<string, string>;
+  programmes: Record<string, Named>;
   maxAttempts: number;
   /** Pixels between the top of the viewport and the sticky header, for what sticks above it. */
   stickyTop: number;
@@ -148,7 +149,7 @@ function VirtualRows({ items, canHover, showEnded, onToggleEnded, programmes, ma
               <CourseRow
                 course={item.course}
                 canHover={canHover}
-                programmeName={item.course.programme ? programmes[item.course.programme] : undefined}
+                programmeName={item.course.programme ? programmes[item.course.programme]?.name : undefined}
                 maxAttempts={maxAttempts}
               />
             ) : (

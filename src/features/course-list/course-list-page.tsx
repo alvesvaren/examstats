@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { catalogQuery } from "@/data/queries";
 import { matchProgrammes, queryCourses, type SortDir, type SortKey } from "@/domain/catalog";
+import type { Named } from "@/domain/snapshot";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { useElementSize } from "@/hooks/use-element-size";
 import { useScrollBack } from "@/hooks/use-scroll-back";
@@ -32,7 +33,7 @@ export function CourseListPage() {
 
   const { sort = DEFAULT_SORT, dir = "desc", programme, q = "" } = search;
   const { active, ended } = queryCourses(snapshot.courses, { q, programme, sort, dir });
-  const programmeMatches = programme ? [] : matchProgrammes(snapshot.programmes, q);
+  const programmeMatches = programme ? [] : matchProgrammes(snapshot.listedProgrammes, q);
   const maxAttempts = Math.max(...snapshot.courses.map((c) => c.attemptsPerYear));
   const coursesIn = (code: string) => snapshot.courses.filter((c) => c.programme === code).length;
 
@@ -57,7 +58,7 @@ export function CourseListPage() {
             All courses
           </Button>
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h1 className="text-2xl font-semibold">{snapshot.programmes[programme] ?? programme}</h1>
+            <h1 className="text-2xl font-semibold">{snapshot.programmes[programme]?.name ?? programme}</h1>
             <span className="text-muted-foreground">
               {programme} · {formatCount(active.length + ended.length)} courses
             </span>
@@ -81,7 +82,7 @@ export function CourseListPage() {
               className="h-10 pl-9 text-base"
             />
           </div>
-          <ProgrammeSelect programme={programme} programmes={snapshot.programmes} onChange={setProgramme} />
+          <ProgrammeSelect programme={programme} programmes={snapshot.listedProgrammes} onChange={setProgramme} />
         </div>
 
         {programmeMatches.length > 0 && (
@@ -122,12 +123,14 @@ export function CourseListPage() {
 
 interface ProgrammeSelectProps {
   programme?: string;
-  programmes: Record<string, string>;
+  programmes: Record<string, Named>;
   onChange: (programme: string | undefined) => void;
 }
 
 function ProgrammeSelect({ programme, programmes, onChange }: ProgrammeSelectProps) {
-  const options = Object.entries(programmes).toSorted(([, a], [, b]) => a.localeCompare(b, "sv"));
+  const options = Object.entries(programmes)
+    .map(([code, { name }]) => [code, name] as const)
+    .toSorted(([, a], [, b]) => a.localeCompare(b, "en"));
   return (
     <NativeSelect
       value={programme ?? ALL_PROGRAMMES}

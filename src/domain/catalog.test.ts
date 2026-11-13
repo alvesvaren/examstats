@@ -7,6 +7,7 @@ const row = (code: string, name: string, extra: Partial<CourseSummary> = {}) =>
   toCatalogCourse({
     code,
     name,
+    swedishName: name,
     programme: null,
     recentGrades: emptyCounts(),
     attemptsPerYear: 0,
@@ -24,7 +25,8 @@ const courses = [
     attemptsPerYear: 350,
     recentGrades: { ...emptyCounts(), U: 53, "4": 47 },
   }),
-  row("TDA357", "Databaser", {
+  row("TDA357", "Databases", {
+    swedishName: "Databaser",
     programme: "TKITE",
     attemptsPerYear: 380,
     overallAnswers: [0, 5, 10, 30, 45],
@@ -35,6 +37,11 @@ const courses = [
 describe("queryCourses", () => {
   it("matches words in any order and ignores diacritics", () => {
     expect(queryCourses(courses, { q: "algebra linjar" }).active.map((c) => c.code)).toEqual(["TMV165"]);
+  });
+
+  it("matches a course by its name in either language", () => {
+    expect(queryCourses(courses, { q: "databas" }).active.map((c) => c.code)).toEqual(["TDA357"]);
+    expect(queryCourses(courses, { q: "databaser" }).active.map((c) => c.code)).toEqual(["TDA357"]);
   });
 
   it("matches a programme code and puts ended courses in their own group", () => {
@@ -88,10 +95,18 @@ describe("queryCourses", () => {
 });
 
 describe("matchProgrammes", () => {
-  const programmes = { TKITE: "Informationsteknik, civilingenjör", TITEA: "Informationsteknik", TKTFY: "Teknisk fysik" };
+  const programmes = {
+    TKITE: { name: "Software Engineering", swedishName: "Informationsteknik, civilingenjör" },
+    TITEA: { name: "Informationsteknik", swedishName: "Informationsteknik" },
+    TKTFY: { name: "Engineering Physics", swedishName: "Teknisk fysik" },
+  };
 
-  it("finds programmes by code prefix or by name", () => {
-    expect(matchProgrammes(programmes, "informationsteknik").map((p) => p.code)).toEqual(["TKITE", "TITEA"]);
+  it("finds programmes by code prefix or by name in either language", () => {
+    expect(matchProgrammes(programmes, "informationsteknik")).toEqual([
+      { code: "TKITE", name: "Software Engineering" },
+      { code: "TITEA", name: "Informationsteknik" },
+    ]);
+    expect(matchProgrammes(programmes, "physics").map((p) => p.code)).toEqual(["TKTFY"]);
     expect(matchProgrammes(programmes, "tkt").map((p) => p.code)).toEqual(["TKTFY"]);
   });
 

@@ -1,7 +1,7 @@
 import { ChevronRightIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Catalog } from "@/domain/catalog";
-import { masterSummary } from "@/domain/planner";
+import { masterSummary, swedishNameOf } from "@/domain/planner";
 import type { ProgrammePlan } from "@/domain/programme-plans";
 import { formatCount, formatCredits, formatPercent, formatScore } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -21,7 +21,7 @@ export function MasterPicker({ programme, masters, catalog, onChoose }: MasterPi
   const stats = new Map(catalog.courses.map((c) => [c.code, c]));
   const options = masters
     .toSorted((a, b) => a.name.localeCompare(b.name, "en"))
-    .map((master) => ({ master, summary: masterSummary(master, stats), swedishName: catalog.programmes[master.code] }));
+    .map((master) => ({ master, summary: masterSummary(master, stats), swedishName: swedishNameOf(catalog.programmes, master.code) }));
 
   return (
     <section className="flex flex-col gap-3">

@@ -11,7 +11,7 @@ Exam results and course survey ratings for every Chalmers course, and a course p
 - `pnpm snapshot` builds `public/data` from the committed files in `data/`, offline. Run it once before `pnpm dev`.
 - `pnpm fetch-results` fetches stats.ftek.se into `data/results.json`. A nightly Action runs it and commits the file when it changes.
 - `pnpm evaluations` crawls the course surveys into `data/evaluations.json`. It takes about 25 minutes: reports render one at a time, and charts download in parallel. A monthly Action runs it and commits the file.
-- `pnpm programme-plans` fetches every programme plan of the current academic year, and the degree requirements, accredited master's programmes and master's prerequisites in each programme syllabus, from the JSON API behind chalmers.se into `data/programme-plans.json`, in about a minute. A weekly Action runs it and commits the file when it changes.
+- `pnpm programme-plans` fetches every programme plan of the current academic year, and the degree requirements, accredited master's programmes and master's prerequisites in each programme syllabus, from the JSON API behind chalmers.se into `data/programme-plans.json`, in about a minute. It also writes the English and Swedish names of every course and programme since 2021/2022 into `data/names.json`. A weekly Action runs it and commits the files when they change.
 - `pnpm dev`, `pnpm build`, `pnpm typecheck`
 - `pnpm lint` runs oxlint with type-aware rules. ESLint's TypeScript support needs the TypeScript API, which TypeScript 7 does not ship.
 - `pnpm format` runs Prettier, which also sorts Tailwind classes. `pnpm format:check` only checks.
@@ -29,6 +29,7 @@ Exam results and course survey ratings for every Chalmers course, and a course p
 
 ## Data rules
 
+- Show course and programme names in English, from `data/names.json`. Search matches the Swedish names too. Courses and programmes that chalmers.se no longer lists keep the name from stats.ftek.se, which is usually Swedish.
 - Show grades in the order of `GRADES` in `src/domain/grades.ts`: U first, then 3, 4 and 5. Vertical displays put U at the bottom and 5 at the top.
 - Grade colours are the `--grade-*` tokens in `src/index.css`. Grade 3 is the lightest and 5 the darkest in both themes.
 - Metric definitions and the journeys behind the layout are in `docs/user-journeys.md`.

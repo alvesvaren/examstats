@@ -9,6 +9,7 @@ GitHub Actions fetch the sources and commit them to `data/`:
 - `data/results.json`: a nightly Action runs `pnpm fetch-results` and commits when results change, a few times per study period.
 - `data/evaluations.json`: a monthly Action runs `pnpm evaluations`. The survey site is slow to crawl and changes rarely.
 - `data/programme-plans.json`: a weekly Action runs `pnpm programme-plans` and commits when a plan changes. It holds the current academic year, which switches in July.
+- `data/names.json`: the same Action writes the English and Swedish names of every course and programme on chalmers.se since 2021/2022.
 
 Every push deploys to Vercel. The build turns `data/` into static JSON next to the site and reads no network, so it works while a source is down. When a fetch fails, the committed data stays as it was.
 

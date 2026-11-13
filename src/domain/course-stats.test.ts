@@ -6,7 +6,12 @@ import type { Part } from "./snapshot.ts";
 const grades = (partial: Partial<GradeCounts>): GradeCounts => ({ ...emptyCounts(), ...partial });
 const sitting = (date: string, partial: Partial<GradeCounts>) => ({ date, grades: grades(partial) });
 const TODAY = new Date("2026-09-27");
-const course = { code: "TMA970", name: "Inledande matematisk analys", programme: "TKTFY" };
+const course = {
+  code: "TMA970",
+  name: "Introductory mathematical analysis",
+  swedishName: "Inledande matematisk analys",
+  programme: "TKTFY",
+};
 
 const exam: Part = {
   type: "Tentamen",

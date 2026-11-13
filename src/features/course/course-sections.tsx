@@ -5,7 +5,7 @@ import { GradeBar, GradeChip } from "@/components/grade";
 import { GRADE_STYLE } from "@/components/grade-style";
 import { partLabel, type CatalogCourse } from "@/domain/catalog";
 import { GRADES, attemptsOf, passRateOf, sumCounts } from "@/domain/grades";
-import type { Part } from "@/domain/snapshot";
+import type { Named, Part } from "@/domain/snapshot";
 import { formatCount, formatMonth, formatPercent } from "@/lib/format";
 
 const MAX_LISTED = 8;
@@ -69,7 +69,7 @@ export function OtherParts({ parts, selected }: { parts: Part[]; selected: numbe
 
 const INSTANCE_GRID = "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 sm:grid-cols-[minmax(0,1fr)_8.5rem_4.5rem_5.5rem]";
 
-export function OtherInstances({ courses, programmes }: { courses: CatalogCourse[]; programmes: Record<string, string> }) {
+export function OtherInstances({ courses, programmes }: { courses: CatalogCourse[]; programmes: Record<string, Named> }) {
   if (!courses.length) return null;
   return (
     <section>
@@ -90,7 +90,9 @@ export function OtherInstances({ courses, programmes }: { courses: CatalogCourse
               <Link to="/course/$code" params={{ code: course.code }} className="font-medium tabular-nums after:absolute after:inset-0">
                 {course.code}
               </Link>
-              <span className="block truncate text-xs text-muted-foreground">{course.programme ? programmes[course.programme] : ""}</span>
+              <span className="block truncate text-xs text-muted-foreground">
+                {course.programme ? programmes[course.programme]?.name : ""}
+              </span>
             </span>
             <PassRateCell grades={course.recentGrades} muted={course.ended} />
             <span className="hidden sm:block">

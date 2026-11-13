@@ -1,4 +1,5 @@
 import { compareSortValues, normalize, type CatalogCourse } from "./catalog.ts";
+import type { Named } from "./snapshot.ts";
 import {
   isElective,
   plannedCourses,
@@ -184,16 +185,22 @@ export function masterSummary(master: ProgrammePlan, stats: ReadonlyMap<string, 
   };
 }
 
+/** A programme's Swedish name, or undefined when Chalmers names it the same in both languages. */
+export function swedishNameOf(names: Readonly<Record<string, Named>>, code: string) {
+  const named = names[code];
+  return named && normalize(named.swedishName) !== normalize(named.name) ? named.swedishName : undefined;
+}
+
 /** Programmes whose code, name or Swedish name holds every word of `query`, by name. Every programme without a query. */
 export function searchProgrammes<P extends Pick<ProgrammePlan, "code" | "name">>(
   programmes: readonly P[],
-  swedishNames: Readonly<Record<string, string>>,
+  names: Readonly<Record<string, Named>>,
   query: string,
 ): P[] {
   const words = normalize(query).split(/\s+/).filter(Boolean);
   return programmes
     .filter((p) => {
-      const text = normalize(`${p.code} ${p.name} ${swedishNames[p.code] ?? ""}`);
+      const text = normalize(`${p.code} ${p.name} ${names[p.code]?.swedishName ?? ""}`);
       return words.every((word) => text.includes(word));
     })
     .toSorted((a, b) => a.name.localeCompare(b.name, "en"));

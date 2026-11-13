@@ -3,7 +3,8 @@
  * `data/programme-plans.json`: per programme and year of study, the courses with their study periods and rules. The
  * plans name no examiners, so it also fetches each planned course's syllabus for the examiners of its rounds. The
  * degree requirements of a programme, and the prerequisites of a master's programme, come from its programme syllabus.
- * A weekly GitHub Action runs it and commits the file when it changes. The only code that knows that API.
+ * It also writes `data/names.json`, the English and Swedish names of every course and programme since 2021/2022.
+ * A weekly GitHub Action runs it and commits the files when they change. The only code that knows that API.
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -20,6 +21,7 @@ import {
   type StudyPeriod,
   type Theme,
 } from "../src/domain/programme-plans.ts";
+import type { NamesFile } from "../src/domain/names.ts";
 import { toJsonLines } from "./json-lines.ts";
 import { mapConcurrent } from "./map-concurrent.ts";
 import { paragraphsOf } from "./plain-text.ts";
@@ -36,6 +38,7 @@ const env = z
   .object({
     API_URL: z.url().default("https://www.chalmers.se/api"),
     OUT_FILE: z.string().default("data/programme-plans.json"),
+    NAMES_FILE: z.string().default("data/names.json"),
     ACADEMIC_YEAR: z
       .string()
       .regex(/^\d{4}\/\d{4}$/)
@@ -50,6 +53,8 @@ const HEADERS = { "User-Agent": "u345 course stats (+https://github.com/alvesvar
 const LIST_SIZE = 1000;
 /** Fewer programmes than this means the API answered with something other than the full list. */
 const MIN_PROGRAMMES = 40;
+/** Fewer course names than this means the API answered with something other than every course since 2021/2022. */
+const MIN_COURSE_NAMES = 1500;
 /** More failed syllabi than this means the API is down or changed, and the file keeps its last good contents. */
 const MAX_FAILED_SHARE = 0.02;
 /** Credits come in tenths, and summing them in floating point drifts. */
@@ -67,6 +72,12 @@ const CHOICE_KINDS: Record<string, PlanChoice["kind"]> = { MAN: "pick", OVER: "e
 const listSchema = z.object({
   results: z.array(z.object({ programCode: z.string(), name: z.string(), acYear: z.string() })),
 });
+
+/** A list row in English names the course or programme in English, and `nameAlt` in Swedish. */
+const nameRowSchema = z.object({ name: z.string(), nameAlt: z.string().nullable(), acYear: z.string() });
+const courseNameRowSchema = nameRowSchema.extend({ courseCode: z.string() });
+const programmeNameRowSchema = nameRowSchema.extend({ programCode: z.string() });
+const pageSchema = <T>(row: z.ZodType<T>) => z.object({ info: z.object({ count: z.number().int() }), results: z.array(row) });
 
 const momentSchema = z.object({
   courseCode: z.string(),
@@ -265,7 +276,39 @@ async function roundsOf(code: string): Promise<CourseRound[]> {
     });
 }
 
+/** Every row of a list index, over all academic years the API holds, a page at a time. */
+async function listAll<T>(index: string, row: z.ZodType<T>) {
+  const rows: T[] = [];
+  for (;;) {
+    const { info, results } = await get("list", { size: LIST_SIZE, from: rows.length, language: "en", indexes: [index] }, pageSchema(row));
+    rows.push(...results);
+    if (!results.length || rows.length >= info.count) return rows;
+  }
+}
+
+/** The English and Swedish names of each code, from the newest academic year that has it, by code. */
+function newestNames(rows: readonly (z.infer<typeof nameRowSchema> & { code: string })[]) {
+  const newest = new Map(rows.toSorted((a, b) => a.acYear.localeCompare(b.acYear)).map((row) => [row.code, row]));
+  return [...newest.values()]
+    .map(({ code, name, nameAlt }) => ({ code, en: name.trim(), sv: nameAlt?.trim() || name.trim() }))
+    .toSorted((a, b) => a.code.localeCompare(b.code));
+}
+
+async function fetchNames(): Promise<NamesFile> {
+  const [courses, programmes] = await Promise.all([
+    listAll("PewCourses", courseNameRowSchema),
+    listAll("PewStudyprogrammes", programmeNameRowSchema),
+  ]);
+  const names: NamesFile = {
+    programmes: Object.fromEntries(newestNames(programmes.map((p) => ({ ...p, code: p.programCode }))).map(({ code, ...n }) => [code, n])),
+    courses: newestNames(courses.map((c) => ({ ...c, code: c.courseCode }))),
+  };
+  if (names.courses.length < MIN_COURSE_NAMES) throw new Error(`Only ${names.courses.length} course names`);
+  return names;
+}
+
 async function main() {
+  const names = fetchNames();
   const { results } = await get(
     "list",
     { size: LIST_SIZE, language: "en", indexes: ["PewStudyprogrammes"], filter: { acYear: { _eq: env.ACADEMIC_YEAR } } },
@@ -336,6 +379,13 @@ async function main() {
   const { programmes: lines, ...head } = file;
   await writeFile(env.OUT_FILE, toJsonLines(head, "programmes", lines));
   console.log(`Wrote ${file.programmes.length} programme plans to ${env.OUT_FILE}`);
+
+  const { courses, ...namesHead } = await names;
+  await mkdir(path.dirname(env.NAMES_FILE), { recursive: true });
+  await writeFile(env.NAMES_FILE, toJsonLines(namesHead, "courses", courses));
+  console.log(
+    `Wrote the names of ${courses.length} courses and ${Object.keys(namesHead.programmes).length} programmes to ${env.NAMES_FILE}`,
+  );
 }
 
 await main();
