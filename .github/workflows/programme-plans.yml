@@ -1,0 +1,45 @@
+name: Weekly programme plans
+
+on:
+  schedule:
+    - cron: "29 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# The data workflows merge into main, so they take turns.
+concurrency: data-commit
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Fails while chalmers.se is down or its API changes, which leaves the committed plans as they are.
+      - run: pnpm programme-plans
+      # Plans change a few times a year, and switch to the next academic year in July. main only
+      # takes pull requests, so the commit goes through one that merges at once. The merge deploys the site.
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/programme-plans.json
+          if git diff --cached --quiet; then
+            echo "No plan changes"
+            exit 0
+          fi
+          branch="data/plans-${{ github.run_id }}"
+          git switch -c "$branch"
+          git commit -m "Update programme plans"
+          git push origin "$branch"
+          gh pr create --base main --head "$branch" --title "Update programme plans" --body "From the weekly fetch."
+          gh pr merge "$branch" --squash --delete-branch

@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, Link, useCanGoBack, useRouter } from "@tanstack/react-router";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, ArrowUpRightIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { RECENT_LABEL } from "@/components/course-cells";
 import { GradeBar } from "@/components/grade";
@@ -12,9 +12,11 @@ import { catalogQuery, courseQuery } from "@/data/queries";
 import { normalize, partLabel, type CatalogCourse } from "@/domain/catalog";
 import { latestExam } from "@/domain/course-stats";
 import { gradeSpreadOf } from "@/domain/grades";
-import { formatCount, formatDay, formatGrade, formatNumber, formatPercent } from "@/lib/format";
+import { syllabusUrl } from "@/domain/programme-plans";
+import { formatCount, formatCredits, formatDay, formatGrade, formatNumber, formatPercent } from "@/lib/format";
 import { GradeBreakdown, OtherInstances, OtherParts } from "./course-sections";
 import { CourseSurvey } from "./course-survey";
+import { CourseThisYear } from "./course-this-year";
 import { ExamTimeline } from "./exam-timeline";
 
 const route = getRouteApi("/course/$code");
@@ -34,6 +36,7 @@ export function CoursePage() {
   const part = detail.parts[selected];
   const [mainPart] = detail.parts;
   const latest = latestExam(mainPart?.sittings ?? []);
+  const credits = detail.placements[0]?.credits;
   const otherInstances = snapshot.courses
     .filter((c) => c.code !== code && normalize(c.name) === normalize(course.name))
     .toSorted((a, b) => (b.lastResult ?? "").localeCompare(a.lastResult ?? ""));
@@ -57,9 +60,23 @@ export function CoursePage() {
               {snapshot.programmes[course.programme] ?? course.programme}
             </Link>
           )}
+          {credits !== undefined && <span className="tabular-nums">{formatCredits(credits)}</span>}
           {course.ended && <Badge variant="secondary">Ended</Badge>}
+          {detail.placements.length > 0 && (
+            <a
+              href={syllabusUrl(code)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-0.5 underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Course syllabus
+              <ArrowUpRightIcon className="size-3.5" />
+            </a>
+          )}
         </div>
       </header>
+
+      {detail.placements.length > 0 && <CourseThisYear placements={detail.placements} plans={snapshot.plans} />}
 
       <StatStrip course={course} latest={latest} />
 

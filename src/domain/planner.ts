@@ -1,0 +1,108 @@
+import { compareSortValues, normalize, type CatalogCourse } from "./catalog.ts";
+import { STUDY_PERIODS, type PlanChoice, type PlanRound, type ProgrammePlan, type StudyPeriod } from "./programme-plans.ts";
+
+export const PLANNER_SORT_KEYS = ["rating", "passRate"] as const;
+export type PlannerSortKey = (typeof PLANNER_SORT_KEYS)[number];
+
+/** Credits of full-time study in one study period. */
+export const PERIOD_CREDITS = 15;
+
+/** A round in the planner with its course's exam results and ratings. None for a new course or a round of several courses. */
+export type PlannerRound = PlanRound & { stats: CatalogCourse | undefined };
+
+const tenths = (credits: number) => Math.round(credits * 10) / 10;
+const sameCourse = (a: PlanRound, b: PlanRound) => a.codes.some((code) => b.codes.includes(code));
+const sharesPeriod = (a: PlanRound, b: PlanRound) => a.periods.some((p) => b.periods.includes(p));
+/** "B+" is block B with extra hours, so the two meet. */
+const blockLetter = (block: string | null) => block?.match(/[A-D]/)?.[0] ?? null;
+
+/** Thesis courses that fill the year alike, one round for each way: the same study periods with the same credits. */
+function thesisRounds(rounds: readonly PlanRound[]): PlanRound[] {
+  const theses = rounds.filter((r) => r.requirement.kind === "thesis");
+  return [...Map.groupBy(theses, (r) => `${r.periods.join()}:${r.periodCredits.join()}`).values()].map((group) => {
+    const first = group[0]!;
+    return group.length === 1 ? first : { ...first, codes: group.flatMap((r) => r.codes), name: first.requirement.label };
+  });
+}
+
+/**
+ * A year as the planner shows it: the rounds every student takes, and the ones to choose between. A year with one
+ * way to do the thesis has it fixed. With several, such as a thesis of 30 or of 60 credits, the student chooses.
+ */
+export function plannerYear(rounds: readonly PlanRound[], stats: ReadonlyMap<string, CatalogCourse>) {
+  const withStats = (round: PlanRound): PlannerRound => ({
+    ...round,
+    stats: round.codes.length === 1 ? stats.get(round.codes[0]!) : undefined,
+  });
+  const theses = thesisRounds(rounds);
+  const fixedThesis = theses.length === 1;
+  const compulsory = rounds.filter((r) => r.requirement.kind === "compulsory");
+  const optional = rounds.filter((r) => r.requirement.kind !== "compulsory" && r.requirement.kind !== "thesis");
+  return {
+    fixed: [...compulsory, ...(fixedThesis ? theses : [])].map(withStats),
+    candidates: [...optional, ...(fixedThesis ? [] : theses)].map(withStats),
+  };
+}
+
+/** Study periods that some round runs in, in calendar order. */
+export const periodsOf = (rounds: readonly PlanRound[]): StudyPeriod[] =>
+  STUDY_PERIODS.filter((p) => rounds.some((r) => r.periods.includes(p)));
+
+/** Credits the rounds give in a study period. A round over several periods counts what it gives in this one. */
+export const creditsIn = (rounds: readonly PlanRound[], period: StudyPeriod) =>
+  tenths(rounds.reduce((sum, r) => sum + (r.periodCredits[r.periods.indexOf(period)] ?? 0), 0));
+
+/** The first study period that `plan` does not fill, or the first of all when it fills every one. */
+export const firstOpenPeriod = (periods: readonly StudyPeriod[], plan: readonly PlanRound[]) =>
+  periods.find((p) => creditsIn(plan, p) < PERIOD_CREDITS) ?? periods[0];
+
+/** The rounds that run in `period`, the best first by `sort`. Rounds without the value go last, ties by name. */
+export function candidatesIn(candidates: readonly PlannerRound[], period: StudyPeriod, sort: PlannerSortKey): PlannerRound[] {
+  return candidates
+    .filter((r) => r.periods.includes(period))
+    .toSorted((a, b) => compareSortValues(a.stats?.[sort] ?? null, b.stats?.[sort] ?? null, "desc") || a.name.localeCompare(b.name, "en"));
+}
+
+/** The picks after adding `round`, or after removing it when it is one. A course has one round in a plan, so adding another round of it moves it. */
+export function togglePick(picked: readonly string[], round: PlanRound, candidates: readonly PlanRound[]): string[] {
+  if (picked.includes(round.key)) return picked.filter((key) => key !== round.key);
+  const otherRounds = candidates.filter((c) => sameCourse(c, round)).map((c) => c.key);
+  return [...picked.filter((key) => !otherRounds.includes(key)), round.key];
+}
+
+/** A round of another course in `plan` with lectures at the same times: the same block in a shared study period. */
+export function lectureClash<R extends PlanRound>(round: PlanRound, plan: readonly R[]): R | undefined {
+  const block = blockLetter(round.block);
+  if (!block) return undefined;
+  return plan.find((other) => !sameCourse(other, round) && blockLetter(other.block) === block && sharesPeriod(other, round));
+}
+
+/** A round of another course in `plan` that shares a choice where only one course counts towards the degree. */
+export function exclusiveWith<R extends PlanRound>(round: PlanRound, plan: readonly R[]): R | undefined {
+  const ids = round.choices.filter((c) => c.kind === "exclusive").map((c) => c.id);
+  return plan.find((other) => !sameCourse(other, round) && other.choices.some((c) => ids.includes(c.id)));
+}
+
+/** How far `picked` goes towards a choice that asks for some of its courses, in courses or in credits as the choice counts. */
+export function pickProgress(pick: PlanChoice, picked: readonly PlanRound[]) {
+  const mine = picked.filter((r) => r.choices.some((c) => c.id === pick.id));
+  const inCourses = pick.minCourses !== null;
+  const have = inCourses ? mine.length : tenths(mine.reduce((sum, r) => sum + r.credits, 0));
+  const need = pick.minCourses ?? pick.minCredits;
+  return { have, need, unit: inCourses ? "courses" : "credits", done: need !== null && have >= need } as const;
+}
+
+/** Programmes whose code, name or Swedish name holds every word of `query`, by name. Every programme without a query. */
+export function searchProgrammes<P extends Pick<ProgrammePlan, "code" | "name">>(
+  programmes: readonly P[],
+  swedishNames: Readonly<Record<string, string>>,
+  query: string,
+): P[] {
+  const words = normalize(query).split(/\s+/).filter(Boolean);
+  return programmes
+    .filter((p) => {
+      const text = normalize(`${p.code} ${p.name} ${swedishNames[p.code] ?? ""}`);
+      return words.every((word) => text.includes(word));
+    })
+    .toSorted((a, b) => a.name.localeCompare(b.name, "en"));
+}

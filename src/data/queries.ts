@@ -1,6 +1,7 @@
 import { QueryClient, queryOptions } from "@tanstack/react-query";
-import type { z } from "zod";
+import { z } from "zod";
 import { toCatalog } from "@/domain/catalog";
+import { programmePlanSchema } from "@/domain/programme-plans";
 import { courseDetailSchema, snapshotSchema } from "@/domain/snapshot";
 
 const DATA_URL = `${import.meta.env.BASE_URL}data`;
@@ -27,3 +28,9 @@ export const courseQuery = (code: string) =>
     queryKey: ["course", code],
     queryFn: ({ signal }) => getJson(`${DATA_URL}/courses/${encodeURIComponent(code)}.json`, courseDetailSchema, signal),
   });
+
+/** Every programme's plan for the current academic year. Only the course planner loads it. */
+export const plansQuery = queryOptions({
+  queryKey: ["plans"],
+  queryFn: ({ signal }) => getJson(`${DATA_URL}/plans.json`, z.array(programmePlanSchema), signal),
+});

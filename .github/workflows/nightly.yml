@@ -9,7 +9,7 @@ permissions:
   contents: write
   pull-requests: write
 
-# Both data workflows merge into main, so they take turns.
+# The data workflows merge into main, so they take turns.
 concurrency: data-commit
 
 jobs:

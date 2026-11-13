@@ -10,6 +10,7 @@ import { orderParts } from "../src/domain/course-stats.ts";
 import { attemptsOf, gradeCountsSchema } from "../src/domain/grades.ts";
 import type { Part, ResultsFile } from "../src/domain/snapshot.ts";
 import { toJsonLines } from "./json-lines.ts";
+import { mapConcurrent } from "./map-concurrent.ts";
 
 const env = z
   .object({
@@ -61,19 +62,6 @@ async function listCourses() {
     courses.push(...batch);
     if (batch.length < PAGE_SIZE) return courses;
   }
-}
-
-async function mapConcurrent<T, R>(items: readonly T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
-  const results: R[] = [];
-  let next = 0;
-  const worker = async () => {
-    while (next < items.length) {
-      const index = next++;
-      results[index] = await fn(items[index]!);
-    }
-  };
-  await Promise.all(Array.from({ length: limit }, worker));
-  return results;
 }
 
 function toParts(results: z.infer<typeof upstreamResultsSchema>): Part[] {
