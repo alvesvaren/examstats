@@ -1,13 +1,24 @@
 import { Link } from "@tanstack/react-router";
-import { Fragment } from "react";
-import { courseYearSummary, type CoursePlacement, type PlanInfo } from "@/domain/programme-plans";
+import { courseYearSummary, type CoursePlacement } from "@/domain/programme-plans";
+import type { Snapshot } from "@/domain/snapshot";
 import { formatExaminers, formatPeriods } from "@/lib/format";
 
 const yearList = new Intl.ListFormat("en-GB", { style: "long", type: "conjunction" });
 
+/** Years as short ranges, such as "1–2" or "1, 3". */
+function formatYears(years: readonly number[]) {
+  const ranges: number[][] = [];
+  for (const year of years) {
+    const last = ranges.at(-1);
+    if (last && last.at(-1) === year - 1) last.push(year);
+    else ranges.push([year]);
+  }
+  return ranges.map((r) => (r.length > 1 ? `${r[0]}–${r.at(-1)}` : String(r[0]))).join(", ");
+}
+
 interface CourseThisYearProps {
   placements: CoursePlacement[];
-  plans: PlanInfo;
+  plans: Snapshot["plans"];
 }
 
 /** When the course runs this academic year, who examines it, and what the programmes that plan it ask. */
@@ -24,28 +35,27 @@ export function CourseThisYear({ placements, plans }: CourseThisYearProps) {
           </li>
         ))}
       </ul>
-      <p className="text-muted-foreground">
-        {requirements.map(({ requirement, programmes }, index) => (
-          <Fragment key={requirement.label}>
-            {index > 0 && "; "}
-            {index === 0 ? requirement.label : requirement.label.toLowerCase()} in{" "}
-            {programmes.map(({ code, years }, i) => (
-              <Fragment key={code}>
-                {i > 0 && ", "}
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+        {requirements.map(({ requirement, programmes }) => (
+          <div key={requirement.label} className="contents">
+            <dt className="text-muted-foreground">{requirement.label}</dt>
+            <dd className="flex flex-wrap gap-x-3 gap-y-0.5">
+              {programmes.map(({ code, years }) => (
                 <Link
+                  key={code}
                   to="/planner"
                   search={{ programme: code, year: years[0] }}
-                  className="text-foreground underline-offset-4 hover:underline"
+                  title={`${plans.names[code] ?? code}, ${years.length > 1 ? "years" : "year"} ${yearList.format(years.map(String))}`}
+                  className="underline-offset-4 hover:underline"
                 >
                   {code}
-                </Link>{" "}
-                {years.length > 1 ? "years" : "year"} {yearList.format(years.map(String))}
-              </Fragment>
-            ))}
-          </Fragment>
+                  <span className="ml-1 text-muted-foreground tabular-nums">{formatYears(years)}</span>
+                </Link>
+              ))}
+            </dd>
+          </div>
         ))}
-        .
-      </p>
+      </dl>
     </section>
   );
 }

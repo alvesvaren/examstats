@@ -294,3 +294,7 @@ export function courseYearSummary(placements: readonly CoursePlacement[], ruleNa
 /** The English course syllabus page on chalmers.se. */
 export const syllabusUrl = (code: string) =>
   `https://www.chalmers.se/en/education/your-studies/find-course-and-programme-syllabi/course-syllabus/${encodeURIComponent(code)}/`;
+
+/** The programme's overview on chalmers.se: its syllabus and plan of this year. */
+export const programmeUrl = (code: string) =>
+  `https://www.chalmers.se/en/education/your-studies/find-course-and-programme-syllabi/programme-overview/${encodeURIComponent(code)}/`;

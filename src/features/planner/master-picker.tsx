@@ -1,8 +1,8 @@
-import { ChevronRightIcon } from "lucide-react";
+import { ChevronRightIcon, ExternalLinkIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Catalog } from "@/domain/catalog";
 import { masterSummary } from "@/domain/planner";
-import type { ProgrammePlan } from "@/domain/programme-plans";
+import { programmeUrl, type ProgrammePlan } from "@/domain/programme-plans";
 import { formatCount, formatCredits, formatPercent, formatScore } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -81,6 +81,7 @@ function MasterOption({ master, summary, swedishName, onChoose }: MasterOptionPr
           <span className="line-clamp-2 text-xs text-muted-foreground">Compulsory: {compulsory.map((c) => c.name).join(", ")}</span>
         )}
       </button>
+      <ChalmersLink code={master.code} className="self-start px-3 pb-2 text-xs" />
       {master.prerequisites.length > 0 && (
         <Prerequisites paragraphs={master.prerequisites} className="px-3 pb-2.5 text-xs">
           Prerequisites
@@ -113,5 +114,23 @@ export function Prerequisites({ paragraphs, children, className }: Prerequisites
         ))}
       </div>
     </details>
+  );
+}
+
+/** The programme's syllabus and plan on chalmers.se. */
+export function ChalmersLink({ code, className }: { code: string; className?: string }) {
+  return (
+    <a
+      href={programmeUrl(code)}
+      target="_blank"
+      rel="noreferrer"
+      className={cn(
+        "inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline",
+        className,
+      )}
+    >
+      chalmers.se
+      <ExternalLinkIcon className="size-3.5" />
+    </a>
   );
 }
