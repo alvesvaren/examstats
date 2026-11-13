@@ -31,7 +31,7 @@ function TooltipTrigger({
 
 function TooltipContent({
   className,
-  sideOffset = 2,
+  sideOffset = 6,
   children,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
@@ -47,13 +47,8 @@ function TooltipContent({
         {...props}
       >
         {children}
-        <TooltipPrimitive.Arrow asChild width={12} height={6}>
-          {/* A border-coloured triangle under a popover-coloured one, which sits higher to cover the tooltip's border. */}
-          <svg viewBox="0 0 12 6" className="overflow-visible">
-            <path d="M0 0 H12 L6 6 Z" className="fill-border" />
-            <path d="M0 0 H12 L6 6 Z" className="-translate-y-px fill-popover" />
-          </svg>
-        </TooltipPrimitive.Arrow>
+        {/* Clipped to the half below the tooltip, plus a pixel to cover the tooltip's border, so it never covers content. */}
+        <TooltipPrimitive.Arrow className="z-50 size-2.5 -translate-y-1/2 rotate-45 rounded-br-[2px] border-r border-b bg-popover fill-popover [clip-path:polygon(calc(100%_-_1px)_-1px,calc(100%_+_1px)_-1px,calc(100%_+_1px)_calc(100%_+_1px),-1px_calc(100%_+_1px),-1px_calc(100%_-_1px))]" />
       </TooltipPrimitive.Content>
     </TooltipPrimitive.Portal>
   )
