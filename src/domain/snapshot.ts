@@ -45,7 +45,7 @@ export const courseDetailSchema = z.object({
 /** A pass rate in one academic year. A tuple, since the list loads thousands of them. */
 const trendPointSchema = z.tuple([z.number().int(), z.number()]);
 
-/** The UI shows names in English. Swedish names are for search, and are the English name when Chalmers names no other. */
+/** Names in English and Swedish. Each is the other when Chalmers names only one, and both are the source's name when Chalmers names neither. */
 const namedSchema = z.object({ name: z.string(), swedishName: z.string() });
 
 export const courseSummarySchema = namedSchema.extend({

@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { catalogQuery } from "@/data/queries";
 import { matchProgrammes, queryCourses, type SortDir, type SortKey } from "@/domain/catalog";
-import type { Named } from "@/domain/snapshot";
+import type { InLanguage } from "@/domain/names";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { useElementSize } from "@/hooks/use-element-size";
+import { useLanguage } from "@/hooks/use-language";
 import { useScrollBack } from "@/hooks/use-scroll-back";
 import { formatCount } from "@/lib/format";
 import { CourseTable } from "./course-table";
@@ -27,7 +28,8 @@ const FIELD_SIZE = "[&_select]:h-10 [&_select]:text-base md:[&_select]:text-sm";
 export function CourseListPage() {
   const search = route.useSearch();
   const navigate = route.useNavigate();
-  const { data: snapshot } = useSuspenseQuery(catalogQuery);
+  const language = useLanguage();
+  const { data: snapshot } = useSuspenseQuery(catalogQuery(language));
   const { ref: filtersRef, height: filtersHeight } = useElementSize<HTMLDivElement>();
   const { ref: resultsRef, scrollBack } = useScrollBack<HTMLDivElement>();
 
@@ -123,14 +125,14 @@ export function CourseListPage() {
 
 interface ProgrammeSelectProps {
   programme?: string;
-  programmes: Record<string, Named>;
+  programmes: Record<string, InLanguage>;
   onChange: (programme: string | undefined) => void;
 }
 
 function ProgrammeSelect({ programme, programmes, onChange }: ProgrammeSelectProps) {
   const options = Object.entries(programmes)
     .map(([code, { name }]) => [code, name] as const)
-    .toSorted(([, a], [, b]) => a.localeCompare(b, "en"));
+    .toSorted(([, a], [, b]) => a.localeCompare(b, "sv"));
   return (
     <NativeSelect
       value={programme ?? ALL_PROGRAMMES}

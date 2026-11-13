@@ -13,6 +13,7 @@ import { normalize, partLabel, type CatalogCourse } from "@/domain/catalog";
 import { latestExam } from "@/domain/course-stats";
 import { gradeSpreadOf } from "@/domain/grades";
 import { syllabusUrl } from "@/domain/programme-plans";
+import { useLanguage } from "@/hooks/use-language";
 import { formatCount, formatCredits, formatDay, formatGrade, formatNumber, formatPercent } from "@/lib/format";
 import { GradeBreakdown, OtherInstances, OtherParts } from "./course-sections";
 import { CourseSurvey } from "./course-survey";
@@ -25,8 +26,11 @@ const MAX_PART_TABS = 6;
 export function CoursePage() {
   const { code } = route.useParams();
   const { part: partIndex = 0, survey } = route.useSearch();
-  const { course } = route.useLoaderData();
-  const { data: snapshot } = useSuspenseQuery(catalogQuery);
+  const language = useLanguage();
+  const { data: snapshot } = useSuspenseQuery(catalogQuery(language));
+  // The loader checked that the course exists. The catalog names it in the language picked since.
+  const loaded = route.useLoaderData().course;
+  const course = snapshot.courses.find((c) => c.code === code) ?? loaded;
   const { data: detail } = useSuspenseQuery(courseQuery(code));
   const navigate = route.useNavigate();
   const router = useRouter();
@@ -77,7 +81,9 @@ export function CoursePage() {
         </div>
       </header>
 
-      {detail.placements.length > 0 && <CourseThisYear placements={detail.placements} plans={snapshot.plans} />}
+      {detail.placements.length > 0 && (
+        <CourseThisYear placements={detail.placements} plans={snapshot.plans} programmes={snapshot.programmes} />
+      )}
 
       <StatStrip course={course} latest={latest} />
 

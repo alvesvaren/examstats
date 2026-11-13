@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { InLanguage } from "@/domain/names";
 import { courseYearSummary, type CoursePlacement, type PlanInfo } from "@/domain/programme-plans";
 import { formatList, formatPeriods } from "@/lib/format";
 
@@ -17,10 +18,12 @@ function formatYears(years: readonly number[]) {
 interface CourseThisYearProps {
   placements: CoursePlacement[];
   plans: PlanInfo;
+  /** Programme names by code, in the language picked. */
+  programmes: Readonly<Record<string, InLanguage>>;
 }
 
 /** When the course runs this academic year, who examines it, and what the programmes that plan it ask. */
-export function CourseThisYear({ placements, plans }: CourseThisYearProps) {
+export function CourseThisYear({ placements, plans, programmes: names }: CourseThisYearProps) {
   const { rounds, requirements } = courseYearSummary(placements, plans.ruleNames);
   return (
     <section className="flex flex-col gap-1.5 text-sm">
@@ -49,7 +52,7 @@ export function CourseThisYear({ placements, plans }: CourseThisYearProps) {
                     </Link>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {name}, {years.length > 1 ? "years" : "year"} {formatList(years.map(String))}
+                    {names[code]?.name ?? name}, {years.length > 1 ? "years" : "year"} {formatList(years.map(String))}
                   </TooltipContent>
                 </Tooltip>
               ))}

@@ -2,16 +2,16 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { SearchIcon } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { searchProgrammes, swedishNameOf } from "@/domain/planner";
+import type { InLanguage } from "@/domain/names";
+import { otherNameOf, searchProgrammes } from "@/domain/planner";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import type { ProgrammePlan } from "@/domain/programme-plans";
-import type { Named } from "@/domain/snapshot";
 import { PLANNER_HEADING } from "@/lib/page-meta";
 
 interface ProgrammeSearchProps {
   programmes: readonly ProgrammePlan[];
   /** Programme names by code. Most students know their programme by its Swedish name. */
-  names: Readonly<Record<string, Named>>;
+  names: Readonly<Record<string, InLanguage>>;
 }
 
 /** The planner before a programme is picked: a search over every programme, by code or by name in either language. */
@@ -62,7 +62,7 @@ export function ProgrammeSearch({ programmes, names }: ProgrammeSearchProps) {
             >
               <span className="font-medium">{programme.name}</span>
               <span className="text-sm text-muted-foreground">
-                {[programme.code, swedishNameOf(names, programme.code)].filter(Boolean).join(" · ")}
+                {[programme.code, otherNameOf(names, programme.code)].filter(Boolean).join(" · ")}
               </span>
             </Link>
           </li>

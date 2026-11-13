@@ -9,7 +9,7 @@ import { summarizeCourse } from "../src/domain/course-stats.ts";
 import { nameOf, namesFileSchema } from "../src/domain/names.ts";
 import { compareRounds, evaluationFileSchema, summarizeEvaluations, type EvaluationRound } from "../src/domain/evaluation.ts";
 import { resultsFileSchema, type CourseDetail, type Snapshot } from "../src/domain/snapshot.ts";
-import { placementsByCourse, programmePlansFileSchema } from "../src/domain/programme-plans.ts";
+import { placementsByCourse, programmePlansFileSchema, type PublishedPlan } from "../src/domain/programme-plans.ts";
 
 const env = z
   .object({
@@ -77,7 +77,15 @@ async function main() {
     courses,
   };
   await writeFile(path.join(env.OUT_DIR, "index.json"), JSON.stringify(snapshot, roundNumbers));
-  await writeFile(path.join(env.OUT_DIR, "plans.json"), JSON.stringify(programmePlans));
+  const published: PublishedPlan[] = programmePlans.map((plan) => ({
+    ...plan,
+    swedishName: nameOf(names.programmes[plan.code], plan.name).swedishName,
+    years: plan.years.map((year) => ({
+      ...year,
+      courses: year.courses.map((course) => ({ ...course, swedishName: nameOf(courseNames.get(course.code), course.name).swedishName })),
+    })),
+  }));
+  await writeFile(path.join(env.OUT_DIR, "plans.json"), JSON.stringify(published));
   console.log(`Wrote ${courses.length} courses and ${Object.keys(snapshot.programmes).length} programmes to ${env.OUT_DIR}`);
 }
 

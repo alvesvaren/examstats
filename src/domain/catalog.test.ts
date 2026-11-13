@@ -44,6 +44,12 @@ describe("queryCourses", () => {
     expect(queryCourses(courses, { q: "databaser" }).active.map((c) => c.code)).toEqual(["TDA357"]);
   });
 
+  it("names courses in Swedish and still matches their English names", () => {
+    const swedish = courses.map((c) => toCatalogCourse(c, "sv"));
+    const [databases] = queryCourses(swedish, { q: "databases" }).active;
+    expect(databases?.name).toBe("Databaser");
+  });
+
   it("matches a programme code and puts ended courses in their own group", () => {
     const { active, ended } = queryCourses(courses, { q: "tkite" });
     expect([active.map((c) => c.code), ended.map((c) => c.code)]).toEqual([["TDA357"], ["TDA545"]]);
@@ -96,9 +102,9 @@ describe("queryCourses", () => {
 
 describe("matchProgrammes", () => {
   const programmes = {
-    TKITE: { name: "Software Engineering", swedishName: "Informationsteknik, civilingenjör" },
-    TITEA: { name: "Informationsteknik", swedishName: "Informationsteknik" },
-    TKTFY: { name: "Engineering Physics", swedishName: "Teknisk fysik" },
+    TKITE: { name: "Software Engineering", otherName: "Informationsteknik, civilingenjör" },
+    TITEA: { name: "Informationsteknik", otherName: "Informationsteknik" },
+    TKTFY: { name: "Engineering Physics", otherName: "Teknisk fysik" },
   };
 
   it("finds programmes by code prefix or by name in either language", () => {

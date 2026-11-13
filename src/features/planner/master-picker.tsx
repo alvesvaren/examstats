@@ -1,7 +1,7 @@
 import { ChevronRightIcon, ExternalLinkIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Catalog } from "@/domain/catalog";
-import { masterSummary, swedishNameOf } from "@/domain/planner";
+import { masterSummary, otherNameOf } from "@/domain/planner";
 import { programmeUrl, type ProgrammePlan } from "@/domain/programme-plans";
 import { formatCount, formatCredits, formatPercent, formatScore } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -20,8 +20,8 @@ const plural = (count: number, word: string) => `${formatCount(count)} ${word}${
 export function MasterPicker({ programme, masters, catalog, onChoose }: MasterPickerProps) {
   const stats = new Map(catalog.courses.map((c) => [c.code, c]));
   const options = masters
-    .toSorted((a, b) => a.name.localeCompare(b.name, "en"))
-    .map((master) => ({ master, summary: masterSummary(master, stats), swedishName: swedishNameOf(catalog.programmes, master.code) }));
+    .toSorted((a, b) => a.name.localeCompare(b.name, "sv"))
+    .map((master) => ({ master, summary: masterSummary(master, stats), otherName: otherNameOf(catalog.programmes, master.code) }));
 
   return (
     <section className="flex flex-col gap-3">
@@ -46,11 +46,11 @@ export function MasterPicker({ programme, masters, catalog, onChoose }: MasterPi
 interface MasterOptionProps {
   master: ProgrammePlan;
   summary: ReturnType<typeof masterSummary>;
-  swedishName: string | undefined;
+  otherName: string | undefined;
   onChoose: () => void;
 }
 
-function MasterOption({ master, summary, swedishName, onChoose }: MasterOptionProps) {
+function MasterOption({ master, summary, otherName, onChoose }: MasterOptionProps) {
   const { tracks, compulsory, compulsoryCredits, electives, passRate, rating } = summary;
   const facts = [
     tracks.length > 0 && plural(tracks.length, "track"),
@@ -65,7 +65,7 @@ function MasterOption({ master, summary, swedishName, onChoose }: MasterOptionPr
     <div className="flex h-full flex-col rounded-xl border transition-colors has-[>button:hover]:border-primary has-[>button:hover]:bg-muted/50">
       <button type="button" onClick={onChoose} className="flex flex-1 flex-col gap-1 px-3 pt-2.5 pb-2 text-left">
         <span className="font-medium">{master.name}</span>
-        <span className="text-sm text-muted-foreground">{[master.code, swedishName].filter(Boolean).join(" · ")}</span>
+        <span className="text-sm text-muted-foreground">{[master.code, otherName].filter(Boolean).join(" · ")}</span>
         <span className="text-sm">{facts}</span>
         <span className="text-sm text-muted-foreground">
           {hasResults ? (
