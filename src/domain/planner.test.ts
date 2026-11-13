@@ -15,6 +15,7 @@ import {
   plannerYear,
   requirementProgress,
   searchProgrammes,
+  swedishNameOf,
   togglePick,
 } from "./planner.ts";
 import {
@@ -59,6 +60,7 @@ const stats = (code: string, passed: number, failed: number, overallAnswers: num
   toCatalogCourse({
     code,
     name: `${code} name`,
+    swedishName: `${code} namn`,
     programme: null,
     recentGrades: { ...emptyCounts(), "3": passed, U: failed },
     attemptsPerYear: passed + failed,
@@ -379,8 +381,11 @@ describe("searchProgrammes", () => {
     { code: "TKDAT", name: "Computer Science and Engineering" },
     { code: "MPALG", name: "Computer Science - Algorithms, Languages and Logic" },
   ];
-  const swedish = { TKITE: "Informationsteknik, civilingenjör", TKDAT: "Datateknik, civilingenjör" };
-  const found = (query: string) => searchProgrammes(programmes, swedish, query).map((p) => p.code);
+  const names = {
+    TKITE: { name: "Software Engineering", swedishName: "Informationsteknik, civilingenjör" },
+    TKDAT: { name: "Computer Science and Engineering", swedishName: "Datateknik, civilingenjör" },
+  };
+  const found = (query: string) => searchProgrammes(programmes, names, query).map((p) => p.code);
 
   it("finds a programme by code, by name and by Swedish name, whatever the case and accents", () => {
     expect(found("tkite")).toEqual(["TKITE"]);
@@ -391,5 +396,16 @@ describe("searchProgrammes", () => {
 
   it("lists every programme by name without a query", () => {
     expect(found(" ")).toEqual(["MPALG", "TKDAT", "TKITE"]);
+  });
+});
+
+describe("swedishNameOf", () => {
+  const names = {
+    TKDAT: { name: "Computer Science and Engineering", swedishName: "Datateknik" },
+    MPSOF: { name: "Software Engineering and Technology", swedishName: "Software engineering and technology" },
+  };
+
+  it("gives the Swedish name only when it differs from the English one", () => {
+    expect(["TKDAT", "MPSOF", "MBATT"].map((code) => swedishNameOf(names, code))).toEqual(["Datateknik", undefined, undefined]);
   });
 });
