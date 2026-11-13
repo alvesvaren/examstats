@@ -219,22 +219,6 @@ describe("exclusiveWith", () => {
   });
 });
 
-describe("pickProgress", () => {
-  const picked = [
-    round("A", ["LP1"], { choices: [pickTwo, pickCredits] }),
-    round("B", ["LP2"], { choices: [pickCredits] }),
-    round("C", ["LP3"]),
-  ];
-
-  it("counts the picked courses of a choice that asks for a number of courses", () => {
-    expect(pickProgress(pickTwo, picked)).toEqual({ have: 1, need: 2, unit: "courses", done: false });
-  });
-
-  it("counts credits for a choice that asks for credits", () => {
-    expect(pickProgress(pickCredits, picked)).toEqual({ have: 15, need: 15, unit: "credits", done: true });
-  });
-});
-
 /** A plan entry of 7.5 credits in LP1 under a rule, with the credits it gives in themes. */
 const planCourse = (code: string, rule: string, themes: PlanCourse["themes"] = []): PlanCourse => ({
   code,
@@ -292,6 +276,49 @@ describe("degree requirements", () => {
     const mpsof: ProgrammePlan = { ...tkite, code: "MPSOF", requirements: [], masters: [], years: [{ year: 1, courses: [ethics] }] };
     expect(openRequirements([tkite, mpsof])).toEqual([mts, science]);
     expect(requirementProgress(mts, [interfaces, agile, ethics])).toMatchObject({ have: 7.5, done: true });
+  });
+});
+
+/** An elective in the given choices of its programme. */
+const withChoices = (code: string, choices: number[]) => ({ ...planCourse(code, "V"), choices });
+
+describe("pickProgress", () => {
+  const tkdat: ProgrammePlan = {
+    code: "TKDAT",
+    name: "Computer Science and Engineering",
+    choices: [pickTwo, pickCredits],
+    requirements: [],
+    masters: [],
+    years: [
+      { year: 2, courses: [withChoices("TDA357", [])] },
+      {
+        year: 3,
+        courses: [withChoices("TDA357", [pickTwo.id]), withChoices("A", [pickTwo.id, pickCredits.id]), withChoices("B", [pickCredits.id])],
+      },
+    ],
+  };
+
+  it("counts the planned courses of a choice that asks for a number of courses", () => {
+    expect(pickProgress(pickTwo, tkdat, [withChoices("A", [1]), withChoices("C", [])])).toEqual({
+      have: 1,
+      need: 2,
+      unit: "courses",
+      done: false,
+    });
+  });
+
+  it("counts credits for a choice that asks for credits", () => {
+    expect(pickProgress(pickCredits, tkdat, [withChoices("A", []), withChoices("B", [])])).toEqual({
+      have: 15,
+      need: 15,
+      unit: "credits",
+      done: true,
+    });
+  });
+
+  it("counts a course of the choice planned in a year where the plan lists it outside the choice", () => {
+    const databasesInYear2 = withChoices("TDA357", []);
+    expect(pickProgress(pickTwo, tkdat, [databasesInYear2, withChoices("A", [])])).toMatchObject({ have: 2, done: true });
   });
 });
 

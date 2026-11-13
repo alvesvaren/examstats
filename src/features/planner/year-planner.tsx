@@ -96,9 +96,10 @@ export function YearPlanner({ programme, years, current, track, search, onChange
   // Degree requirements count the whole degree: the compulsory courses and the picks of every year of every plan.
   const plans = [...new Set(years.map((y) => y.plan))];
   const allPicks = [...other, ...picked.map((r) => ({ programme: yearProgramme.code, year, key: r.key }))];
+  const courses = plannedCourses(plans, allPicks, track);
   const degreeRules = openRequirements(plans, track).map((requirement) => ({
     requirement,
-    ...requirementProgress(requirement, plannedCourses(plans, allPicks, track)),
+    ...requirementProgress(requirement, courses),
   }));
   const offered = new Set(plans.flatMap((p) => p.years.flatMap((y) => y.courses.map((c) => c.code))));
   const marksOf = (round: PlannerRound) =>
@@ -151,7 +152,7 @@ export function YearPlanner({ programme, years, current, track, search, onChange
         </div>
         <div className="flex flex-col gap-1 text-sm">
           {picks.map((pick) => (
-            <PickRule key={pick.id} pick={pick} picked={picked} />
+            <PickRule key={pick.id} progress={pickProgress(pick, yearProgramme, courses)} pick={pick} />
           ))}
           {degreeRules.map((rule) => (
             <DegreeRule key={requirementKey(rule.requirement)} rule={rule} offered={offered} />
@@ -302,9 +303,9 @@ function pickText({ text, minCourses, minCredits }: PlanChoice) {
   return `Pick at least ${amount} of the marked courses.`;
 }
 
-/** A rule that asks for some of the marked courses, and how far the picks go towards it. */
-function PickRule({ pick, picked }: { pick: PlanChoice; picked: readonly PlannerRound[] }) {
-  const { have, need, unit, done } = pickProgress(pick, picked);
+/** A rule that asks for some of the marked courses, and how far the courses of every year go towards it. */
+function PickRule({ pick, progress }: { pick: PlanChoice; progress: ReturnType<typeof pickProgress> }) {
+  const { have, need, unit, done } = progress;
   return (
     <p className="flex items-baseline gap-2">
       <PickMarker />
@@ -313,7 +314,7 @@ function PickRule({ pick, picked }: { pick: PlanChoice; picked: readonly Planner
         {need !== null && (
           <span className={cn("whitespace-nowrap", done ? "font-medium text-grade-4" : "text-muted-foreground")}>
             {done && <CheckIcon className="mr-0.5 inline size-4 align-[-0.2em]" aria-hidden />}
-            {formatNumber(have)} of {unit === "courses" ? formatCount(need) : formatCredits(need)} in your year
+            {formatNumber(have)} of {unit === "courses" ? formatCount(need) : formatCredits(need)}
           </span>
         )}
       </span>

@@ -126,9 +126,14 @@ export function exclusiveWith<R extends PlanRound>(round: PlanRound, plan: reado
   return plan.find((other) => !sameCourse(other, round) && other.choices.some((c) => ids.includes(c.id)));
 }
 
-/** How far `picked` goes towards a choice that asks for some of its courses, in courses or in credits as the choice counts. */
-export function pickProgress(pick: PlanChoice, picked: readonly PlanRound[]) {
-  const mine = picked.filter((r) => r.choices.some((c) => c.id === pick.id));
+/**
+ * How far the courses of a whole plan go towards a choice of `programme` that asks for some of its courses, in courses
+ * or in credits as the choice counts. A course of the choice counts in any year, also one whose plan lists it there
+ * outside the choice.
+ */
+export function pickProgress(pick: PlanChoice, programme: ProgrammePlan, courses: readonly PlanCourse[]) {
+  const members = new Set(programme.years.flatMap((y) => y.courses.filter((c) => c.choices.includes(pick.id)).map((c) => c.code)));
+  const mine = courses.filter((c) => members.has(c.code));
   const inCourses = pick.minCourses !== null;
   const have = inCourses ? mine.length : tenths(mine.reduce((sum, r) => sum + r.credits, 0));
   const need = pick.minCourses ?? pick.minCredits;
