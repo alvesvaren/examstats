@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { courseYearSummary, type CoursePlacement, type PlanInfo } from "@/domain/programme-plans";
 import { formatList, formatPeriods } from "@/lib/format";
 
@@ -40,16 +41,17 @@ export function CourseThisYear({ placements, plans }: CourseThisYearProps) {
             <dt className="text-muted-foreground">{requirement.label}</dt>
             <dd className="flex flex-wrap gap-x-3 gap-y-0.5">
               {programmes.map(({ code, name, years }) => (
-                <Link
-                  key={code}
-                  to="/planner"
-                  search={{ programme: code, year: years[0] }}
-                  title={`${name}, ${years.length > 1 ? "years" : "year"} ${formatList(years.map(String))}`}
-                  className="underline-offset-4 hover:underline"
-                >
-                  {code}
-                  <span className="ml-1 text-muted-foreground tabular-nums">{formatYears(years)}</span>
-                </Link>
+                <Tooltip key={code}>
+                  <TooltipTrigger asChild>
+                    <Link to="/planner" search={{ programme: code, year: years[0] }} className="underline-offset-4 hover:underline">
+                      {code}
+                      <span className="ml-1 text-muted-foreground tabular-nums">{formatYears(years)}</span>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {name}, {years.length > 1 ? "years" : "year"} {formatList(years.map(String))}
+                  </TooltipContent>
+                </Tooltip>
               ))}
             </dd>
           </div>
