@@ -11,7 +11,7 @@ import { MASTER_START_YEAR, studyYears, tracksOf, type StudyYear } from "@/domai
 import { useLanguage } from "@/hooks/use-language";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import { PLANNER_HEADING } from "@/lib/page-meta";
-import { MasterPicker, Prerequisites } from "./master-picker";
+import { ChalmersLink, MasterPicker, Prerequisites } from "./master-picker";
 import { ProgrammeSearch } from "./programme-search";
 import { YearPlanner } from "./year-planner";
 
@@ -90,10 +90,12 @@ export function PlannerPage() {
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h1 className="text-2xl font-semibold">{programme.name}</h1>
           <span className="text-muted-foreground">{[programme.code, otherName].filter(Boolean).join(" · ")}</span>
+          <ChalmersLink code={programme.code} />
         </div>
         {master && (
           <p className="text-muted-foreground">
-            Years 4 and 5: <span className="font-medium text-foreground">{master.name}</span> · {master.code}
+            Years 4 and 5: <span className="font-medium text-foreground">{master.name}</span> · {master.code}{" "}
+            <ChalmersLink code={master.code} />
           </p>
         )}
         {master && master.prerequisites.length > 0 && (

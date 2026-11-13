@@ -6,8 +6,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { orderParts } from "../src/domain/course-stats.ts";
-import { attemptsOf, gradeCountsSchema } from "../src/domain/grades.ts";
+import { partsOf } from "../src/domain/course-stats.ts";
+import { gradeCountsSchema } from "../src/domain/grades.ts";
 import type { Part, ResultsFile } from "../src/domain/snapshot.ts";
 import { toJsonLines } from "./json-lines.ts";
 import { mapConcurrent } from "./map-concurrent.ts";
@@ -65,20 +65,8 @@ async function listCourses() {
   }
 }
 
-function toParts(results: z.infer<typeof upstreamResultsSchema>): Part[] {
-  const groups = Map.groupBy(
-    results.filter((r) => attemptsOf(r) > 0),
-    (r) => `${r.type}\u0000${r.resultId}`,
-  );
-  const parts = [...groups.values()].map((group) => ({
-    type: group[0]!.type,
-    code: group[0]!.resultId,
-    sittings: group
-      .map(({ date, type: _type, resultId: _resultId, ...grades }) => ({ date, grades }))
-      .toSorted((a, b) => a.date.localeCompare(b.date)),
-  }));
-  return orderParts(parts);
-}
+const toParts = (results: z.infer<typeof upstreamResultsSchema>): Part[] =>
+  partsOf(results.map(({ date, type, resultId, ...grades }) => ({ date, type, code: resultId, grades })));
 
 /** "INFORMATIONSTEKNIK, CIVILINGENJÖR" becomes "Informationsteknik, civilingenjör". */
 const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();

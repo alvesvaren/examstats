@@ -41,6 +41,7 @@ export function CoursePage() {
   const [mainPart] = detail.parts;
   const latest = latestExam(mainPart?.sittings ?? []);
   const credits = detail.placements[0]?.credits;
+  const moduleCredits = new Map(detail.placements.flatMap((p) => p.modules).map((m) => [m.code, m.credits]));
   const otherInstances = snapshot.courses
     .filter((c) => c.code !== code && normalize(c.swedishName) === normalize(course.swedishName))
     .toSorted((a, b) => (b.lastResult ?? "").localeCompare(a.lastResult ?? ""));
@@ -80,7 +81,9 @@ export function CoursePage() {
         </div>
       </header>
 
-      {detail.placements.length > 0 && <CourseThisYear placements={detail.placements} plans={snapshot.plans} />}
+      {detail.placements.length > 0 && (
+        <CourseThisYear placements={detail.placements} plans={snapshot.plans} programmes={snapshot.programmes} />
+      )}
 
       <StatStrip course={course} latest={latest} />
 
@@ -95,11 +98,15 @@ export function CoursePage() {
               onValueChange={(value) => value && navigate({ search: (prev) => ({ ...prev, part: Number(value) }), replace: true })}
               className="flex-wrap"
             >
-              {detail.parts.slice(0, MAX_PART_TABS).map((p, index) => (
-                <ToggleGroupItem key={index} value={String(index)}>
-                  {partLabel(p.type)}
-                </ToggleGroupItem>
-              ))}
+              {detail.parts.slice(0, MAX_PART_TABS).map((p, index) => {
+                const partCredits = moduleCredits.get(p.code);
+                return (
+                  <ToggleGroupItem key={index} value={String(index)}>
+                    {partLabel(p.type)}
+                    {partCredits !== undefined && <span className="text-muted-foreground tabular-nums">{formatCredits(partCredits)}</span>}
+                  </ToggleGroupItem>
+                );
+              })}
             </ToggleGroup>
           )}
           <ExamTimeline key={selected} part={part} />

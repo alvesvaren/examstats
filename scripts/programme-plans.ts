@@ -142,7 +142,13 @@ const courseSchema = z.object({
           z.object({
             cancelled: z.number(),
             blockSchedule: z.string().nullable(),
-            moments: z.array(z.object({ distribution: z.array(z.object({ code: z.string(), credit: z.number().nullable() })) })),
+            moments: z.array(
+              z.object({
+                mCode: z.string(),
+                credit: z.number().nullable(),
+                distribution: z.array(z.object({ code: z.string(), credit: z.number().nullable() })),
+              }),
+            ),
             examiners: z.array(z.object({ fName: z.string(), lName: z.string() })),
           }),
         ),
@@ -188,7 +194,7 @@ function toChoices(moments: readonly Moment[]): PlanChoice[] {
 }
 
 /** One course per plan entry. A plan lists each module of a course as its own row, once per study period it has credits in. */
-function toCourses(moments: readonly Moment[]): Omit<PlanCourse, "examiners">[] {
+function toCourses(moments: readonly Moment[]): Omit<PlanCourse, "examiners" | "modules">[] {
   const groups = Map.groupBy(
     moments.filter((m) => !m.cancelled),
     (m) => m.ppId,
@@ -259,8 +265,10 @@ async function syllabusOf(code: string): Promise<Pick<ProgrammePlan, "requiremen
   return { requirements: [], masters: [], prerequisites: [] };
 }
 
+type SyllabusRound = CourseRound & Pick<PlanCourse, "modules">;
+
 /** The rounds of a course this academic year, from its syllabus. Empty when it has none. */
-async function roundsOf(code: string): Promise<CourseRound[]> {
+async function roundsOf(code: string): Promise<SyllabusRound[]> {
   const filter = { acYear: { _eq: env.ACADEMIC_YEAR }, courseCode: { _eq: code } };
   const { search } = await get("PewCourses", { language: "en", filter }, courseSchema);
   const course = search.results.find((c) => c.courseCode === code);
@@ -272,6 +280,7 @@ async function roundsOf(code: string): Promise<CourseRound[]> {
         periods: STUDY_PERIODS.filter((p) => periods.has(p)),
         block: round.blockSchedule?.trim() || null,
         examiners: round.examiners.map((e) => `${e.fName} ${e.lName}`.trim()),
+        modules: round.moments.map((m) => ({ code: m.mCode, credits: m.credit ?? 0 })),
       };
     });
 }
@@ -345,7 +354,7 @@ async function main() {
   console.log(`Fetching ${codes.length} course syllabi for their examiners`);
   let failed = 0;
   const rounds = new Map(
-    await mapConcurrent(codes, env.CONCURRENCY, async (code): Promise<[string, CourseRound[]]> => {
+    await mapConcurrent(codes, env.CONCURRENCY, async (code): Promise<[string, SyllabusRound[]]> => {
       try {
         return [code, await roundsOf(code)];
       } catch (error) {
@@ -368,10 +377,10 @@ async function main() {
       masters: programme.masters.filter((code) => codesPlanned.has(code)),
       years: programme.years.map(({ year, courses }) => ({
         year,
-        courses: courses.map((course) => ({
-          ...course,
-          examiners: [...(roundOf(course, rounds.get(course.code) ?? [])?.examiners ?? [])],
-        })),
+        courses: courses.map((course) => {
+          const round = roundOf(course, rounds.get(course.code) ?? []);
+          return { ...course, examiners: [...(round?.examiners ?? [])], modules: [...(round?.modules ?? [])] };
+        }),
       })),
     })),
   };

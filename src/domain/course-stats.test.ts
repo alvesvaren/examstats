@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { averageGradeOf, emptyCounts, passRateOf, type GradeCounts } from "./grades.ts";
-import { academicYear, latestExam, orderParts, summarizeCourse } from "./course-stats.ts";
+import { academicYear, latestExam, orderParts, partsOf, summarizeCourse } from "./course-stats.ts";
 import type { Part } from "./snapshot.ts";
 
 const grades = (partial: Partial<GradeCounts>): GradeCounts => ({ ...emptyCounts(), ...partial });
@@ -29,6 +29,24 @@ const exam: Part = {
 describe("academicYear", () => {
   it("starts in September", () => {
     expect([academicYear("2025-08-29"), academicYear("2025-09-01"), academicYear("2026-01-08")]).toEqual([2024, 2025, 2025]);
+  });
+});
+
+describe("partsOf", () => {
+  it("keeps a renamed module as one part under its newest name, adding up sittings on the same day", () => {
+    const parts = partsOf([
+      { type: "Förberedande kurs i matematik, del 1A", code: "0114", date: "2025-10-20", grades: grades({ G: 5 }) },
+      { type: "Dugga, del A", code: "0114", date: "2026-01-05", grades: grades({ U: 1, G: 3 }) },
+      { type: "Förberedande kurs i matematik, del 1A", code: "0114", date: "2025-10-20", grades: grades({ U: 2 }) },
+    ]);
+
+    expect(parts).toEqual([
+      {
+        type: "Dugga, del A",
+        code: "0114",
+        sittings: [sitting("2025-10-20", { U: 2, G: 5 }), sitting("2026-01-05", { U: 1, G: 3 })],
+      },
+    ]);
   });
 });
 
