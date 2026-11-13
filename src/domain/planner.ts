@@ -13,6 +13,7 @@ export type PlannerRound = PlanRound & { stats: CatalogCourse | undefined };
 const tenths = (credits: number) => Math.round(credits * 10) / 10;
 const sameCourse = (a: PlanRound, b: PlanRound) => a.codes.some((code) => b.codes.includes(code));
 const sharesPeriod = (a: PlanRound, b: PlanRound) => a.periods.some((p) => b.periods.includes(p));
+const isStudyPeriod = (p: string): p is StudyPeriod => (STUDY_PERIODS as readonly string[]).includes(p);
 /** "B+" is block B with extra hours, so the two meet. */
 const blockLetter = (block: string | null) => block?.match(/[A-D]/)?.[0] ?? null;
 
@@ -68,6 +69,35 @@ export function togglePick(picked: readonly string[], round: PlanRound, candidat
   if (picked.includes(round.key)) return picked.filter((key) => key !== round.key);
   const otherRounds = candidates.filter((c) => sameCourse(c, round)).map((c) => c.key);
   return [...picked.filter((key) => !otherRounds.includes(key)), round.key];
+}
+
+export interface PlanElsewhere {
+  year?: number;
+  periods: readonly StudyPeriod[];
+}
+
+/**
+ * Where another round of `round`'s course is in the plan: another study period of the current year, or another
+ * year of study in `otherYears`.
+ */
+export function findElsewhere(
+  round: PlanRound,
+  currentPicked: readonly PlanRound[],
+  otherPicks: readonly { year: number; key: string }[],
+): PlanElsewhere | undefined {
+  const inCurrent = currentPicked.find((r) => sameCourse(r, round));
+  if (inCurrent) {
+    return inCurrent.key === round.key ? undefined : { periods: inCurrent.periods };
+  }
+
+  for (const pick of otherPicks) {
+    const [code, periodsStr] = pick.key.split(".");
+    if (code && round.codes.includes(code)) {
+      const periods = (periodsStr?.split("-") ?? []).filter(isStudyPeriod);
+      return { year: pick.year, periods };
+    }
+  }
+  return undefined;
 }
 
 /** A round of another course in `plan` with lectures at the same times: the same block in a shared study period. */

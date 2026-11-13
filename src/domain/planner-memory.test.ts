@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parsePlannerMemory, rememberedPicks, withPicks } from "./planner-memory.ts";
+import { otherPicks, parsePlannerMemory, rememberedPicks, withPicks } from "./planner-memory.ts";
 
 describe("parsePlannerMemory", () => {
   it("reads back what was stored", () => {
@@ -27,5 +27,23 @@ describe("withPicks", () => {
 
   it("forgets a year whose picks are cleared", () => {
     expect(withPicks(memory, "TKITE", 2, []).picks).toEqual({});
+  });
+});
+
+describe("otherPicks", () => {
+  const memory = {
+    picks: {
+      "TKITE.1": ["EDA344.LP1"],
+      "TKITE.2": ["DAT026.LP1"],
+      "TKITE.3": ["TDA357.LP2"],
+      "TKDAT.2": ["OTHER.LP1"],
+    },
+  };
+
+  it("returns picks remembered for other years of the same programme", () => {
+    expect(otherPicks(memory, "TKITE", 2)).toEqual([
+      { year: 1, key: "EDA344.LP1" },
+      { year: 3, key: "TDA357.LP2" },
+    ]);
   });
 });

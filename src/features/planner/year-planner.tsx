@@ -9,6 +9,7 @@ import {
   candidatesIn,
   creditsIn,
   exclusiveWith,
+  findElsewhere,
   firstOpenPeriod,
   lectureClash,
   PERIOD_CREDITS,
@@ -16,10 +17,11 @@ import {
   pickProgress,
   plannerYear,
   togglePick,
+  type PlanElsewhere,
   type PlannerRound,
   type PlannerSortKey,
 } from "@/domain/planner";
-import { rememberedPicks, withPicks } from "@/domain/planner-memory";
+import { otherPicks, rememberedPicks, withPicks } from "@/domain/planner-memory";
 import { planYear, syllabusUrl, type PlanChoice, type ProgrammePlan, type StudyPeriod } from "@/domain/programme-plans";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import { formatCount, formatCredits, formatNumber, formatPeriods } from "@/lib/format";
@@ -57,6 +59,7 @@ export function YearPlanner({ programme, year, track, search, onChange, catalog 
   const stats = new Map(catalog.courses.map((c) => [c.code, c]));
   const { fixed, candidates } = plannerYear(rounds, stats);
   const { memory, remember } = usePlannerMemory();
+  const other = otherPicks(memory, programme.code, year);
   // Picks in the URL are a shared plan and win. Without them, the year is as this device remembers it.
   const pickedKeys = search.picked ?? rememberedPicks(memory, programme.code, year) ?? [];
   const picked = candidates.filter((c) => pickedKeys.includes(c.key));
@@ -140,7 +143,7 @@ export function YearPlanner({ programme, year, track, search, onChange, catalog 
               round={round}
               period={period}
               picked={picked.includes(round)}
-              elsewhere={picked.find((r) => r !== round && r.codes[0] === round.codes[0])}
+              elsewhere={findElsewhere(round, picked, other)}
               warnings={warningsOf(round)}
               onToggle={() => toggle(round)}
             />
@@ -315,14 +318,15 @@ interface CandidateProps {
   /** The study period the list shows. */
   period: StudyPeriod;
   picked: boolean;
-  /** The round of the same course that is in the year, when another one is. It greys this round out. */
-  elsewhere: PlannerRound | undefined;
+  /** Where another round of the same course is in the plan. It greys this round out. */
+  elsewhere: PlanElsewhere | undefined;
   warnings: string[];
   onToggle: () => void;
 }
 
 function Candidate({ round, period, picked, elsewhere, warnings, onToggle }: CandidateProps) {
   const { requirement, stats } = round;
+  const inOtherYear = Boolean(elsewhere?.year);
   // A round over several study periods gives only part of its credits in the one listed.
   const here = round.periodCredits[round.periods.indexOf(period)] ?? 0;
   const creditsText =
@@ -342,11 +346,19 @@ function Candidate({ round, period, picked, elsewhere, warnings, onToggle }: Can
       <button
         type="button"
         onClick={onToggle}
+        disabled={inOtherYear}
         aria-pressed={picked}
-        aria-label={picked ? `Remove ${round.name} from your year` : `Add ${round.name} to your year`}
+        aria-label={
+          inOtherYear
+            ? `${round.name} is in year ${elsewhere.year}`
+            : picked
+              ? `Remove ${round.name} from your year`
+              : `Add ${round.name} to your year`
+        }
         className={cn(
           "grid size-8 place-items-center rounded-full border-2",
           picked ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary",
+          inOtherYear && "cursor-not-allowed opacity-40 hover:border-border",
         )}
       >
         {picked ? <CheckIcon className="size-4" /> : <PlusIcon className="size-4" />}
@@ -371,7 +383,9 @@ function Candidate({ round, period, picked, elsewhere, warnings, onToggle }: Can
         ))}
         {elsewhere && (
           <span className="text-xs text-muted-foreground">
-            In your year in {formatPeriods(elsewhere.periods)}. Adding it here moves it.
+            {elsewhere.year
+              ? `In year ${elsewhere.year} in ${formatPeriods(elsewhere.periods)}.`
+              : `In your year in ${formatPeriods(elsewhere.periods)}. Adding it here moves it.`}
           </span>
         )}
       </div>

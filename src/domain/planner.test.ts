@@ -5,6 +5,7 @@ import {
   candidatesIn,
   creditsIn,
   exclusiveWith,
+  findElsewhere,
   firstOpenPeriod,
   lectureClash,
   periodsOf,
@@ -152,6 +153,27 @@ describe("togglePick", () => {
 
   it("moves a course when another of its rounds is added", () => {
     expect(togglePick(["TDA357.LP2", "DAT026.LP1"], lp3, candidates)).toEqual(["DAT026.LP1", "TDA357.LP3"]);
+  });
+});
+
+describe("findElsewhere", () => {
+  const lp2 = round("TDA357", ["LP2"]);
+  const lp3 = round("TDA357", ["LP3"]);
+
+  it("finds another round of the same course in the current year", () => {
+    expect(findElsewhere(lp3, [lp2], [])).toEqual({ periods: ["LP2"] });
+  });
+
+  it("does not report elsewhere for the round that is picked itself", () => {
+    expect(findElsewhere(lp2, [lp2], [])).toBeUndefined();
+  });
+
+  it("finds the course when picked in another year", () => {
+    expect(findElsewhere(lp2, [], [{ year: 2, key: "TDA357.LP3" }])).toEqual({ year: 2, periods: ["LP3"] });
+  });
+
+  it("returns undefined when the course is not picked anywhere", () => {
+    expect(findElsewhere(lp2, [], [{ year: 2, key: "DAT026.LP1" }])).toBeUndefined();
   });
 });
 
