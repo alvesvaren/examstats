@@ -98,10 +98,43 @@ export type DatedPlan = z.infer<typeof datedPlanSchema>;
 /** The committed file that `pnpm programme-plans` writes and `pnpm snapshot` reads: the plans of every academic year, oldest first. */
 export const programmePlansFileSchema = planInfoSchema.extend({ programmes: z.array(datedPlanSchema) });
 
+/**
+ * The master's programmes of an academic year that Chalmers has announced but not yet published plans for, from its
+ * accreditation matrix and each programme's course list. `pnpm snapshot` writes their plans as that year's.
+ */
+export const upcomingMastersSchema = z.object({
+  /** Academic year the master's programmes start in, such as "2027/2028". */
+  academicYear: z.string(),
+  /** Chalmers' matrix of which programmes lead on to which master's programmes that year. */
+  matrix: z.url(),
+  /** The master's programmes each programme's students can finish their degree with, by programme code. */
+  accreditations: z.record(
+    z.string(),
+    z.array(
+      z.object({
+        code: z.string(),
+        /** Specialisations of the master's programme that the degree needs one of. Empty when any will do. */
+        specialisations: z.array(z.string()),
+      }),
+    ),
+  ),
+  /** Each master's programme's course list on chalmers.se, and the courses on it that the current plans do not give, by year. */
+  masters: z.record(
+    z.string(),
+    z.object({
+      courseList: z.url().nullable(),
+      unplanned: z.array(z.object({ year: z.number().int().positive(), names: z.array(z.string()) })),
+    }),
+  ),
+});
+export type UpcomingMasters = z.infer<typeof upcomingMastersSchema>;
+
 /** What the app knows of the plans before it loads one start year's. */
 export const publishedPlanInfoSchema = planInfoSchema.extend({
   /** The years each programme admitted students in, oldest first, by programme code. */
   starts: z.record(z.string(), z.array(z.number().int())),
+  /** Null once Chalmers publishes the plans of their year. */
+  upcomingMasters: upcomingMastersSchema.nullable(),
 });
 export type PublishedPlanInfo = z.infer<typeof publishedPlanInfoSchema>;
 
@@ -362,13 +395,16 @@ export function cohortPlans(plans: readonly DatedPlan[], start: number): Program
 /**
  * The start year the planner shows a programme for: `requested` when the programme admitted students then, else the
  * newest it did, or the current year without a programme. The master's programme after it starts
- * `MASTER_START_YEAR - 1` years later. Until Chalmers publishes the plans of that year, it follows the current plans,
- * and `mastersPublished` is false.
+ * `MASTER_START_YEAR - 1` years later. Until Chalmers publishes the plans of that year, `mastersPublished` is false,
+ * and it follows the upcoming master's programmes when Chalmers has announced them, else the current plans.
  */
-export function cohortOf({ academicYear, starts }: PublishedPlanInfo, programme: string | undefined, requested?: number) {
+export function cohortOf({ academicYear, starts, upcomingMasters }: PublishedPlanInfo, programme: string | undefined, requested?: number) {
   const current = startYearOf(academicYear);
   const admitted = starts[programme ?? ""] ?? [];
   const start = requested !== undefined && admitted.includes(requested) ? requested : (admitted.at(-1) ?? current);
   const masterStart = start + MASTER_START_YEAR - 1;
-  return { start, admitted, masterStart, masterPlans: Math.min(masterStart, current), mastersPublished: masterStart <= current };
+  const mastersPublished = masterStart <= current;
+  const upcoming = mastersPublished ? null : upcomingMasters;
+  const masterPlans = mastersPublished ? masterStart : upcoming ? startYearOf(upcoming.academicYear) : current;
+  return { start, admitted, masterStart, masterPlans, mastersPublished, upcomingMasters: upcoming };
 }

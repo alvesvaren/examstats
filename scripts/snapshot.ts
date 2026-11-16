@@ -1,6 +1,6 @@
 /**
  * Builds the static data the app reads, `public/data/index.json`, one `public/data/plans/<start year>.json` per year
- * that programmes admitted students in, and one
+ * that programmes admitted students in, and one per year of upcoming master's programmes, and one
  * `public/data/courses/<code>.json` per course, from the committed files in `data/`. It reads no network, so builds never depend on the sources being up.
  */
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -15,8 +15,10 @@ import {
   placementsByCourse,
   programmePlansFileSchema,
   startYearOf,
+  type ProgrammePlan,
   type PublishedPlan,
 } from "../src/domain/programme-plans.ts";
+import { upcomingMasters, upcomingMastersFileSchema } from "../src/domain/upcoming-masters.ts";
 
 const env = z
   .object({
@@ -25,6 +27,7 @@ const env = z
     EVALUATIONS_FILE: z.string().default("data/evaluations.json"),
     PLANS_FILE: z.string().default("data/programme-plans.json"),
     NAMES_FILE: z.string().default("data/names.json"),
+    UPCOMING_MASTERS_FILE: z.string().default("data/upcoming-masters.json"),
   })
   .parse(process.env);
 
@@ -38,20 +41,21 @@ const readJson = async <T>(file: string, schema: z.ZodType<T>) => schema.parse(J
 
 async function main() {
   const today = new Date();
-  const [results, evaluations, plans, names] = await Promise.all([
+  const [results, evaluations, plans, names, upcomingFile] = await Promise.all([
     readJson(env.RESULTS_FILE, resultsFileSchema),
     readJson(env.EVALUATIONS_FILE, evaluationFileSchema),
     readJson(env.PLANS_FILE, programmePlansFileSchema),
     readJson(env.NAMES_FILE, namesFileSchema),
+    readJson(env.UPCOMING_MASTERS_FILE, upcomingMastersFileSchema),
   ]);
   const courseNames = new Map(names.courses.map(({ code, ...n }) => [code, n]));
   // A programme can have results under a code Chalmers no longer names, or a plan but no results yet.
   const programmeCodes = new Set([...Object.keys(results.programmes), ...Object.keys(names.programmes)]);
   const { programmes: programmePlans, ...planInfo } = plans;
-  const placements = placementsByCourse(
-    programmePlans.filter((p) => p.academicYear === planInfo.academicYear),
-    planInfo.ruleNames,
-  );
+  const currentPlans = programmePlans.filter((p) => p.academicYear === planInfo.academicYear);
+  const placements = placementsByCourse(currentPlans, planInfo.ruleNames);
+  // The upcoming master's programmes retire once Chalmers publishes the plans of their year.
+  const upcoming = upcomingFile.academicYear > planInfo.academicYear ? upcomingMasters(upcomingFile, currentPlans, names.courses) : null;
   const starts = [...new Set(programmePlans.map((p) => startYearOf(p.academicYear)))].toSorted((a, b) => a - b);
   const roundsByCode = Map.groupBy(evaluations.rounds, (r) => r.code);
   /** Survey rounds of a course, newest first. */
@@ -90,6 +94,7 @@ async function main() {
           dated.map((p) => startYearOf(p.academicYear)).toSorted((a, b) => a - b),
         ]),
       ),
+      upcomingMasters: upcoming?.info ?? null,
     },
     programmes: Object.fromEntries(
       [...programmeCodes].toSorted().map((code) => [code, nameOf(names.programmes[code], results.programmes[code] ?? code)]),
@@ -98,16 +103,20 @@ async function main() {
   };
   await writeFile(path.join(env.OUT_DIR, "index.json"), JSON.stringify(snapshot, roundNumbers));
   // Older plans name courses and programmes as they were named then, often in capitals.
+  const publish = (plan: ProgrammePlan): PublishedPlan => ({
+    ...plan,
+    ...nameOf(names.programmes[plan.code], plan.name),
+    years: plan.years.map((year) => ({
+      ...year,
+      courses: year.courses.map((course) => ({ ...course, ...nameOf(courseNames.get(course.code), course.name) })),
+    })),
+  });
   for (const start of starts) {
-    const published: PublishedPlan[] = cohortPlans(programmePlans, start).map((plan) => ({
-      ...plan,
-      ...nameOf(names.programmes[plan.code], plan.name),
-      years: plan.years.map((year) => ({
-        ...year,
-        courses: year.courses.map((course) => ({ ...course, ...nameOf(courseNames.get(course.code), course.name) })),
-      })),
-    }));
-    await writeFile(path.join(plansDir, `${start}.json`), JSON.stringify(published));
+    await writeFile(path.join(plansDir, `${start}.json`), JSON.stringify(cohortPlans(programmePlans, start).map(publish)));
+  }
+  if (upcoming) {
+    const start = startYearOf(upcoming.info.academicYear);
+    await writeFile(path.join(plansDir, `${start}.json`), JSON.stringify(upcoming.plans.map(publish)));
   }
   console.log(`Wrote ${courses.length} courses and ${Object.keys(snapshot.programmes).length} programmes to ${env.OUT_DIR}`);
 }

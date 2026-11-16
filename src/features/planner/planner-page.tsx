@@ -11,7 +11,15 @@ import { academicYearOf, cohortOf, MASTER_START_YEAR, studyYears, tracksOf, type
 import { useLanguage } from "@/hooks/use-language";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import { PLANNER_HEADING } from "@/lib/page-meta";
-import { ChalmersLink, MasterPicker, MastersNotPublished, Prerequisites } from "./master-picker";
+import {
+  ChalmersLink,
+  MasterPicker,
+  type Accreditation,
+  MastersNotPublished,
+  Prerequisites,
+  Specialisations,
+  UnplannedCourses,
+} from "./master-picker";
 import { ProgrammeSearch } from "./programme-search";
 import { YearPlanner } from "./year-planner";
 
@@ -38,7 +46,17 @@ export function PlannerPage() {
 
   const update = (changes: Partial<PlannerSearch>) =>
     navigate({ search: (prev) => ({ ...prev, ...changes }), replace: true, resetScroll: false });
-  const masters = masterPlans.filter((p) => programme.masters.includes(p.code));
+  // Upcoming master's programmes come with their own accreditations, since the programme syllabus names the current ones.
+  const upcoming = cohort.upcomingMasters;
+  const accredited = new Map<string, Accreditation>(
+    upcoming
+      ? (upcoming.accreditations[programme.code] ?? []).map(({ code, specialisations }) => [
+          code,
+          { specialisations, courseList: upcoming.masters[code]?.courseList ?? null },
+        ])
+      : programme.masters.map((code) => [code, { specialisations: [], courseList: null }]),
+  );
+  const masters = masterPlans.filter((p) => accredited.has(p.code));
   // A master's programme in the URL is a shared plan and wins. Without one, the degree is as this device remembers it.
   const masterCode = search.master ?? memory.masters[programme.code];
   const master = masters.find((p) => p.code === masterCode);
@@ -88,6 +106,9 @@ export function PlannerPage() {
     void update({ start: next, track: undefined, period: undefined });
   };
   const showsMasters = Boolean(master) || choosingMaster;
+  const masterAccreditation = master && accredited.get(master.code);
+  const unplanned =
+    master && current?.plan === master ? upcoming?.masters[master.code]?.unplanned.find((u) => u.year === current.year)?.names : undefined;
 
   return (
     <div className="flex flex-col gap-5">
@@ -106,9 +127,10 @@ export function PlannerPage() {
         {master && (
           <p className="text-muted-foreground">
             Years 4 and 5: <span className="font-medium text-foreground">{master.name}</span> · {master.code}{" "}
-            <ChalmersLink code={master.code} />
+            <ChalmersLink code={master.code} courseList={masterAccreditation?.courseList} />
           </p>
         )}
+        {masterAccreditation && <Specialisations names={masterAccreditation.specialisations} className="text-sm" />}
         {master && master.prerequisites.length > 0 && (
           <Prerequisites paragraphs={master.prerequisites} className="text-sm">
             Prerequisites of {master.code}
@@ -180,10 +202,20 @@ export function PlannerPage() {
         )}
       </div>
 
-      {showsMasters && !cohort.mastersPublished && <MastersNotPublished year={cohort.masterStart} shown={catalog.plans.academicYear} />}
+      {showsMasters && !cohort.mastersPublished && (
+        <MastersNotPublished year={cohort.masterStart} shown={catalog.plans.academicYear} upcoming={upcoming} />
+      )}
+      {master && unplanned && (
+        <UnplannedCourses
+          master={master.code}
+          names={unplanned}
+          shown={catalog.plans.academicYear}
+          courseList={masterAccreditation?.courseList ?? null}
+        />
+      )}
 
       {choosingMaster ? (
-        <MasterPicker programme={programme} masters={masters} catalog={catalog} onChoose={chooseMaster} />
+        <MasterPicker programme={programme} masters={masters} accredited={accredited} catalog={catalog} onChoose={chooseMaster} />
       ) : current === undefined ? (
         <p className="text-muted-foreground">{PLANNER_HEADING} has no courses for this programme yet.</p>
       ) : (
