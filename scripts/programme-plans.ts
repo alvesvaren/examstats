@@ -13,6 +13,7 @@ import path from "node:path";
 import { z } from "zod";
 import {
   academicYearOf,
+  comparePeriods,
   roundOf,
   startYearOf,
   STUDY_PERIODS,
@@ -221,7 +222,7 @@ function toCourses(moments: readonly Moment[]): Omit<PlanCourse, "examiners" | "
     moments.filter((m) => !m.cancelled),
     (m) => m.ppId,
   );
-  return [...groups.values()].map((group) => {
+  const courses = [...groups.values()].map((group) => {
     const first = group[0]!;
     const rows = [...new Map(group.map((m) => [`${m.moduleCode}|${m.studyPerodId}`, m])).values()];
     const byPeriod = Map.groupBy(
@@ -249,6 +250,14 @@ function toCourses(moments: readonly Moment[]): Omit<PlanCourse, "examiners" | "
       themes: [...themes].map(([theme, credits]) => ({ theme, credits })).toSorted((a, b) => a.theme.localeCompare(b.theme)),
     };
   });
+  // The API returns the entries of a course listed under several tracks in a different order each time.
+  return courses.toSorted(
+    (a, b) =>
+      comparePeriods(a.periods, b.periods) ||
+      a.code.localeCompare(b.code) ||
+      (a.track ?? "").localeCompare(b.track ?? "") ||
+      a.rule.localeCompare(b.rule),
+  );
 }
 
 /** A programme can lead to several degrees that ask the same. Each theme keeps its largest demand, and each list of courses shows once. */
