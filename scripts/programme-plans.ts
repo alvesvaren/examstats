@@ -53,7 +53,14 @@ const env = z
   })
   .parse(process.env);
 
-const RETRIES = 3;
+const RETRIES = 6;
+/**
+ * From GitHub's runners the API at times answers 403 to every request for a while, so retries back off long enough
+ * to outlast that: 5 s, 10 s, 20 s, 40 s and 80 s.
+ */
+const RETRY_DELAY_MS = 5_000;
+/** Enough of an error response to tell an API error from a firewall page in the log. */
+const ERROR_BODY_LENGTH = 200;
 const HEADERS = { "User-Agent": "u345 course stats (+https://github.com/alvesvaren/examstats)" };
 /** Larger than the number of programmes in a year, so one page lists them all. */
 const LIST_SIZE = 1000;
@@ -172,11 +179,16 @@ async function get<T>(endpoint: string, variables: object, schema: z.ZodType<T>)
   for (let attempt = 1; ; attempt++) {
     try {
       const response = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(60_000) });
-      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      if (!response.ok) {
+        const body = (await response.text()).slice(0, ERROR_BODY_LENGTH);
+        throw new Error(`${response.status} ${response.statusText}: ${body}`);
+      }
       return schema.parse(await response.json());
     } catch (error) {
       if (attempt >= RETRIES) throw new Error(`GET ${url} failed`, { cause: error });
-      await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
+      const delay = RETRY_DELAY_MS * 2 ** (attempt - 1);
+      console.warn(`GET ${url} failed, retrying in ${delay / 1000} s: ${error instanceof Error ? error.message : String(error)}`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 }
