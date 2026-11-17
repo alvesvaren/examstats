@@ -11,13 +11,15 @@ import {
 import type { Prerequisite, PrerequisiteSnapshot } from "./prerequisites.ts";
 import { roundKey, type PlanCourse, type ProgrammePlan, type StudyPeriod } from "./programme-plans.ts";
 
-const edge = (to: string, source: string, overrides: Partial<Prerequisite> = {}): Prerequisite => ({
+/** An edge asked for on its own, unless `overrides` puts it in a group. */
+const edge = (to: string, overrides: Partial<Prerequisite> = {}): Prerequisite => ({
   to,
   strength: "required",
   via: to.startsWith("topic:") ? "topic" : "code",
   credits: null,
   writtenAs: null,
-  source,
+  group: null,
+  source: `About ${to}.`,
   ...overrides,
 });
 
@@ -46,6 +48,7 @@ const snapshot: PrerequisiteSnapshot = {
     syllabus("LMA017", "Mathematical analysis in several variables"),
     syllabus("MVE655", "Multivariable analysis"),
     syllabus("EDA452", "Introduction to computer engineering"),
+    syllabus("DAT495", "Data structures and algorithms"),
   ],
 };
 const lookup = prerequisiteLookup(snapshot);
@@ -95,20 +98,18 @@ describe("subjectsOf", () => {
 });
 
 describe("checkPrerequisites", () => {
-  const algorithms =
-    "Mathematics (at least 15cr including Calculus (at least 6 cr.) and Linear Algebra (at least 6 cr.)), Programming in a General-Purpose Language (at least 7,5 cr.) (e.g. C/C++/Java/Haskell or similar), Algorithms and/or Data Structures (at least 5 cr.) and one of the following courses: Discrete Mathematics or Mathematical Statistics or Probability Theory";
   const algorithmsEdges = [
-    edge("topic:mathematics", algorithms, { credits: 15 }),
-    edge("topic:linear-algebra", algorithms, { credits: 6 }),
-    edge("topic:calculus", algorithms, { credits: 6 }),
-    edge("topic:probability", algorithms),
-    edge("topic:statistics", algorithms),
-    edge("topic:discrete-mathematics", algorithms),
-    edge("topic:programming", algorithms, { credits: 7.5 }),
-    edge("topic:algorithms", algorithms, { credits: 5 }),
+    edge("topic:mathematics", { credits: 15 }),
+    edge("topic:calculus", { credits: 6 }),
+    edge("topic:linear-algebra", { credits: 6 }),
+    edge("topic:programming", { credits: 7.5 }),
+    edge("topic:algorithms", { credits: 5 }),
+    edge("topic:discrete-mathematics", { group: 1 }),
+    edge("topic:statistics", { group: 1 }),
+    edge("topic:probability", { group: 1 }),
   ];
 
-  it("requires each subject a list joins with commas and 'and', and one of those 'or' joins", () => {
+  it("asks for each edge on its own, and for one edge of a group, with the courses that meet them", () => {
     const groups = checkPrerequisites(algorithmsEdges, lookup, { taken: firstYears, offered: firstYears, programmes: ["TKDAT"] });
     expect(summary(groups)).toEqual([
       { nodes: ["mathematics"], strength: "required", met: true, fixes: [] },
@@ -135,37 +136,32 @@ describe("checkPrerequisites", () => {
     expect(linearAlgebra).toMatchObject({ met: false, fixes: [linear] });
   });
 
-  it("lets the examples after 'e.g.' stand in for the subject they illustrate", () => {
-    const text = "at least 15 credits in programming, e.g., TDA548, TDA553, TDA367, or equivalent,";
-    const edges = [edge("TDA548", text), edge("TDA553", text), edge("TDA367", text), edge("topic:programming", text, { credits: 15 })];
-    const groups = checkPrerequisites(edges, lookup, { taken: firstYears, offered: firstYears, programmes: [] });
-    expect(summary(groups)).toEqual([{ nodes: ["programming", "TDA548", "TDA553", "TDA367"], strength: "required", met: true, fixes: [] }]);
-  });
-
-  it("reads a course code and its title as one course, met by the course that replaced it", () => {
-    const text =
-      "The courses TDA452 Functional programming, TMV210 Introduction to discrete mathematics and at least one of the courses DAT151 Programming language technology or DAT121 Programming paradigms or equivalent are required.";
+  it("meets a course by the course that replaced it, and offers every course of a group not met", () => {
     const edges = [
-      edge("TDA452", text),
-      edge("TMV211", text, { writtenAs: "TMV210" }),
-      edge("DAT151", text),
-      edge("DAT121", text),
-      edge("topic:functional-programming", text),
+      edge("TMV211", { writtenAs: "TMV210" }),
+      edge("DAT151", { group: 1 }),
+      edge("topic:concurrent-programming", { group: 1 }),
     ];
-    const groups = checkPrerequisites(edges, lookup, { taken: firstYears, offered: firstYears, programmes: [] });
+    const taken = [course("TMV210", 1, ["LP2"])];
+    const offered = [...taken, course("DAT151", 2, ["LP1"]), course("TDA384", 2, ["LP3"])];
+    const named = { ...offered[2]!, name: "Principles of concurrent programming" };
+    const groups = checkPrerequisites(edges, lookup, { taken, offered: [offered[0]!, offered[1]!, named], programmes: [] });
     expect(summary(groups)).toEqual([
-      { nodes: ["TDA452", "functional-programming"], strength: "required", met: true, fixes: [] },
       { nodes: ["TMV211"], strength: "required", met: true, fixes: [] },
-      { nodes: ["DAT151", "DAT121"], strength: "required", met: false, fixes: [] },
+      { nodes: ["DAT151", "concurrent-programming"], strength: "required", met: false, fixes: ["DAT151", "TDA384"] },
     ]);
   });
 
+  it("meets a course by one of the same name that another programme gives under its own code", () => {
+    const groups = checkPrerequisites([edge("DAT495")], lookup, { taken: firstYears, offered: firstYears, programmes: [] });
+    expect(groups[0]).toMatchObject({ met: true, items: [{ by: [firstYears[5]] }] });
+  });
+
   it("meets a programme by being in it, and lists recommendations after requirements", () => {
-    const required = "A bachelor's degree from TKDAT or the equivalent.";
-    const recommended = "Preferable course experience: Multivariable Analysis.";
     const edges = [
-      edge("topic:multivariable-calculus", recommended, { strength: "recommended" }),
-      edge("programme:TKDAT", required, { via: "programme" }),
+      edge("topic:multivariable-calculus", { strength: "recommended" }),
+      edge("programme:TKDAT", { via: "programme" }),
+      edge("TDA357", { strength: "excluded" }),
     ];
     const offered = [...firstYears, course("LMA017", 3, ["LP1"]), course("MVE655", 3, ["LP2"])];
     const groups = checkPrerequisites(edges, lookup, { taken: firstYears, offered, programmes: ["TKDAT"] });

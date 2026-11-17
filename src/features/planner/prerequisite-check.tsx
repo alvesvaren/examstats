@@ -85,7 +85,7 @@ function MissingList({ groups, naming }: { groups: readonly PrerequisiteGroup[];
   );
 }
 
-const groupKey = (group: PrerequisiteGroup) => `${group.strength}:${group.source}:${group.items.map((i) => JSON.stringify(i.node)).join()}`;
+const groupKey = (group: PrerequisiteGroup) => group.items.map((i) => JSON.stringify(i.node)).join();
 
 /** Every prerequisite group: met ones with the courses that meet them, and the rest with what would. */
 function AllGroups({ groups, naming }: { groups: readonly PrerequisiteGroup[]; naming: Naming }) {
@@ -95,7 +95,7 @@ function AllGroups({ groups, naming }: { groups: readonly PrerequisiteGroup[]; n
         const required = group.strength === "required";
         const Icon = group.met ? CheckIcon : required ? XIcon : CircleIcon;
         return (
-          <li key={groupKey(group)} className="flex gap-1.5" title={group.source}>
+          <li key={groupKey(group)} className="flex gap-1.5" title={group.sources.join("\n")}>
             <Icon
               className={cn("mt-0.5 size-3.5 shrink-0", group.met ? "text-grade-4" : required ? "text-grade-u" : "text-muted-foreground")}
               aria-label={group.met ? "Met" : required ? "Missing" : "Recommended, not met"}
