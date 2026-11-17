@@ -24,7 +24,14 @@ import {
   type PlannerRound,
   type PlannerSortKey,
 } from "@/domain/planner";
-import { otherPicks, rememberedPicks, withPicks } from "@/domain/planner-memory";
+import { degreePicks, otherPicks, rememberedPicks, withPicks } from "@/domain/planner-memory";
+import {
+  checkPrerequisites,
+  degreeCourses,
+  endsBefore,
+  type PrerequisiteGroup,
+  type PrerequisiteLookup,
+} from "@/domain/prerequisite-check";
 import {
   plannedCourses,
   planYear,
@@ -38,6 +45,8 @@ import {
 } from "@/domain/programme-plans";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import { formatCount, formatCredits, formatNumber, formatPercent, formatPeriods } from "@/lib/format";
+import { PrerequisiteCheck } from "./prerequisite-check";
+import type { Naming } from "./naming";
 
 const DEFAULT_SORT: PlannerSortKey = "rating";
 /** The add button, the course, its pass rate and its rating. Phones get narrower numbers, so the name keeps its room. */
@@ -68,13 +77,15 @@ interface YearPlannerProps {
   search: YearSearch;
   onChange: (changes: YearSearch) => void;
   catalog: Catalog;
+  lookup: PrerequisiteLookup;
+  naming: Naming;
 }
 
 /**
  * A year of a programme to fill: the study periods with what every student takes already in them, and the courses
  * to choose between for one study period at a time.
  */
-export function YearPlanner({ programme, years, current, track, search, onChange, catalog }: YearPlannerProps) {
+export function YearPlanner({ programme, years, current, track, search, onChange, catalog, lookup, naming }: YearPlannerProps) {
   // The programme whose plan holds this year: the master's programme in years 4 and 5.
   const { plan: yearProgramme, year } = current;
   const { rounds, picks } = planYear(yearProgramme, year, { track, ruleNames: catalog.plans.ruleNames });
@@ -95,8 +106,25 @@ export function YearPlanner({ programme, years, current, track, search, onChange
   const planned = plan.reduce((sum, r) => sum + r.credits, 0);
   // Degree requirements count the whole degree: the compulsory courses and the picks of every year of every plan.
   const plans = [...new Set(years.map((y) => y.plan))];
-  const allPicks = [...other, ...picked.map((r) => ({ programme: yearProgramme.code, year, key: r.key }))];
+  const allPicks = degreePicks(
+    memory,
+    years,
+    current,
+    picked.map((r) => r.key),
+  );
   const courses = plannedCourses(plans, allPicks, track);
+  const degree = degreeCourses(years, allPicks, track);
+  // A course's prerequisites count the courses that end before it starts. A round of several courses has none.
+  const prerequisitesOf = (round: PlannerRound) => {
+    const [code, ...others] = round.codes;
+    if (!code || others.length > 0) return [];
+    const starts = { year: current.number, period: round.periods[0] ?? "Other" };
+    return checkPrerequisites(lookup.edgesOf(code), lookup, {
+      taken: degree.taken.filter((c) => endsBefore(c, starts)),
+      offered: degree.offered.filter((c) => endsBefore(c, starts)),
+      programmes: plans.map((p) => p.code),
+    });
+  };
   const degreeRules = openRequirements(plans, track).map((requirement) => ({
     requirement,
     ...requirementProgress(requirement, courses),
@@ -188,6 +216,8 @@ export function YearPlanner({ programme, years, current, track, search, onChange
               elsewhere={findElsewhere(round, picked, other)}
               warnings={warningsOf(round)}
               marks={marksOf(round)}
+              prerequisites={prerequisitesOf(round)}
+              naming={naming}
               onToggle={() => toggle(round)}
             />
           ))}
@@ -437,10 +467,13 @@ interface CandidateProps {
   warnings: string[];
   /** What the course gives towards the degree requirements the student has to choose courses for. */
   marks: (DegreeRuleProgress & { amount: number })[];
+  /** The course's prerequisites, checked against the courses before it. */
+  prerequisites: PrerequisiteGroup[];
+  naming: Naming;
   onToggle: () => void;
 }
 
-function Candidate({ round, period, picked, elsewhere, warnings, marks, onToggle }: CandidateProps) {
+function Candidate({ round, period, picked, elsewhere, warnings, marks, prerequisites, naming, onToggle }: CandidateProps) {
   const { requirement, stats } = round;
   const inOtherYear = Boolean(elsewhere?.year);
   // A round over several study periods gives only part of its credits in the one listed.
@@ -494,7 +527,13 @@ function Candidate({ round, period, picked, elsewhere, warnings, marks, onToggle
             <DegreeMark key={requirementKey(mark.requirement)} mark={mark} />
           ))}
         </span>
-        <span className="text-xs text-muted-foreground">{details}</span>
+        {prerequisites.length > 0 ? (
+          <PrerequisiteCheck groups={prerequisites} naming={naming} lead={details} className="text-xs">
+            Prerequisites
+          </PrerequisiteCheck>
+        ) : (
+          <span className="text-xs text-muted-foreground">{details}</span>
+        )}
         {warnings.map((warning) => (
           <span key={warning} className="text-xs font-medium text-grade-u">
             {warning}

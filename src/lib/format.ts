@@ -49,3 +49,7 @@ export const formatCredits = (value: number) => `${credits.format(value)} credit
 const list = new Intl.ListFormat(LOCALE, { style: "long", type: "conjunction" });
 /** "Ana Bove and Moa Johansson". */
 export const formatList = (items: readonly string[]) => list.format(items);
+
+const alternatives = new Intl.ListFormat(LOCALE, { style: "long", type: "disjunction" });
+/** "Discrete mathematics, Statistics or Probability". */
+export const formatAlternatives = (items: readonly string[]) => alternatives.format(items);

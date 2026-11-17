@@ -63,3 +63,14 @@ export const withStart = (memory: PlannerMemory, programme: string, start: numbe
   ...memory,
   starts: { ...memory.starts, [programme]: start },
 });
+
+/** The picks of every year of study: `picked` in the `current` one, as the URL or the memory has them, and the remembered ones in the rest. */
+export const degreePicks = (
+  memory: PlannerMemory,
+  years: readonly StudyYear[],
+  current: StudyYear,
+  picked: readonly string[],
+): StudyPick[] => [
+  ...otherPicks(memory, years, current.number),
+  ...picked.map((key) => ({ number: current.number, programme: current.plan.code, year: current.year, key })),
+];

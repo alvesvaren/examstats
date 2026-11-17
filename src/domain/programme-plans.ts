@@ -192,6 +192,9 @@ export function requirementOf(rule: string, choices: readonly Pick<PlanChoice, "
 }
 export type Requirement = ReturnType<typeof requirementOf>;
 
+/** Whether a plan lists a course as one every student of the programme takes. */
+export const isCompulsory = ({ rule }: Pick<PlanCourse, "rule">) => rule === COMPULSORY;
+
 /** Whether a plan lists a course as one to choose, as opposed to a compulsory course or a thesis. */
 export const isElective = ({ rule }: Pick<PlanCourse, "rule">) => rule === ELECTIVE;
 
@@ -324,7 +327,7 @@ export function plannedCourses(plans: readonly ProgrammePlan[], picks: readonly 
     plan.years.flatMap(({ year, courses }) =>
       courses.filter(
         (c) =>
-          (c.rule === COMPULSORY && (c.track === null || c.track === track)) ||
+          (isCompulsory(c) && (c.track === null || c.track === track)) ||
           picks.some((p) => p.programme === plan.code && p.year === year && p.key === roundKey(c.code, c.periods)),
       ),
     ),

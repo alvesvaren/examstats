@@ -4,9 +4,10 @@ import { ArrowLeftIcon, PlusIcon, RepeatIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { catalogQuery, plansQuery } from "@/data/queries";
+import { catalogQuery, plansQuery, prerequisitesQuery } from "@/data/queries";
 import { otherNameOf } from "@/domain/planner";
-import { rememberedPicks, withMaster, withStart } from "@/domain/planner-memory";
+import { degreePicks, rememberedPicks, withMaster, withStart } from "@/domain/planner-memory";
+import { checkPrerequisites, degreeCourses } from "@/domain/prerequisite-check";
 import { academicYearOf, cohortOf, MASTER_START_YEAR, studyYears, tracksOf, type StudyYear } from "@/domain/programme-plans";
 import { useLanguage } from "@/hooks/use-language";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
@@ -15,11 +16,12 @@ import {
   ChalmersLink,
   MasterPicker,
   type Accreditation,
+  MasterPrerequisites,
   MastersNotPublished,
-  Prerequisites,
   Specialisations,
   UnplannedCourses,
 } from "./master-picker";
+import { namingOf } from "./naming";
 import { ProgrammeSearch } from "./programme-search";
 import { YearPlanner } from "./year-planner";
 
@@ -40,6 +42,7 @@ export function PlannerPage() {
   const cohort = cohortOf(catalog.plans, search.programme, search.start ?? memory.starts[search.programme ?? ""]);
   const { data: plans } = useSuspenseQuery(plansQuery(language, cohort.start));
   const { data: masterPlans } = useSuspenseQuery(plansQuery(language, cohort.masterPlans));
+  const { data: lookup } = useSuspenseQuery(prerequisitesQuery);
 
   const programme = plans.find((p) => p.code === search.programme);
   if (!programme) return <ProgrammeSearch programmes={plans} names={catalog.programmes} />;
@@ -107,6 +110,18 @@ export function PlannerPage() {
   };
   const showsMasters = Boolean(master) || choosingMaster;
   const masterAccreditation = master && accredited.get(master.code);
+  // A master's programme's prerequisites count the courses of the years before it, with the picks of each.
+  const picks = current
+    ? degreePicks(memory, years, current, search.picked ?? rememberedPicks(memory, current.plan.code, current.year) ?? [])
+    : [];
+  const beforeMaster = degreeCourses(
+    years.filter((y) => y.number < MASTER_START_YEAR),
+    picks,
+    track,
+  );
+  const checkMaster = (code: string) =>
+    checkPrerequisites(lookup.edgesOfProgramme(code), lookup, { ...beforeMaster, programmes: [programme.code] });
+  const naming = namingOf([programme, ...masters], catalog, lookup);
   const unplanned =
     master && current?.plan === master ? upcoming?.masters[master.code]?.unplanned.find((u) => u.year === current.year)?.names : undefined;
 
@@ -131,10 +146,10 @@ export function PlannerPage() {
           </p>
         )}
         {masterAccreditation && <Specialisations names={masterAccreditation.specialisations} className="text-sm" />}
-        {master && master.prerequisites.length > 0 && (
-          <Prerequisites paragraphs={master.prerequisites} className="text-sm">
+        {master && (
+          <MasterPrerequisites paragraphs={master.prerequisites} groups={checkMaster(master.code)} naming={naming} className="text-sm">
             Prerequisites of {master.code}
-          </Prerequisites>
+          </MasterPrerequisites>
         )}
       </div>
 
@@ -215,7 +230,15 @@ export function PlannerPage() {
       )}
 
       {choosingMaster ? (
-        <MasterPicker programme={programme} masters={masters} accredited={accredited} catalog={catalog} onChoose={chooseMaster} />
+        <MasterPicker
+          programme={programme}
+          masters={masters}
+          accredited={accredited}
+          catalog={catalog}
+          checkMaster={checkMaster}
+          naming={naming}
+          onChoose={chooseMaster}
+        />
       ) : current === undefined ? (
         <p className="text-muted-foreground">{PLANNER_HEADING} has no courses for this programme yet.</p>
       ) : (
@@ -227,6 +250,8 @@ export function PlannerPage() {
           search={search}
           onChange={update}
           catalog={catalog}
+          lookup={lookup}
+          naming={naming}
         />
       )}
     </div>
