@@ -80,9 +80,19 @@ export const lanesOf = (rounds: readonly PlanRound[], always: readonly Lane[] = 
 export const creditsIn = (rounds: readonly PlanRound[], period: StudyPeriod) =>
   tenths(rounds.reduce((sum, r) => sum + (r.periodCredits[r.periods.indexOf(period)] ?? 0), 0));
 
-/** The first study period that `plan` does not fill, or the first lane when it fills every one. */
-export const firstOpenLane = (lanes: readonly Lane[], plan: readonly PlanRound[]) =>
-  lanes.find((lane) => lane !== UNSCHEDULED && creditsIn(plan, lane) < PERIOD_CREDITS) ?? lanes[0];
+/**
+ * The lane the planner opens on: the first study period that `plan` does not fill and that has courses to choose
+ * from, else the first lane with courses to choose from, else the first lane. A year of an upcoming master's
+ * programme can have no known course in any study period, and then opens on the courses without one.
+ */
+export function firstOpenLane(lanes: readonly Lane[], plan: readonly PlanRound[], candidates: readonly PlanRound[]) {
+  const choosable = (lane: Lane) => candidates.some((r) => inLane(r, lane));
+  return (
+    lanes.find((lane) => lane !== UNSCHEDULED && creditsIn(plan, lane) < PERIOD_CREDITS && choosable(lane)) ??
+    lanes.find(choosable) ??
+    lanes[0]
+  );
+}
 
 /** The rounds in `lane`, the best first by `sort`. Rounds without the value go last, ties by name. */
 export function candidatesIn(candidates: readonly PlannerRound[], lane: Lane, sort: PlannerSortKey): PlannerRound[] {

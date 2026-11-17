@@ -154,10 +154,19 @@ describe("lanesOf and firstOpenLane", () => {
     expect(lanesOf([pending], ["LP1", "LP2"])).toEqual(["LP1", "LP2", "Unscheduled"]);
   });
 
-  it("starts in the first study period with room, or the first lane in a full year", () => {
-    expect(firstOpenLane(["LP1", "LP2", "LP3"], plan)).toBe("LP2");
-    expect(firstOpenLane(["LP1"], plan)).toBe("LP1");
-    expect(firstOpenLane(["LP1", "Unscheduled"], plan)).toBe("LP1");
+  it("starts in the first study period with room and courses to choose from", () => {
+    const candidates = [round("D", ["LP2"]), round("E", ["LP3"]), pending];
+    expect(firstOpenLane(["LP1", "LP2", "LP3"], plan, candidates)).toBe("LP2");
+    expect(firstOpenLane(["LP1", "LP2", "LP3", "Unscheduled"], [...plan, round("F", ["LP2"], { credits: 15 })], candidates)).toBe("LP3");
+  });
+
+  it("starts with the courses without study periods when no study period has courses to choose from", () => {
+    expect(firstOpenLane(["LP1", "LP2", "LP3", "LP4", "Unscheduled"], [], [pending])).toBe("Unscheduled");
+  });
+
+  it("starts in the first lane with courses to choose from in a full year, or the first lane of all without any", () => {
+    expect(firstOpenLane(["LP1", "LP3"], plan, [round("E", ["LP3"])])).toBe("LP3");
+    expect(firstOpenLane(["LP1", "Unscheduled"], plan, [])).toBe("LP1");
   });
 });
 

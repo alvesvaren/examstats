@@ -96,7 +96,7 @@ export function YearPlanner({ programme, years, current, track, search, onChange
   const picked = candidates.filter((c) => pickedKeys.includes(c.key));
   const plan = [...fixed, ...picked];
   const lanes = lanesOf([...fixed, ...candidates], courseList ? REGULAR_PERIODS : []);
-  const lane = lanes.find((l) => l === search.period) ?? firstOpenLane(lanes, plan);
+  const lane = lanes.find((l) => l === search.period) ?? firstOpenLane(lanes, plan, candidates);
   const sort = search.sort ?? DEFAULT_SORT;
   if (!lane) return <p className="text-muted-foreground">The plan has no courses for this year.</p>;
 
