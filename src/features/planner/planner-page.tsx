@@ -11,15 +11,7 @@ import { academicYearOf, cohortOf, MASTER_START_YEAR, studyYears, tracksOf, type
 import { useLanguage } from "@/hooks/use-language";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import { PLANNER_HEADING } from "@/lib/page-meta";
-import {
-  ChalmersLink,
-  MasterPicker,
-  type Accreditation,
-  MastersNotPublished,
-  Prerequisites,
-  Specialisations,
-  UnplannedCourses,
-} from "./master-picker";
+import { ChalmersLink, MasterPicker, type Accreditation, MastersNotPublished, Prerequisites, Specialisations } from "./master-picker";
 import { ProgrammeSearch } from "./programme-search";
 import { YearPlanner } from "./year-planner";
 
@@ -107,8 +99,8 @@ export function PlannerPage() {
   };
   const showsMasters = Boolean(master) || choosingMaster;
   const masterAccreditation = master && accredited.get(master.code);
-  const unplanned =
-    master && current?.plan === master ? upcoming?.masters[master.code]?.unplanned.find((u) => u.year === current.year)?.names : undefined;
+  // Courses only an upcoming master's course list names link to that list.
+  const courseList = master && current?.plan === master ? (masterAccreditation?.courseList ?? null) : null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -205,14 +197,6 @@ export function PlannerPage() {
       {showsMasters && !cohort.mastersPublished && (
         <MastersNotPublished year={cohort.masterStart} shown={catalog.plans.academicYear} upcoming={upcoming} />
       )}
-      {master && unplanned && (
-        <UnplannedCourses
-          master={master.code}
-          names={unplanned}
-          shown={catalog.plans.academicYear}
-          courseList={masterAccreditation?.courseList ?? null}
-        />
-      )}
 
       {choosingMaster ? (
         <MasterPicker programme={programme} masters={masters} accredited={accredited} catalog={catalog} onChoose={chooseMaster} />
@@ -227,6 +211,7 @@ export function PlannerPage() {
           search={search}
           onChange={update}
           catalog={catalog}
+          courseList={courseList}
         />
       )}
     </div>

@@ -32,6 +32,13 @@ export const planCourseSchema = z.object({
   examiners: z.array(z.string()),
   /** Credits of each module of the course round, by the module code that results also use. Empty when the round is unknown. */
   modules: z.array(z.object({ code: z.string(), credits: z.number().nonnegative() })),
+  /**
+   * On an upcoming master's programme's course list, but no current plan gives a course of that name. Only its name is
+   * known: it has no code, study periods or credits yet.
+   */
+  pending: z.literal(true).optional(),
+  /** The upcoming master's programme's course list marks the course as preliminary. */
+  preliminary: z.literal(true).optional(),
 });
 
 /**
@@ -118,14 +125,8 @@ export const upcomingMastersSchema = z.object({
       }),
     ),
   ),
-  /** Each master's programme's course list on chalmers.se, and the courses on it that the current plans do not give, by year. */
-  masters: z.record(
-    z.string(),
-    z.object({
-      courseList: z.url().nullable(),
-      unplanned: z.array(z.object({ year: z.number().int().positive(), names: z.array(z.string()) })),
-    }),
-  ),
+  /** Each master's programme's course list on chalmers.se. */
+  masters: z.record(z.string(), z.object({ courseList: z.url().nullable() })),
 });
 export type UpcomingMasters = z.infer<typeof upcomingMastersSchema>;
 
@@ -274,9 +275,10 @@ export function planYear(
   );
   const rounds = [...Map.groupBy(entries, (c) => roundKey(c.code, c.periods))]
     .map(([key, group]) => {
-      const { code, name, credits, periods, periodCredits, block, themes } = group[0]!;
+      const { code, name, credits, periods, periodCredits, block, themes, pending = false } = group[0]!;
+      const preliminary = group.some((c) => c.preliminary);
       /** `codes` holds one course. The planner joins thesis courses that fill the year alike into one round. */
-      return { key, codes: [code], name, credits, periods, periodCredits, block, themes, ...courses.get(code)! };
+      return { key, codes: [code], name, credits, periods, periodCredits, block, themes, pending, preliminary, ...courses.get(code)! };
     })
     .toSorted((a, b) => comparePeriods(a.periods, b.periods) || byName(a, b));
   return {

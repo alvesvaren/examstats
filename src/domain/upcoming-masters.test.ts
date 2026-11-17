@@ -34,6 +34,7 @@ const current = [
     course("DAT400", "Algorithms, advanced course"),
     course("DAT400", "Algorithms, advanced course", { periods: ["LP3"], periodCredits: [7.5] }),
     course("TMA947", "Nonlinear optimization", { periods: ["LP2"] }),
+    course("TIF300", "Nonequilibrium processes", { periods: ["LP4"] }),
   ]),
   plan("TKDAT", [course("TDA101", "Complexity"), course("DAT222", "Complexity")]),
   plan("MPCSC", [course("DAT222", "Complexity")]),
@@ -68,6 +69,7 @@ const file: UpcomingMastersFile = {
         listed("Complexity", { year: 2 }),
         listed("Mathematics for AI", { preliminary: true }),
         listed("Master’s thesis", { requirement: "compulsory", year: 2 }),
+        listed("Non-equilibrium processes", { year: 2 }),
       ],
     },
     {
@@ -86,11 +88,12 @@ describe("upcomingMasters", () => {
   const yearOf = (year: number) => mpcos.years.find((y) => y.year === year)!.courses;
 
   it("places each listed course in every study period it runs in now, by its name in either spelling", () => {
-    expect(yearOf(1).map((c) => [c.code, c.periods, c.rule, c.track])).toEqual([
+    expect(yearOf(1).flatMap((c) => (c.pending ? [] : [[c.code, c.periods, c.rule, c.track]]))).toEqual([
       ["DAT400", ["LP1"], "O", null],
       ["DAT400", ["LP3"], "O", null],
       ["TMA947", ["LP2"], "V", "Algorithms"],
     ]);
+    expect(yearOf(2).find((c) => c.code === "TIF300")).toMatchObject({ name: "Nonequilibrium processes", periods: ["LP4"] });
     expect(yearOf(1)[0]).toMatchObject({ block: "A", examiners: ["Ada Lovelace"], credits: 7.5 });
   });
 
@@ -100,17 +103,34 @@ describe("upcomingMasters", () => {
   });
 
   it("picks the course that master's programmes plan most when a name has several", () => {
-    expect(yearOf(2).map((c) => c.code)).toEqual(["DAT222"]);
+    expect(yearOf(2).find((c) => c.name === "Complexity")?.code).toBe("DAT222");
   });
 
-  it("lists the courses no current plan gives, by year", () => {
-    expect(info.masters.MPCOS).toEqual({
-      courseList: "https://example.com/mpcos.pdf",
-      unplanned: [
-        { year: 1, names: ["Mathematics for AI (preliminary)"] },
-        { year: 2, names: ["Master’s thesis"] },
-      ],
+  it("keeps a course no current plan gives as pending, with only its name", () => {
+    expect(yearOf(1).find((c) => c.pending)).toEqual({
+      code: "new-mathematics-for-artificial-intelligence",
+      name: "Mathematics for AI",
+      credits: 0,
+      periods: [],
+      periodCredits: [],
+      rule: "V",
+      track: null,
+      block: null,
+      choices: [],
+      themes: [],
+      examiners: [],
+      modules: [],
+      preliminary: true,
+      pending: true,
     });
+  });
+
+  it("plans a thesis under the thesis rule", () => {
+    expect(yearOf(2).find((c) => c.name === "Master’s thesis")).toMatchObject({ code: "new-masters-thesis", rule: "X", pending: true });
+  });
+
+  it("links each master's programme's course list", () => {
+    expect(info.masters).toEqual({ MPCOS: { courseList: "https://example.com/mpcos.pdf" }, MPBIO: { courseList: null } });
   });
 
   it("follows the current plan of a master's programme without a course list", () => {
