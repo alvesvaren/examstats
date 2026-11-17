@@ -1,8 +1,11 @@
-import { TOPICS, type TopicId } from "./prerequisite-topics.ts";
+import { PARENT_TOPICS, TOPICS, type TopicId } from "./prerequisite-topics.ts";
 import type { Prerequisite, PrerequisiteSnapshot } from "./prerequisites.ts";
 import { isCompulsory, roundKey, STUDY_PERIODS, type StudyPeriod, type StudyPick, type StudyYear } from "./programme-plans.ts";
 
-/** Broader subjects that a course of a subject also counts towards, as a course in linear algebra counts as mathematics. */
+/**
+ * Broader subjects that a course of a subject also counts towards beyond its parent in `PARENT_TOPICS`, as a course in
+ * linear algebra counts as mathematics.
+ */
 const ALSO_COUNTS_AS: Partial<Record<TopicId, readonly TopicId[]>> = {
   "linear-algebra": ["mathematics"],
   calculus: ["mathematics"],
@@ -18,11 +21,7 @@ const ALSO_COUNTS_AS: Partial<Record<TopicId, readonly TopicId[]>> = {
   "discrete-mathematics": ["mathematics", "logic"],
   logic: ["mathematics"],
   optimization: ["mathematics"],
-  "functional-programming": ["programming"],
-  "object-oriented-programming": ["programming"],
-  "concurrent-programming": ["programming"],
   "machine-oriented-programming": ["programming"],
-  python: ["programming"],
   mechanics: ["physics"],
   "classical-mechanics": ["physics", "mechanics"],
   "quantum-physics": ["physics"],
@@ -47,6 +46,9 @@ const ALSO_COUNTS_AS: Partial<Record<TopicId, readonly TopicId[]>> = {
 /** Course codes of Chalmers' and the University of Gothenburg's mathematics departments, whose courses all count as mathematics. */
 const MATHEMATICS_DEPARTMENT = /^(?:TM[AV]|MV[AE]|MM[AG]|MS[AG]|LMA)\d/;
 
+/** The broader subjects a course of subject `id` also counts towards. */
+const broaderOf = (id: TopicId) => [PARENT_TOPICS[id], ...(ALSO_COUNTS_AS[id] ?? [])].filter((parent) => parent !== undefined);
+
 const isTopicId = (id: string): id is TopicId => Object.hasOwn(TOPICS, id);
 const TOPIC_IDS = Object.keys(TOPICS).filter(isTopicId);
 
@@ -55,7 +57,7 @@ export function subjectsOf(code: string, englishName: string): ReadonlySet<Topic
   const name = englishName.toLowerCase().replace(/\s+/g, " ");
   const named = TOPIC_IDS.filter((id) => TOPICS[id].pattern.test(name));
   const direct: TopicId[] = MATHEMATICS_DEPARTMENT.test(code) ? [...named, "mathematics"] : named;
-  return new Set(direct.flatMap((id) => [id, ...(ALSO_COUNTS_AS[id] ?? [])]));
+  return new Set(direct.flatMap((id) => [id, ...broaderOf(id)]));
 }
 
 /** A node of the prerequisite graph by what it is. */
