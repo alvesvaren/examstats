@@ -13,7 +13,7 @@ export const TOPICS = {
   calculus: {
     label: "Calculus in one variable",
     pattern:
-      /\b(?:calculus in one (?:real )?variable|(?:single|one)[- ]variable (?:calculus|analysis)|calculus|(?:mathematical )?analysis in one (?:real )?variable|mathematical analysis)\b(?! in several)(?<!multi-?variable calculus)/,
+      /\b(?:calculus in one (?:real )?variable|(?:single|one)[- ]variable (?:calculus|analysis)|calculus|(?:mathematical )?analysis in one (?:real )?variable|mathematical analysis)\b(?! in several)(?<!multi-?vari(?:able|ate) calculus)/,
   },
   "multivariable-calculus": {
     label: "Multivariable calculus",

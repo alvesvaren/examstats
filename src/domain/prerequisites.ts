@@ -45,6 +45,11 @@ export const prerequisiteSchema = z.object({
   credits: z.number().positive().nullable(),
   /** The code as the text wrote it, when `to` is the course that replaced it. */
   writtenAs: z.string().nullable(),
+  /**
+   * Alternatives share a group: edges of one course with the same group ask for any one of them, as in "a first course
+   * in machine learning, such as DAT340 or TDA233". Null for an edge that is asked for on its own.
+   */
+  group: z.number().int().positive().nullable(),
   /** The sentence it came from, or the fix's note. */
   source: z.string(),
 });
@@ -52,12 +57,14 @@ export type Prerequisite = z.infer<typeof prerequisiteSchema>;
 
 /**
  * A hand-written correction of the parser. It sets the edge from `from`, a course code or `programme:<code>`, to `to`,
- * replacing what the parser found, and "none" removes it.
+ * replacing what the parser found, and "none" removes it. Without `group` the edge keeps the group the parser gave it.
+ * A new group takes a number the parser does not use for that course.
  */
 export const prerequisiteFixSchema = z.object({
   from: z.string(),
   to: z.string(),
   strength: z.enum([...STRENGTHS, "none"]),
+  group: z.number().int().positive().nullable().optional(),
   note: z.string().optional(),
 });
 export const prerequisiteFixesSchema = z.array(prerequisiteFixSchema);
@@ -117,21 +124,31 @@ const strengthOf = (text: string): Strength | null => (EXCLUDED.test(text) ? "ex
 /** A line this short that recommends, such as "Recommended prerequisites", heads the lines after it. */
 const MAX_HEADING_WORDS = 4;
 
+/** Words that ask for one of what follows them, as in "one of the following courses" or "either". */
+const ONE_OF = /\b(?:(?:one|any) of|either)\b/i;
+
 /**
  * The sentences of a prerequisite text with the strength each inherits. A line that ends in a colon, such as "The
- * following are also recommended:", or a short line that recommends sets the strength of the lines after it.
+ * following are also recommended:", or a short line that recommends sets the strength of the lines after it. A heading
+ * that asks for one of what follows, such as "At least one of the following:", also puts the lines after it in one
+ * `list` of alternatives.
  */
 export function sentencesOf(text: string) {
   let heading: Strength = "required";
-  // A line that goes on in lower case continues the sentence of the line before.
+  let list: string | null = null;
+  // A line that goes on in lower case continues the sentence of the line before, unless that one ended.
   return text
-    .replace(/\n(?=[a-z])/g, " ")
+    .replace(/(?<![.:;])\n(?=[a-z])/g, " ")
     .split("\n")
-    .flatMap((line) => {
+    .flatMap((line, lineIndex) => {
       const inherited = heading;
+      const inList = list;
       const short = line.trim().split(/\s+/).length <= MAX_HEADING_WORDS && strengthOf(line) !== null;
-      if (line.trimEnd().endsWith(":") || short) heading = strengthOf(line) ?? "required";
-      return line.split(SENTENCE_BREAK).map((sentence) => ({ text: sentence.trim(), inherited }));
+      if (line.trimEnd().endsWith(":") || short) {
+        heading = strengthOf(line) ?? "required";
+        list = ONE_OF.test(line) ? `list ${lineIndex}` : null;
+      }
+      return line.split(SENTENCE_BREAK).map((sentence) => ({ text: sentence.trim(), inherited, list: inList }));
     });
 }
 type Sentence = ReturnType<typeof sentencesOf>[number];
@@ -282,63 +299,191 @@ function courseNameAt(text: string, start: number, end: number, subject: boolean
   return pointed || /^[A-Z]/.test(text.slice(start)) || /^\s*(?:[-–•o]\s*|\d+[.)]\s*)?$/.test(before) ? "course" : null;
 }
 
-function edgesInSentence(from: string, sentence: Sentence, index: PrerequisiteIndex) {
+/** The title that follows a course code, up to the next "or", comma, bracket or full stop, or "and" before a capital. */
+const TITLE_AFTER_CODE = /^[\s:–-]*(?=["'A-Z])[^,;()\n]*?(?=\s+(?:or|and\/or)\s|\s+and\s+["'A-Z]|[,;()\n]|\.(?:\s|$)|$)/;
+
+/** Edges a sentence names, each with where in the sentence it is named. */
+interface Mention {
+  edge: Prerequisite;
+  start: number;
+  end: number;
+}
+
+/**
+ * Words between two mentions that ask for either of them: "or" or "/", with at most two other words around it, as in
+ * "probability theory or statistics".
+ */
+const OR_LINK = /^,?\s*(?:(?!and\b)[\w-]+\s+){0,2}(?:(?:and\/)?or|\/)(?:\s+(?!and\b)[\w-]+){0,2}$/;
+const AND_LINK = /^,?\s*and$/;
+/** Words that end in a cue for examples of what came before them, as in "a course in databases (e.g.". */
+const EXAMPLES = /(?:such as|e\.\s?g\.?|for example|for instance|like)[\s,:]*$/i;
+/** Words that start a list of alternatives, as in "one of the following:" or "Examples of this can be:". */
+const LIST = new RegExp(`${ONE_OF.source}|\\bexamples? (?:of|are|include|can)\\b`, "i");
+
+type Link = "adjacent" | "or" | "listOr" | "comma" | "and" | "examples" | null;
+
+/**
+ * Which mentions of a sentence are alternatives, as a group key per mention or null. Mentions joined by "or" or "/"
+ * are, and so is a mention and a code right after it, as in "Electromagnetism (EEM015)". A comma ends such a group,
+ * unless the list ends in ", or" or follows "one of" or "such as". Examples after "such as" or "e.g." are alternatives
+ * together with what they are examples of. "and" ends a group, except in a list after "one of".
+ */
+function groupsOf(mentions: readonly Mention[], gaps: string, sentenceKey: string, list: string | null) {
+  const keys: (string | null)[] = mentions.map(() => list);
+  if (list) return keys;
+  const between = (i: number) => {
+    const raw = gaps.slice(i === 0 ? 0 : mentions[i - 1]!.end, mentions[i]!.start);
+    const clean = raw
+      .replace(/\([^()]*\)/g, " ")
+      .replace(/[()]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return { raw, clean };
+  };
+  const isTopic = (i: number) => mentions[i]!.edge.to.startsWith("topic:");
+  const linkBefore = (i: number): Link => {
+    const { raw, clean } = between(i);
+    const bracketed = /[()]/.test(raw);
+    // A subject and a course right after it, as in "Electromagnetism (EEM015)", are one requirement and its course. Two
+    // subjects side by side, as in "programming (Python)", say one thing more precisely.
+    if (clean === "") return isTopic(i - 1) !== isTopic(i) || (!isTopic(i) && bracketed) ? "adjacent" : null;
+    if (OR_LINK.test(clean)) return clean.startsWith(",") ? "listOr" : "or";
+    if (clean === "," && !bracketed) return "comma";
+    if (AND_LINK.test(clean) && !bracketed) return "and";
+    // The examples' head is the mention right before them, with no other phrase between, as in "programming, e.g.,
+    // TDA548" or "a programming course in Java, e.g. TDA553".
+    const lead = clean.replace(EXAMPLES, "").replace(/,\s*$/, "").trim();
+    if (EXAMPLES.test(clean) && !/,(?!\d)|\band\b|;/.test(lead)) return "examples";
+    return null;
+  };
+
+  /** `members` split at commas into groups, unless the list ends in ", or" and so asks for one of all of them. */
+  const segmentsOf = (members: number[], memberLinks: Link[]) =>
+    memberLinks.includes("listOr")
+      ? [members]
+      : members.reduce<number[][]>(
+          (all, i, at) => (at > 0 && memberLinks[at - 1] === "comma" ? [...all, [i]] : [...all.slice(0, -1), [...(all.at(-1) ?? []), i]]),
+          [],
+        );
+
+  let run: number[] = [];
+  let links: Link[] = [];
+  let listed = false;
+  const close = () => {
+    const examples = links.indexOf("examples");
+    const groups = listed
+      ? [run]
+      : examples === -1
+        ? segmentsOf(run, links)
+        : // The head of the examples joins them with the alternatives it already has, as in "probability or
+          // statistics, for example MVE051".
+          [...segmentsOf(run.slice(0, examples + 1), links.slice(0, examples))].flatMap((segment, at, all) =>
+            at === all.length - 1 ? [[...segment, ...run.slice(examples + 1)]] : [segment],
+          );
+    for (const group of groups.filter((members) => members.length > 1)) {
+      for (const i of group) keys[i] = `${sentenceKey} ${group[0]}`;
+    }
+    run = [];
+    links = [];
+  };
+  for (const [i] of mentions.entries()) {
+    const link = i === 0 ? null : linkBefore(i);
+    // A list after "one of" goes on to the end of the sentence, through titles and "and".
+    const inList = listed && i > 0 && !between(i).raw.includes(";");
+    if (run.length > 0 && (inList || (link !== null && link !== "and"))) {
+      run.push(i);
+      links.push(link ?? "comma");
+      continue;
+    }
+    close();
+    listed = LIST.test(between(i).clean);
+    run = [i];
+  }
+  close();
+  return keys;
+}
+
+function edgesInSentence(from: string, sentence: Sentence, sentenceKey: string, index: PrerequisiteIndex) {
   const { text } = sentence;
-  const edge = (to: string, via: Prerequisite["via"], match: RegExpExecArray, writtenAs: string | null = null): Prerequisite => ({
-    to,
-    strength: strengthAt(sentence, match.index),
-    via,
-    credits: creditsOf(text, match.index, match.index + match[0].length),
-    writtenAs,
-    source: text,
+  const mention = (to: string, via: Prerequisite["via"], match: RegExpExecArray, writtenAs: string | null = null): Mention => ({
+    edge: {
+      to,
+      strength: strengthAt(sentence, match.index),
+      via,
+      credits: creditsOf(text, match.index, match.index + match[0].length),
+      writtenAs,
+      group: null,
+      source: text,
+    },
+    start: match.index,
+    end: match.index + match[0].length,
   });
 
   const codes = [...text.matchAll(COURSE_CODE)].map((match) => {
     const written = `${match[1]}${match[2]}`;
     const code = index.current(written);
-    return edge(code, "code", match, code === written ? null : written);
+    return mention(code, "code", match, code === written ? null : written);
   });
-  const programmeCodes = [...text.matchAll(PROGRAMME_CODE)].map((match) => edge(programmeNode(match[0]), "programme", match));
+  const programmeCodes = [...text.matchAll(PROGRAMME_CODE)].map((match) => mention(programmeNode(match[0]), "programme", match));
 
-  let lower = text.toLowerCase();
+  // The title after a code, as in "TIN093 Algorithms or equivalent", names that course and no subject of its own.
+  let lower = codes.reduce((rest, { end }) => {
+    const title = text.slice(end).match(TITLE_AFTER_CODE)?.[0] ?? "";
+    return blank(rest, end, title.length);
+  }, text.toLowerCase());
   // A master's programme asks for subjects, which its applicants may have studied anywhere, not for Chalmers' courses.
   const courseNames = from.startsWith("programme:")
     ? []
     : index.findCourses(lower.replace(DEGREE, (degree) => " ".repeat(degree.length))).flatMap(({ match, code }) => {
         const kind = courseNameAt(text, match.index, match.index + match[0].length, index.subjects.has(match[0]));
         if (kind) lower = blank(lower, match.index, match[0].length);
-        return kind === "course" ? [edge(index.current(code), "name", match)] : [];
+        return kind === "course" ? [mention(index.current(code), "name", match)] : [];
       });
   const programmeNames = PROGRAMME_CONTEXT.test(text)
     ? index.findProgrammes(lower).map(({ match, code }) => {
         lower = blank(lower, match.index, match[0].length);
-        return edge(programmeNode(code), "name", match);
+        return mention(programmeNode(code), "name", match);
       })
     : [];
 
   const topics = Object.entries(TOPICS).flatMap(([id, { pattern }]) => {
     const match = pattern.exec(lower);
-    return match ? [edge(topicNode(id), "topic", match)] : [];
+    return match ? [mention(topicNode(id), "topic", match)] : [];
   });
 
-  const edges = [...codes, ...courseNames, ...programmeCodes, ...programmeNames, ...topics].filter((e) => e.to !== from);
-  // A sentence that excludes courses from a degree names other things only to describe those courses.
-  return edges.filter((e) => e.strength !== "excluded" || e.via === "code" || e.via === "name");
+  const mentions = [...codes, ...courseNames, ...programmeCodes, ...programmeNames, ...topics]
+    .filter(({ edge }) => edge.to !== from)
+    // A sentence that excludes courses from a degree names other things only to describe those courses.
+    .filter(({ edge }) => edge.strength !== "excluded" || edge.via === "code" || edge.via === "name")
+    .toSorted((a, b) => a.start - b.start);
+  const gaps = mentions.reduce((rest, m) => blank(rest, m.start, m.end - m.start), lower);
+  const keys = groupsOf(mentions, gaps, sentenceKey, sentence.list);
+  // Courses that cannot be in the same degree are each excluded, not alternatives.
+  return mentions.map(({ edge }, i) => ({ edge, group: edge.strength === "excluded" ? null : keys[i]! }));
 }
 
 const STRENGTH_RANK: Record<Strength, number> = { required: 0, recommended: 1, excluded: 2 };
 
 /**
  * The prerequisites a text states for `from`, a course code or `programme:<code>`: one edge per node, with its
- * strongest mention, in order of mention.
+ * strongest mention, in order of mention. A node asked for on its own somewhere leaves its groups. A group left with
+ * one member is none.
  */
-export function parsePrerequisites(from: string, text: string, index: PrerequisiteIndex) {
-  const edges = sentencesOf(text).flatMap((sentence) => edgesInSentence(from, sentence, index));
-  const byNode = Map.groupBy(edges, (e) => e.to);
-  return [...byNode.values()].map((mentions) => {
-    const strongest = mentions.toSorted((a, b) => STRENGTH_RANK[a.strength] - STRENGTH_RANK[b.strength])[0]!;
-    return { ...strongest, credits: strongest.credits ?? mentions.find((m) => m.credits)?.credits ?? null };
+export function parsePrerequisites(from: string, text: string, index: PrerequisiteIndex): Prerequisite[] {
+  const mentions = sentencesOf(text).flatMap((sentence, i) => edgesInSentence(from, sentence, `sentence ${i}`, index));
+  const byNode = Map.groupBy(mentions, ({ edge }) => edge.to);
+  const chosen = [...byNode.values()].map((all) => {
+    const [best] = all.toSorted(
+      (a, b) => STRENGTH_RANK[a.edge.strength] - STRENGTH_RANK[b.edge.strength] || Number(a.group !== null) - Number(b.group !== null),
+    );
+    return { ...best!, credits: best!.edge.credits ?? all.find((m) => m.edge.credits)?.edge.credits ?? null };
   });
+  const sizes = Map.groupBy(
+    chosen.filter((c) => c.group !== null),
+    (c) => c.group,
+  );
+  const numbers = new Map([...sizes].filter(([, members]) => members.length > 1).map(([key], i) => [key, i + 1]));
+  return chosen.map(({ edge, group, credits }) => ({ ...edge, credits, group: (group !== null && numbers.get(group)) || null }));
 }
 
 /** `edges` with the fixes for `from` applied: each fix replaces or removes the edge to its node, or adds one. */
@@ -347,9 +492,22 @@ export function applyFixes(from: string, edges: readonly Prerequisite[], fixes: 
   const fixed = [...own.values()].flatMap((fix): Prerequisite[] =>
     fix.strength === "none"
       ? []
-      : [{ to: fix.to, strength: fix.strength, via: "fix", credits: null, writtenAs: null, source: fix.note ?? "" }],
+      : [
+          {
+            to: fix.to,
+            strength: fix.strength,
+            via: "fix",
+            credits: null,
+            writtenAs: null,
+            group: fix.group === undefined ? (edges.find((e) => e.to === fix.to)?.group ?? null) : fix.group,
+            source: fix.note ?? "",
+          },
+        ],
   );
-  return [...edges.filter((e) => !own.has(e.to)), ...fixed];
+  const all = [...edges.filter((e) => !own.has(e.to)), ...fixed];
+  // A group that the fixes leave with one member asks for that member on its own.
+  const sizes = Map.groupBy(all, (e) => e.group);
+  return all.map((e) => (e.group !== null && (sizes.get(e.group)?.length ?? 0) < 2 ? { ...e, group: null } : e));
 }
 
 export interface PrerequisiteSources {

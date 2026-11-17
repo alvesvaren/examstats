@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { NamesFile } from "./names.ts";
-import { parsePrerequisites, prerequisiteIndex, prerequisiteSnapshot, type CourseSyllabus, type Prerequisite } from "./prerequisites.ts";
+import {
+  applyFixes,
+  parsePrerequisites,
+  prerequisiteIndex,
+  prerequisiteSnapshot,
+  type CourseSyllabus,
+  type Prerequisite,
+} from "./prerequisites.ts";
 
 const syllabus = (code: string, prerequisites: string, overrides: Partial<CourseSyllabus> = {}): CourseSyllabus => ({
   code,
@@ -54,13 +61,13 @@ describe("parsePrerequisites", () => {
       "The course requires at least 7.5 credits of programming, 7.5 credits of probability theory or statistics, and a first course in machine learning, such as DAT340, TDA233 or MVE440.",
     );
     expect(summary(edges)).toEqual([
+      { to: "topic:programming", strength: "required", via: "topic", credits: 7.5 },
+      { to: "topic:probability", strength: "required", via: "topic", credits: 7.5 },
+      { to: "topic:statistics", strength: "required", via: "topic", credits: 7.5 },
+      { to: "topic:machine-learning", strength: "required", via: "topic", credits: null },
       { to: "DAT341", strength: "required", via: "code", credits: null },
       { to: "TDA233", strength: "required", via: "code", credits: null },
       { to: "MVE440", strength: "required", via: "code", credits: null },
-      { to: "topic:probability", strength: "required", via: "topic", credits: 7.5 },
-      { to: "topic:statistics", strength: "required", via: "topic", credits: 7.5 },
-      { to: "topic:programming", strength: "required", via: "topic", credits: 7.5 },
-      { to: "topic:machine-learning", strength: "required", via: "topic", credits: null },
     ]);
   });
 
@@ -106,9 +113,9 @@ describe("parsePrerequisites", () => {
     );
     expect(edges.map(({ to, strength }) => [to, strength])).toEqual([
       ["topic:hydraulics", "recommended"],
+      ["topic:python", "required"],
       ["topic:programming", "required"],
       ["topic:machine-learning", "recommended"],
-      ["topic:python", "required"],
     ]);
   });
 
@@ -149,9 +156,9 @@ describe("parsePrerequisites", () => {
       "Familiarity with state space techniques, as taught in e.g. the course Linear control system design, and linear algebra.",
     );
     expect(summary(edges)).toEqual([
+      { to: "topic:automatic-control", strength: "required", via: "topic", credits: null },
       { to: "SSY285", strength: "required", via: "name", credits: null },
       { to: "topic:linear-algebra", strength: "required", via: "topic", credits: null },
-      { to: "topic:automatic-control", strength: "required", via: "topic", credits: null },
     ]);
   });
 
@@ -170,7 +177,7 @@ describe("parsePrerequisites", () => {
 
   it("does not count a specific kind of programming as programming in general", () => {
     const edges = parse("A completed course in programming, e.g. Object-oriented programming project or functional programming.");
-    expect(edges.map((e) => e.to)).toEqual(["TDA367", "topic:programming", "topic:functional-programming"]);
+    expect(edges.map((e) => e.to)).toEqual(["topic:programming", "TDA367", "topic:functional-programming"]);
   });
 
   it("finds programmes by code, and master's programmes by name where the sentence speaks of a programme", () => {
@@ -193,9 +200,84 @@ describe("parsePrerequisites", () => {
     const edges = parse("Mathematics (including Calculus (at least 7,5 cr.) and Linear Algebra (at least 7,5 cr.)), Programming.");
     expect(summary(edges)).toEqual([
       { to: "topic:mathematics", strength: "required", via: "topic", credits: null },
-      { to: "topic:linear-algebra", strength: "required", via: "topic", credits: 7.5 },
       { to: "topic:calculus", strength: "required", via: "topic", credits: 7.5 },
+      { to: "topic:linear-algebra", strength: "required", via: "topic", credits: 7.5 },
       { to: "topic:programming", strength: "required", via: "topic", credits: null },
+    ]);
+  });
+});
+
+/** The parsed edges as [node, group] pairs. */
+const groups = (text: string) => parse(text).map(({ to, group }) => [to, group]);
+
+describe("parsePrerequisites groups", () => {
+  it("makes examples alternatives to what they are examples of", () => {
+    expect(groups("A first course in machine learning, such as DAT340, TDA233 or MVE440.")).toEqual([
+      ["topic:machine-learning", 1],
+      ["DAT341", 1],
+      ["TDA233", 1],
+      ["MVE440", 1],
+    ]);
+  });
+
+  it("makes mentions joined by 'or' or '/' alternatives, and a comma ends them", () => {
+    expect(groups("SSY085 or SSY121. Linear Algebra, Mathematical Statistics or Probability Theory. TIF305/TIF435, TIF290.")).toEqual([
+      ["SSY085", 1],
+      ["SSY121", 1],
+      ["topic:linear-algebra", null],
+      ["topic:statistics", 2],
+      ["topic:probability", 2],
+      ["TIF305", 3],
+      ["TIF435", 3],
+      ["TIF290", null],
+    ]);
+  });
+
+  it("makes a whole list alternatives when it ends in ', or' or follows 'one of'", () => {
+    expect(groups("Linear algebra, calculus, or statistics. 7.5 credits in one of the areas: databases, algorithms and logic.")).toEqual([
+      ["topic:linear-algebra", 1],
+      ["topic:calculus", 1],
+      ["topic:statistics", 1],
+      ["topic:databases", 2],
+      ["topic:algorithms", 2],
+      ["topic:logic", 2],
+    ]);
+  });
+
+  it("makes the lines after a heading that asks for one of them alternatives", () => {
+    expect(groups(["Programming.", "At least one of the following:", "- TDA233", "- SSY340"].join("\n"))).toEqual([
+      ["topic:programming", null],
+      ["TDA233", 1],
+      ["SSY340", 1],
+    ]);
+  });
+
+  it("keeps mentions joined by 'and' apart, also before 'or equivalent'", () => {
+    expect(groups("TDA233 and SSY340 or equivalent. General chemistry, organic chemistry or equivalent.")).toEqual([
+      ["TDA233", null],
+      ["SSY340", null],
+      ["topic:general-chemistry", null],
+      ["topic:organic-chemistry", null],
+    ]);
+  });
+
+  it("makes a subject and the course after it alternatives, but not two subjects side by side", () => {
+    expect(groups("Electromagnetism (EEM015). Basic programming (Python).")).toEqual([
+      ["topic:electromagnetism", 1],
+      ["EEM015", 1],
+      ["topic:programming", null],
+      ["topic:python", null],
+    ]);
+  });
+
+  it("reads the title after a code as part of that course", () => {
+    expect(groups("TIN093 Algorithms or equivalent.")).toEqual([["TIN093", null]]);
+  });
+
+  it("keeps excluded courses apart", () => {
+    expect(groups("The course cannot be included in a degree which contains DAT345 or DAT346.")).toEqual([
+      ["DAT345", null],
+      ["DAT346", null],
     ]);
   });
 });
@@ -204,6 +286,21 @@ const programme = (code: string, prerequisites: string[], courses: string[]) => 
   code,
   prerequisites,
   years: [{ courses: courses.map((c) => ({ code: c })) }],
+});
+
+describe("applyFixes", () => {
+  it("keeps the group the parser gave an edge unless the fix sets one", () => {
+    const edges = parse("A first course in machine learning, such as TDA233 or SSY340.");
+    const fixed = applyFixes("XYZ100", edges, [
+      { from: "XYZ100", to: "TDA233", strength: "recommended" },
+      { from: "XYZ100", to: "SSY340", strength: "required", group: null },
+    ]);
+    expect(fixed.map(({ to, strength, group }) => [to, strength, group])).toEqual([
+      ["topic:machine-learning", "required", 1],
+      ["TDA233", "recommended", 1],
+      ["SSY340", "required", null],
+    ]);
+  });
 });
 
 describe("prerequisiteSnapshot", () => {
