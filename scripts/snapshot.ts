@@ -1,12 +1,13 @@
 /**
- * Builds the static data the app reads, `public/data/index.json` and one `public/data/courses/<code>.json` per
- * course, from the committed files in `data/`. It reads no network, so builds never depend on the sources being up.
+ * Builds the static data the app reads, `public/data/index.json`, one `public/data/courses/<code>.json` per course
+ * and the prerequisite graph `public/data/prerequisites.json`, from the committed files in `data/`. It reads no network, so builds never depend on the sources being up.
  */
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { summarizeCourse } from "../src/domain/course-stats.ts";
 import { compareRounds, evaluationFileSchema, summarizeEvaluations, type EvaluationRound } from "../src/domain/evaluation.ts";
+import { prerequisiteFixesSchema, prerequisiteSnapshot, syllabiFileSchema } from "../src/domain/prerequisites.ts";
 import { resultsFileSchema, type CourseDetail, type Snapshot } from "../src/domain/snapshot.ts";
 
 const env = z
@@ -14,6 +15,8 @@ const env = z
     OUT_DIR: z.string().default("public/data"),
     RESULTS_FILE: z.string().default("data/results.json"),
     EVALUATIONS_FILE: z.string().default("data/evaluations.json"),
+    SYLLABI_FILE: z.string().default("data/syllabi.json"),
+    PREREQUISITE_FIXES_FILE: z.string().default("data/prerequisite-fixes.json"),
   })
   .parse(process.env);
 
@@ -27,9 +30,11 @@ const readJson = async <T>(file: string, schema: z.ZodType<T>) => schema.parse(J
 
 async function main() {
   const today = new Date();
-  const [results, evaluations] = await Promise.all([
+  const [results, evaluations, syllabi, fixes] = await Promise.all([
     readJson(env.RESULTS_FILE, resultsFileSchema),
     readJson(env.EVALUATIONS_FILE, evaluationFileSchema),
+    readJson(env.SYLLABI_FILE, syllabiFileSchema),
+    readJson(env.PREREQUISITE_FIXES_FILE, prerequisiteFixesSchema),
   ]);
   const roundsByCode = Map.groupBy(evaluations.rounds, (r) => r.code);
   /** Survey rounds of a course, newest first. */
@@ -55,7 +60,10 @@ async function main() {
     courses,
   };
   await writeFile(path.join(env.OUT_DIR, "index.json"), JSON.stringify(snapshot, roundNumbers));
+  const prerequisites = prerequisiteSnapshot(syllabi, fixes);
+  await writeFile(path.join(env.OUT_DIR, "prerequisites.json"), JSON.stringify(prerequisites));
   console.log(`Wrote ${courses.length} courses and ${Object.keys(results.programmes).length} programmes to ${env.OUT_DIR}`);
+  console.log(`Wrote the prerequisites of ${prerequisites.courses.length} courses, with ${fixes.length} fixes`);
 }
 
 await main();
