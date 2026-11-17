@@ -19,6 +19,7 @@ const names: NamesFile = {
     MPSYS: named("Systems, control and mechatronics"),
     MPALG: named("Computer science - algorithms, languages and logic"),
     TKMAS: named("Mechanical engineering"),
+    MPSCM: named("Supply chain management"),
   },
   courses: [
     { code: "SSY285", ...named("Linear control system design") },
@@ -29,10 +30,18 @@ const names: NamesFile = {
     { code: "DAT340", ...named("Applied machine learning") },
     { code: "DAT341", ...named("Applied machine learning") },
     { code: "TDA233", ...named("Algorithms for machine learning and inference") },
+    { code: "DAT420", ...named("Human - computer interaction") },
+    { code: "DAT610", ...named("Human - computer interaction") },
+    { code: "DAT050", ...named("Object oriented programming") },
+    { code: "TDA548", ...named("Introductory software development") },
   ],
 };
 
-const syllabi = [syllabus("DAT341", "", { replaces: ["DAT340"] }), syllabus("TDA233", "")];
+const syllabi = [
+  syllabus("DAT341", "", { replaces: ["DAT340"] }),
+  syllabus("TDA233", ""),
+  syllabus("DAT610", "", { name: "Human - computer interaction" }),
+];
 
 const parse = (text: string, from = "XYZ100") => parsePrerequisites(from, text, prerequisiteIndex(syllabi, names));
 
@@ -74,9 +83,65 @@ describe("parsePrerequisites", () => {
     ]);
   });
 
+  it("points an old course code at the course given this year under its name", () => {
+    expect(parse("The course DAT420 or equivalent.")).toMatchObject([{ to: "DAT610", writtenAs: "DAT420" }]);
+  });
+
   it("marks a course that cannot be in the same degree as excluded", () => {
-    const edges = parse("The course can not be included in a degree together with the course TIN321 Programming languages.");
-    expect(summary(edges)).toEqual([{ to: "TIN321", strength: "excluded", via: "code", credits: null }]);
+    const edges = parse(
+      "The course can not be included in a degree together with the course TIN321 Programming languages. The course cannot be included in a degree which contains (or is based on another degree which contains) the course DAT345.",
+    );
+    expect(summary(edges)).toEqual([
+      { to: "TIN321", strength: "excluded", via: "code", credits: null },
+      { to: "DAT345", strength: "excluded", via: "code", credits: null },
+    ]);
+  });
+
+  it("lets a recommendation reach the phrases of its sentence unless another phrase requires", () => {
+    const edges = parse(
+      [
+        "Recommended: courses in hydraulics, hydrology.",
+        "Experience of Python programming is essential, prior experience with machine learning is highly recommended.",
+      ].join("\n"),
+    );
+    expect(edges.map(({ to, strength }) => [to, strength])).toEqual([
+      ["topic:hydraulics", "recommended"],
+      ["topic:programming", "required"],
+      ["topic:machine-learning", "recommended"],
+      ["topic:python", "required"],
+    ]);
+  });
+
+  it("keeps a recommendation in brackets or after 'preferably' to its own phrase", () => {
+    const edges = parse(
+      [
+        "7.5 credits of programming (Python experience desirable but not absolutely required).",
+        "Good knowledge of calculus, preferably in Matlab.",
+        "Linear algebra (recommended).",
+      ].join("\n"),
+    );
+    expect(edges.map(({ to, strength }) => [to, strength])).toEqual([
+      ["topic:programming", "required"],
+      ["topic:python", "recommended"],
+      ["topic:calculus", "required"],
+      ["topic:matlab", "recommended"],
+      ["topic:linear-algebra", "recommended"],
+    ]);
+  });
+
+  it("reads a short line that recommends as a heading, and a line in lower case as the sentence going on", () => {
+    const edges = parse(["Basic course in Linear algebra and", "statistics.", "Recommended prerequisites", "DAT050"].join("\n"));
+    expect(edges.map(({ to, strength }) => [to, strength])).toEqual([
+      ["topic:linear-algebra", "required"],
+      ["topic:statistics", "required"],
+      ["DAT050", "recommended"],
+    ]);
+  });
+
+  it("reads a decimal comma in a credit count", () => {
+    expect(summary(parse("A course of 7,5 hp in programming."))).toEqual([
+      { to: "topic:programming", strength: "required", via: "topic", credits: 7.5 },
+    ]);
   });
 
   it("finds a course by its unique name, but not a name that several courses share", () => {
@@ -90,6 +155,15 @@ describe("parsePrerequisites", () => {
     ]);
   });
 
+  it("reads a course name that only says a subject as the subject, unless the text points at the course", () => {
+    expect(parse("Knowledge in object oriented programming.").map((e) => e.to)).toEqual(["topic:object-oriented-programming"]);
+    expect(parse("Passed the course Object oriented programming.").map((e) => e.to)).toEqual(["DAT050"]);
+  });
+
+  it("reads a name next to a code as that code's title", () => {
+    expect(parse("TDA548 Introductory software development, or equivalent.").map((e) => e.to)).toEqual(["TDA548"]);
+  });
+
   it("reads a course name in a degree's subjects as no course", () => {
     expect(parse("BSc in Civil Engineering, Environmental Engineering or equivalent.")).toEqual([]);
   });
@@ -99,11 +173,11 @@ describe("parsePrerequisites", () => {
     expect(edges.map((e) => e.to)).toEqual(["TDA367", "topic:programming", "topic:functional-programming"]);
   });
 
-  it("finds programmes by code and master's programmes by name", () => {
+  it("finds programmes by code, and master's programmes by name where the sentence speaks of a programme", () => {
     const edges = parse(
-      "Course specific prerequisites for MPEPO in the Admission Regulations. Students registered at the programme Systems, control and mechatronics should contact their student centre. Basic courses in mechanical engineering.",
+      "Course specific prerequisites for MPEPO in the Admission Regulations. Students registered at the programme Systems, control and mechatronics should contact their student centre. Basic courses in mechanical engineering and supply chain management.",
     );
-    expect(edges.map((e) => e.to)).toEqual(["programme:MPEPO", "programme:MPSYS"]);
+    expect(edges.map((e) => e.to)).toEqual(["programme:MPEPO", "programme:MPSYS", "topic:logistics"]);
   });
 
   it("keeps one edge per node, the strongest mention", () => {

@@ -7,23 +7,31 @@ export const TOPICS = {
   // Mathematics
   mathematics: {
     label: "Mathematics",
-    pattern: /(?<!(?:discrete|applied|engineering|financial) )\bmathematics\b(?! (?:and|or) (?:mathematical )?statistics)/,
+    pattern: /(?<!(?:discrete|applied|financial) )\bmathematics\b(?! (?:and|or) (?:mathematical )?statistics)/,
   },
   "linear-algebra": { label: "Linear algebra", pattern: /\blinear algebra\b/ },
   calculus: {
     label: "Calculus in one variable",
     pattern:
-      /\b(?:calculus|(?:mathematical )?analysis in one variable|single[- ]variable analysis|mathematical analysis)\b(?! in several)(?<!multi-?variable calculus)/,
+      /\b(?:calculus in one (?:real )?variable|(?:single|one)[- ]variable (?:calculus|analysis)|calculus|(?:mathematical )?analysis in one (?:real )?variable|mathematical analysis)\b(?! in several)(?<!multi-?variable calculus)/,
   },
   "multivariable-calculus": {
     label: "Multivariable calculus",
     pattern:
-      /\b(?:multi-?variable(?: calculus| analysis)?|(?:calculus|analysis) in several variables|several variables|vector (?:analysis|calculus))\b/,
+      /\b(?:multi-?vari(?:able|ate)(?: calculus| analysis)?|(?:calculus|analysis) in several (?:variables|dimensions)|several (?:variables|dimensions)|vector (?:analysis|calculus))\b/,
   },
+  "dynamical-systems": { label: "Dynamical systems", pattern: /\bdynamic(?:al)? systems\b/ },
   "differential-equations": { label: "Differential equations", pattern: /\b(?:ordinary |partial )?differential equations\b/ },
   "numerical-analysis": { label: "Numerical analysis", pattern: /\bnumerical (?:analysis|methods|linear algebra)\b/ },
-  "complex-analysis": { label: "Complex analysis", pattern: /\bcomplex analysis\b/ },
-  transforms: { label: "Transforms", pattern: /\b(?:fourier|laplace|linear|integral)?\s?transforms?\b(?! learning)/ },
+  "complex-analysis": {
+    label: "Complex analysis",
+    pattern: /\bcomplex (?:analysis|variables?|calculus)\b|\banalytic(?:al)? functions\b/,
+  },
+  transforms: {
+    label: "Transforms",
+    pattern:
+      /\b(?:fourier|laplace|linear|integral|z)[- ]transforms?\b|\btransforms\b(?! learning)|\bmathematical transformations\b|\bfourier (?:analysis|series)\b/,
+  },
   probability: { label: "Probability", pattern: /\bprobability\b/ },
   statistics: { label: "Statistics", pattern: /\bstatistic(?:s|al (?:methods|inference|analysis))\b|\bmathematical statistics\b/ },
   "stochastic-processes": { label: "Stochastic processes", pattern: /\b(?:stochastic|random) processes\b/ },
@@ -35,9 +43,9 @@ export const TOPICS = {
   programming: {
     label: "Programming",
     pattern:
-      /(?<!(?:functional|object[- ]oriented|concurrent|parallel|machine[- ]oriented|linear|dynamic|unix|assembler|assembly) )\bprogramming\b(?! language technology)/,
+      /(?<!(?:functional|object[- ]oriented|concurrent|parallel|machine[- ]oriented|linear|dynamic|unix|assembler|assembly) )\bprogramm?ing\b(?! language technology)/,
   },
-  "functional-programming": { label: "Functional programming", pattern: /\bfunctional programming\b|\bhaskell\b/ },
+  "functional-programming": { label: "Functional programming", pattern: /\bfunctional programming\b/ },
   "object-oriented-programming": { label: "Object-oriented programming", pattern: /\bobject[- ]oriented (?:programming|design)\b/ },
   "concurrent-programming": { label: "Concurrent and parallel programming", pattern: /\b(?:concurrent|parallel) programming\b/ },
   "machine-oriented-programming": {
@@ -51,7 +59,8 @@ export const TOPICS = {
   "computer-security": { label: "Computer security", pattern: /\b(?:computer|information|network|cyber) ?security\b/ },
   "computer-organization": {
     label: "Computer organization",
-    pattern: /\bcomputer (?:organi[sz]ation|architecture|engineering)\b|\bdigital (?:design|systems|circuits)\b/,
+    pattern:
+      /\bcomputer (?:organi[sz]ation|architectures?)\b|(?<!\b(?:degree|bachelor'?s?|b\.?sc|programs?|programmes?)\b[^.;]*)\bcomputer engineering\b|\bdigital (?:design|systems|circuits|fundamentals)\b/,
   },
   "distributed-systems": { label: "Distributed systems", pattern: /\bdistributed systems?\b/ },
   "programming-languages": {
@@ -62,7 +71,8 @@ export const TOPICS = {
     label: "Software engineering",
     pattern: /\bsoftware (?:engineering|development)\b(?! (?:degree|programme))/,
   },
-  "interaction-design": { label: "Interaction design", pattern: /\binteraction design\b|\bhuman[- ]computer interaction\b/ },
+  "interaction-design": { label: "Interaction design", pattern: /\binteraction design\b|\bhuman\s*-?\s*computer\s+interaction\b/ },
+  "image-analysis": { label: "Image analysis", pattern: /\bimage (?:analysis|processing)\b|\bcomputer vision\b/ },
   "machine-learning": { label: "Machine learning", pattern: /\bmachine learning\b|\bdeep learning\b|\bneural networks\b/ },
   "artificial-intelligence": { label: "Artificial intelligence", pattern: /\bartificial intelligence\b/ },
   matlab: { label: "Matlab", pattern: /\bmatlab\b/ },
@@ -77,22 +87,26 @@ export const TOPICS = {
   mechanics: {
     label: "Mechanics",
     pattern:
-      /(?<!(?:fluid|quantum|solid|statistical|continuum|structural|soil|rock|fracture|classical|analytical) )\bmechanics\b(?! and strength)/,
+      /(?<!(?:fluid|quantum|solid|statistical|continuum|structural|soil|rock|fracture|classical|analytical) )\bmechanics\b(?! and strength)|\bstatics\b|\bkinematics\b|\brigid bod(?:y|ies)\b|\bdynamics of particles\b/,
   },
   "classical-mechanics": { label: "Classical mechanics", pattern: /\b(?:classical|analytical) mechanics\b/ },
   "quantum-physics": { label: "Quantum physics", pattern: /\bquantum (?:physics|mechanics|theory)\b/ },
   electromagnetism: {
     label: "Electromagnetism",
-    pattern: /\belectromagnet(?:ism|ics|ic field theory|ic fields?|ic theory)\b|\belectrodynamics\b/,
+    pattern: /\belectromagnet(?:ism|ics|ic field theory|ic fields?|ic theory|ic waves?)\b|\belectrodynamics\b/,
   },
   thermodynamics: { label: "Thermodynamics", pattern: /\bthermodynamics\b/ },
   "statistical-physics": { label: "Statistical physics", pattern: /\bstatistical (?:physics|mechanics)\b/ },
   "solid-state-physics": { label: "Solid state physics", pattern: /\b(?:solid[- ]state|condensed matter) physics\b/ },
   "fluid-mechanics": { label: "Fluid mechanics", pattern: /\bfluid (?:mechanics|dynamics)\b|\bhydrodynamics\b/ },
-  "heat-transfer": { label: "Heat transfer", pattern: /\bheat transfer\b|\btransport (?:phenomena|processes)\b/ },
+  "heat-transfer": {
+    label: "Heat and mass transfer",
+    pattern: /\bheat (?:and mass )?transfer\b|\bmass transfer\b|\b(?:mass )?transport (?:phenomena|processes)\b/,
+  },
   optics: { label: "Optics", pattern: /\boptics\b|\bphotonics\b/ },
   acoustics: { label: "Acoustics", pattern: /\bacoustics\b/ },
   relativity: { label: "Special relativity", pattern: /\b(?:special )?relativity\b/ },
+  astronomy: { label: "Astronomy", pattern: /\bastronomy\b|\bastrophysics\b/ },
   "nuclear-physics": { label: "Nuclear physics", pattern: /\bnuclear (?:physics|engineering|reactor)\b/ },
 
   // Mechanical, civil and materials engineering
@@ -110,6 +124,10 @@ export const TOPICS = {
     pattern: /\bmaterials? (?:science|engineering|technology)\b|\bengineering materials\b/,
   },
   geotechnics: { label: "Geology and geotechnics", pattern: /\bgeotechnics?\b|\bgeology\b|\bsoil mechanics\b|\bhydrogeology\b/ },
+  "water-engineering": {
+    label: "Water engineering",
+    pattern: /\b(?:waste|drinking |storm)?water (?:engineering|treatment|chemistry|resources?)\b|\bwastewater\b/,
+  },
   hydraulics: { label: "Hydraulics and hydrology", pattern: /\bhydraulics\b|\bhydrology\b/ },
   "building-physics": { label: "Building physics", pattern: /\bbuilding (?:physics|technology|materials)\b/ },
   "machine-elements": { label: "Machine elements", pattern: /\bmachine (?:elements|design)\b/ },
@@ -118,6 +136,8 @@ export const TOPICS = {
     pattern: /\b(?:manufacturing|production) (?:technology|engineering|processes|systems)\b/,
   },
   cad: { label: "CAD", pattern: /\b(?:3d )?cad\b|\bcomputer[- ]aided (?:design|modell?ing)\b/ },
+  "industrial-design": { label: "Industrial design", pattern: /\bindustrial design\b|\bdesign methodology\b|\bform (?:theory|design)\b/ },
+  "human-factors": { label: "Human factors and ergonomics", pattern: /\bhuman factors\b|\bergonomics\b/ },
   "product-development": { label: "Product development", pattern: /\bproduct (?:development|design|realization)\b/ },
   "combustion-engines": { label: "Combustion engines", pattern: /\bcombustion(?: engines?)?\b/ },
   "vehicle-dynamics": { label: "Vehicle dynamics", pattern: /\bvehicle dynamics\b/ },
@@ -129,7 +149,7 @@ export const TOPICS = {
     label: "Circuit analysis",
     pattern: /\b(?:electric(?:al)? )?circuit (?:analysis|theory)\b|\belectric(?:al)? circuits\b/,
   },
-  electronics: { label: "Electronics", pattern: /\belectronics\b/ },
+  electronics: { label: "Electronics", pattern: /(?<!power )\belectronics\b/ },
   "signals-and-systems": {
     label: "Signals and systems",
     pattern: /\bsignals? and systems\b|\b(?:digital )?signal processing\b|\blinear systems\b/,
@@ -149,12 +169,14 @@ export const TOPICS = {
   microwaves: { label: "Microwave engineering", pattern: /\bmicrowaves?\b|\bantennas?\b|\brf\b/ },
   semiconductors: { label: "Semiconductor physics", pattern: /\bsemiconductors?\b/ },
 
+  "biomedical-engineering": { label: "Biomedical engineering", pattern: /\bbiomedical (?:engineering|instrumentation)\b/ },
+
   // Chemistry and biology
   chemistry: {
     label: "Chemistry",
     pattern: /(?<!(?:general|basic|inorganic|organic|physical|analytical|surface|polymer|water|food|environmental) )\bchemistry\b/,
   },
-  "general-chemistry": { label: "General chemistry", pattern: /\b(?:general|basic|inorganic) chemistry\b|\bchemical bonding\b/ },
+  "general-chemistry": { label: "General chemistry", pattern: /\b(?:general|basic) chemistry\b|\binorganic\b|\bchemical bonding\b/ },
   "organic-chemistry": { label: "Organic chemistry", pattern: /\borganic chemistry\b|\borganic(?:,| and) (?:physical|inorganic)/ },
   "physical-chemistry": { label: "Physical chemistry", pattern: /\bphysical chemistry\b/ },
   "analytical-chemistry": { label: "Analytical chemistry", pattern: /\banalytical chemistry\b/ },
@@ -173,7 +195,7 @@ export const TOPICS = {
   "project-management": { label: "Project management", pattern: /\bproject management\b/ },
   "operations-management": {
     label: "Operations management",
-    pattern: /\boperations? management\b|\bquality (?:and operations )?management\b/,
+    pattern: /\b(?:operations?|production) management\b|\bquality (?:and operations )?management\b/,
   },
   logistics: { label: "Logistics and supply chains", pattern: /\blogistics\b|\bsupply chains?\b/ },
   economics: { label: "Economics", pattern: /\b(?:economics|accounting|finance|financial management|business administration)\b/ },
