@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pooledAnswerCounts, questionMean, summarizeEvaluations, type EvaluationRound } from "./evaluation.ts";
+import { missingQuestions, pooledAnswerCounts, questionMean, QUESTIONS, summarizeEvaluations, type EvaluationRound } from "./evaluation.ts";
 
 const round = (
   academicYear: number,
@@ -58,5 +58,29 @@ describe("questionMean", () => {
     const rounds = [round(2023, 10, { workload: 4 }), round(2024, 30, { workload: 3 }), round(2025, 99, {})];
     expect(questionMean(rounds, "workload")).toBe(3.25);
     expect(questionMean(rounds, "teaching")).toBeNull();
+  });
+});
+
+describe("missingQuestions", () => {
+  const allMeans = Object.fromEntries(QUESTIONS.map((q) => [q, 4]));
+  const { teaching: _, ...withoutTeaching } = allMeans;
+
+  it("finds a question no round of a year has, as when the survey renames it", () => {
+    const rounds = [round(2025, 10, allMeans), round(2026, 10, withoutTeaching), round(2026, 12, withoutTeaching)];
+    expect(missingQuestions(rounds, 0.1)).toEqual([{ academicYear: 2026, question: "teaching", missing: 2, rounds: 2 }]);
+  });
+
+  it("finds every question in a year where no round matched any", () => {
+    const missing = missingQuestions([round(2025, 10, allMeans), round(2026, 10, {})], 0.1);
+    expect(missing.map((m) => m.question)).toEqual([...QUESTIONS]);
+  });
+
+  it("allows a few rounds without a question", () => {
+    const rounds = [...Array.from({ length: 9 }, () => round(2026, 10, allMeans)), round(2026, 10, withoutTeaching)];
+    expect(missingQuestions(rounds, 0.1)).toEqual([]);
+  });
+
+  it("ignores rounds nobody answered", () => {
+    expect(missingQuestions([round(2026, 10, allMeans), round(2026, 0, {})], 0.1)).toEqual([]);
   });
 });

@@ -1,9 +1,13 @@
-import { HeadContent, Link, Outlet, type ErrorComponentProps } from "@tanstack/react-router";
+import { HeadContent, Link, Outlet, useRouter, type ErrorComponentProps } from "@tanstack/react-router";
 import { ArrowUpIcon, MoonIcon, SunIcon } from "lucide-react";
 import { cn } from "cn";
 import { GradeChip } from "@/components/grade";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { LANGUAGES, languageSchema } from "@/domain/names";
+import { setLanguage, useLanguage } from "@/hooks/use-language";
+import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import { useScrolledPast } from "@/hooks/use-scrolled-past";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -19,6 +23,29 @@ function ThemeToggle() {
       <SunIcon className="hidden dark:block" />
       <MoonIcon className="dark:hidden" />
     </Button>
+  );
+}
+
+/** Picks the language of course and programme names. The rest of the site stays in English. */
+function LanguageSwitcher() {
+  const language = useLanguage();
+  const router = useRouter();
+  const choose = (value: string) => {
+    const next = languageSchema.safeParse(value);
+    // Radix sends an empty value when the picked language is clicked again.
+    if (!next.success) return;
+    setLanguage(next.data);
+    // Loaders name the course in page titles, so they run again.
+    void router.invalidate();
+  };
+  return (
+    <ToggleGroup type="single" size="sm" spacing={0} value={language} onValueChange={choose} aria-label="Language of course names">
+      {LANGUAGES.map((l) => (
+        <ToggleGroupItem key={l} value={l} className="min-w-0 px-1.5 text-xs uppercase">
+          {l}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
   );
 }
 
@@ -45,6 +72,8 @@ function ScrollToTop() {
 }
 
 export function AppLayout() {
+  // The planner link goes back to the programme and year last planned on this device.
+  const { memory } = usePlannerMemory();
   return (
     <div className="mx-auto flex min-h-svh max-w-6xl flex-col px-4">
       <HeadContent />
@@ -55,9 +84,19 @@ export function AppLayout() {
               <GradeChip key={grade} grade={grade} />
             ))}
           </span>
-          Chalmers exam results
+          {/* Phones have room for the logo alone. The name still labels the link. */}
+          <span className="sr-only sm:not-sr-only">Chalmers exam results</span>
         </Link>
-        <ThemeToggle />
+        <nav className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/planner" search={memory.last ?? {}} activeOptions={{ includeSearch: false }} activeProps={{ className: "bg-muted" }}>
+              <span className="sm:hidden">Planner</span>
+              <span className="hidden sm:inline">Course planner</span>
+            </Link>
+          </Button>
+          <LanguageSwitcher />
+          <ThemeToggle />
+        </nav>
       </header>
       <main className="flex-1 pb-16">
         <Outlet />

@@ -1,5 +1,6 @@
 import { meanAnswer } from "./evaluation.ts";
 import { averageGradeOf, passRateOf } from "./grades.ts";
+import { inLanguage, type InLanguage, type Language } from "./names.ts";
 import type { CourseSummary, Snapshot, TrendPoint } from "./snapshot.ts";
 
 export const SORT_KEYS = ["name", "programme", "attemptsPerYear", "passRate", "trend", "averageGrade", "rating", "lastResult"] as const;
@@ -39,21 +40,34 @@ export function trendDelta(trend: readonly TrendPoint[]): number | null {
   return last[1] - before.reduce((sum, [, passRate]) => sum + passRate, 0) / before.length;
 }
 
-/** A course plus the values the list filters and sorts on, computed once when the snapshot loads. */
-export function toCatalogCourse(course: CourseSummary) {
+/** A course named in `language`, plus the values the list filters and sorts on, computed once when the snapshot loads. */
+export function toCatalogCourse(summary: CourseSummary, language: Language = "en") {
+  const course = inLanguage(summary, language);
   return {
     ...course,
     passRate: passRateOf(course.recentGrades),
     averageGrade: averageGradeOf(course.recentGrades),
     trendDelta: trendDelta(course.trend),
     rating: course.overallAnswers && meanAnswer(course.overallAnswers),
-    searchText: normalize(`${course.code} ${course.name} ${course.programme ?? ""}`),
+    searchText: normalize(`${course.code} ${course.name} ${course.otherName} ${course.programme ?? ""}`),
   };
 }
 
 export type CatalogCourse = ReturnType<typeof toCatalogCourse>;
 
-export const toCatalog = (snapshot: Snapshot) => ({ ...snapshot, courses: snapshot.courses.map(toCatalogCourse) });
+/** The snapshot with every course and programme named in `language`. */
+export function toCatalog(snapshot: Snapshot, language: Language) {
+  const withResults = new Set(snapshot.courses.map((c) => c.programme));
+  const programmes = Object.entries(snapshot.programmes).map(([code, named]) => [code, inLanguage(named, language)] as const);
+  return {
+    ...snapshot,
+    courses: snapshot.courses.map((course) => toCatalogCourse(course, language)),
+    programmes: Object.fromEntries(programmes),
+    /** Programmes with courses with results, which the course list can show. */
+    listedProgrammes: Object.fromEntries(programmes.filter(([code]) => withResults.has(code))),
+  };
+}
+export type Catalog = ReturnType<typeof toCatalog>;
 
 const sortValue: Record<SortKey, (c: CatalogCourse) => number | string | null> = {
   name: (c) => c.name,
@@ -66,14 +80,16 @@ const sortValue: Record<SortKey, (c: CatalogCourse) => number | string | null> =
   lastResult: (c) => c.lastResult,
 };
 
-function compareBy(key: SortKey, dir: SortDir) {
+/** Orders two sort values in `dir`, with nulls last either way. */
+export function compareSortValues(x: number | string | null, y: number | string | null, dir: SortDir) {
+  if (x === null || y === null) return Number(x === null) - Number(y === null);
   const sign = dir === "asc" ? 1 : -1;
+  return sign * (typeof x === "string" ? x.localeCompare(String(y), "sv") : x - Number(y));
+}
+
+function compareBy(key: SortKey, dir: SortDir) {
   const value = sortValue[key];
-  return (a: CatalogCourse, b: CatalogCourse) => {
-    const [x, y] = [value(a), value(b)];
-    if (x === null || y === null) return Number(x === null) - Number(y === null);
-    return sign * (typeof x === "string" ? x.localeCompare(String(y), "sv") : x - Number(y));
-  };
+  return (a: CatalogCourse, b: CatalogCourse) => compareSortValues(value(a), value(b), dir);
 }
 
 export interface CourseQuery {
@@ -103,16 +119,18 @@ export function queryCourses(
   return { active: rows.filter((c) => !c.ended), ended: rows.filter((c) => c.ended) };
 }
 
-/** Programmes whose code starts with a `;`-separated part of the query, or whose name contains one. */
-export function matchProgrammes(programmes: Readonly<Record<string, string>>, query: string, limit = 4) {
+/** Programmes whose code starts with a `;`-separated part of the query, or whose name in either language contains one. */
+export function matchProgrammes(programmes: Readonly<Record<string, InLanguage>>, query: string, limit = 4) {
   const parts = searchParts(query)
     .map(normalize)
     .filter((part) => part.length >= MIN_PROGRAMME_QUERY);
   if (!parts.length) return [];
   return Object.entries(programmes)
-    .filter(([code, name]) => parts.some((part) => normalize(code).startsWith(part) || normalize(name).includes(part)))
+    .filter(([code, { name, otherName }]) =>
+      parts.some((part) => normalize(code).startsWith(part) || normalize(`${name} ${otherName}`).includes(part)),
+    )
     .slice(0, limit)
-    .map(([code, name]) => ({ code, name }));
+    .map(([code, { name }]) => ({ code, name }));
 }
 
 const PART_WORDS: readonly [sv: string, en: string][] = [

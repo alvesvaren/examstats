@@ -8,7 +8,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { EVALUATION_YEARS, QUESTIONS, type EvaluationFile, type Question } from "../src/domain/evaluation.ts";
+import { EVALUATION_YEARS, missingQuestions, QUESTIONS, type EvaluationFile, type Question } from "../src/domain/evaluation.ts";
 import {
   CHART_WIDTH,
   parseAnswerChart,
@@ -44,6 +44,11 @@ const HEADERS = {
 };
 /** More failed surveys than this means the site is down, and the file keeps its last good contents. */
 const MAX_SKIPPED_SHARE = 0.02;
+/**
+ * More answered rounds of one year without a standard question than this means the survey reworded the question, and
+ * the file keeps its last good contents. Students may skip every question but the overall one, so a few rounds lack one.
+ */
+const MAX_MISSING_QUESTION_SHARE = 0.1;
 const MAX_REDIRECTS = 10;
 const PROGRESS_EVERY = 250;
 
@@ -249,6 +254,13 @@ async function main() {
   const crawled: Round[] = [];
   for (const reportId of REPORT_IDS) crawled.push(...(await crawlReport(reportId)));
   const rounds = dedupe(crawled);
+  const missing = missingQuestions(rounds, MAX_MISSING_QUESTION_SHARE);
+  if (missing.length) {
+    const lines = missing.map(
+      (m) => `${m.academicYear}/${m.academicYear + 1} ${m.question}: missing in ${m.missing} of ${m.rounds} rounds`,
+    );
+    throw new Error(`Unrecognised standard questions. Check QUESTION_TEXT in scripts/evaluation-pages.ts.\n${lines.join("\n")}`);
+  }
   await mkdir(path.dirname(env.OUT_FILE), { recursive: true });
   await writeFile(env.OUT_FILE, toJsonLines({ fetchedAt: new Date().toISOString() }, "rounds", rounds));
   console.log(`Wrote ${rounds.length} rounds for ${new Set(rounds.map((r) => r.code)).size} courses to ${env.OUT_FILE}`);

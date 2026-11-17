@@ -1,16 +1,30 @@
-const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
+const ENTITIES: Record<string, string> = { nbsp: " ", amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'" };
+/** Windows-1252 punctuation that chalmers.se passes on as the C1 control characters of the same codes. */
+const WINDOWS_1252: Record<string, string> = {
+  "\u0091": "‘",
+  "\u0092": "’",
+  "\u0093": "“",
+  "\u0094": "”",
+  "\u0096": "–",
+  "\u0097": "—",
+};
+const WINDOWS_1252_CHARS = new RegExp(`[${Object.keys(WINDOWS_1252).join("")}]`, "g");
 
-/** Syllabus HTML as plain text, with a line per paragraph, list item or line break. */
-export function toPlainText(html: string) {
-  return html
+/**
+ * The paragraphs of a text that may hold HTML, one per line or block, with tags and comments dropped and spaces
+ * collapsed. Some texts pasted from Word carry its settings in a comment.
+ */
+export function paragraphsOf(text: string): string[] {
+  return text
     .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<(br|\/p|\/div|\/li|li|p|div|ul|\/ul|ol|\/ol)\b[^>]*>/gi, "\n")
+    .replace(/<br\s*\/?>|<\/(?:div|p|li)>/gi, "\n")
     .replace(/<[^>]*>/g, "")
-    .replace(/&(#\d+|\w+);/g, (entity, name: string) =>
-      name.startsWith("#") ? String.fromCodePoint(Number(name.slice(1))) : (ENTITIES[name] ?? entity),
+    .replace(
+      /&(\w+|#\d+);/g,
+      (entity, name: string) => ENTITIES[name] ?? (name.startsWith("#") ? String.fromCodePoint(Number(name.slice(1))) : entity),
     )
+    .replace(WINDOWS_1252_CHARS, (char) => WINDOWS_1252[char] ?? char)
     .split("\n")
     .map((line) => line.replace(/\s+/g, " ").trim())
-    .filter(Boolean)
-    .join("\n");
+    .filter(Boolean);
 }

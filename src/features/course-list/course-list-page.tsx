@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { catalogQuery } from "@/data/queries";
 import { matchProgrammes, queryCourses, type SortDir, type SortKey } from "@/domain/catalog";
+import type { InLanguage } from "@/domain/names";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { useElementSize } from "@/hooks/use-element-size";
+import { useLanguage } from "@/hooks/use-language";
 import { useScrollBack } from "@/hooks/use-scroll-back";
 import { formatCount } from "@/lib/format";
 import { CourseTable } from "./course-table";
@@ -26,13 +28,14 @@ const FIELD_SIZE = "[&_select]:h-10 [&_select]:text-base md:[&_select]:text-sm";
 export function CourseListPage() {
   const search = route.useSearch();
   const navigate = route.useNavigate();
-  const { data: snapshot } = useSuspenseQuery(catalogQuery);
+  const language = useLanguage();
+  const { data: snapshot } = useSuspenseQuery(catalogQuery(language));
   const { ref: filtersRef, height: filtersHeight } = useElementSize<HTMLDivElement>();
   const { ref: resultsRef, scrollBack } = useScrollBack<HTMLDivElement>();
 
   const { sort = DEFAULT_SORT, dir = "desc", programme, q = "" } = search;
   const { active, ended } = queryCourses(snapshot.courses, { q, programme, sort, dir });
-  const programmeMatches = programme ? [] : matchProgrammes(snapshot.programmes, q);
+  const programmeMatches = programme ? [] : matchProgrammes(snapshot.listedProgrammes, q);
   const maxAttempts = Math.max(...snapshot.courses.map((c) => c.attemptsPerYear));
   const coursesIn = (code: string) => snapshot.courses.filter((c) => c.programme === code).length;
 
@@ -57,7 +60,7 @@ export function CourseListPage() {
             All courses
           </Button>
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h1 className="text-2xl font-semibold">{snapshot.programmes[programme] ?? programme}</h1>
+            <h1 className="text-2xl font-semibold">{snapshot.programmes[programme]?.name ?? programme}</h1>
             <span className="text-muted-foreground">
               {programme} · {formatCount(active.length + ended.length)} courses
             </span>
@@ -81,7 +84,7 @@ export function CourseListPage() {
               className="h-10 pl-9 text-base"
             />
           </div>
-          <ProgrammeSelect programme={programme} programmes={snapshot.programmes} onChange={setProgramme} />
+          <ProgrammeSelect programme={programme} programmes={snapshot.listedProgrammes} onChange={setProgramme} />
         </div>
 
         {programmeMatches.length > 0 && (
@@ -122,12 +125,14 @@ export function CourseListPage() {
 
 interface ProgrammeSelectProps {
   programme?: string;
-  programmes: Record<string, string>;
+  programmes: Record<string, InLanguage>;
   onChange: (programme: string | undefined) => void;
 }
 
 function ProgrammeSelect({ programme, programmes, onChange }: ProgrammeSelectProps) {
-  const options = Object.entries(programmes).toSorted(([, a], [, b]) => a.localeCompare(b, "sv"));
+  const options = Object.entries(programmes)
+    .map(([code, { name }]) => [code, name] as const)
+    .toSorted(([, a], [, b]) => a.localeCompare(b, "sv"));
   return (
     <NativeSelect
       value={programme ?? ALL_PROGRAMMES}

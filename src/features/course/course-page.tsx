@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, Link, useCanGoBack, useRouter } from "@tanstack/react-router";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, ArrowUpRightIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { RECENT_LABEL } from "@/components/course-cells";
 import { GradeBar } from "@/components/grade";
@@ -12,9 +12,12 @@ import { catalogQuery, courseQuery } from "@/data/queries";
 import { normalize, partLabel, type CatalogCourse } from "@/domain/catalog";
 import { latestExam } from "@/domain/course-stats";
 import { gradeSpreadOf } from "@/domain/grades";
-import { formatCount, formatDay, formatGrade, formatNumber, formatPercent } from "@/lib/format";
+import { syllabusUrl } from "@/domain/programme-plans";
+import { useLanguage } from "@/hooks/use-language";
+import { formatCount, formatCredits, formatDay, formatGrade, formatNumber, formatPercent } from "@/lib/format";
 import { GradeBreakdown, OtherInstances, OtherParts } from "./course-sections";
 import { CourseSurvey } from "./course-survey";
+import { CourseThisYear } from "./course-this-year";
 import { ExamTimeline } from "./exam-timeline";
 
 const route = getRouteApi("/course/$code");
@@ -23,8 +26,11 @@ const MAX_PART_TABS = 6;
 export function CoursePage() {
   const { code } = route.useParams();
   const { part: partIndex = 0, survey } = route.useSearch();
-  const { course } = route.useLoaderData();
-  const { data: snapshot } = useSuspenseQuery(catalogQuery);
+  const language = useLanguage();
+  const { data: snapshot } = useSuspenseQuery(catalogQuery(language));
+  // The loader checked that the course exists. The catalog names it in the language picked since.
+  const loaded = route.useLoaderData().course;
+  const course = snapshot.courses.find((c) => c.code === code) ?? loaded;
   const { data: detail } = useSuspenseQuery(courseQuery(code));
   const navigate = route.useNavigate();
   const router = useRouter();
@@ -34,8 +40,10 @@ export function CoursePage() {
   const part = detail.parts[selected];
   const [mainPart] = detail.parts;
   const latest = latestExam(mainPart?.sittings ?? []);
+  const credits = detail.placements[0]?.credits;
+  const moduleCredits = new Map(detail.placements.flatMap((p) => p.modules).map((m) => [m.code, m.credits]));
   const otherInstances = snapshot.courses
-    .filter((c) => c.code !== code && normalize(c.name) === normalize(course.name))
+    .filter((c) => c.code !== code && normalize(c.swedishName) === normalize(course.swedishName))
     .toSorted((a, b) => (b.lastResult ?? "").localeCompare(a.lastResult ?? ""));
   // Picking a survey round only swaps the summary beside the list, so the page stays where it is.
   const setSurvey = (key: string) => navigate({ search: (prev) => ({ ...prev, survey: key }), replace: true, resetScroll: false });
@@ -54,12 +62,28 @@ export function CoursePage() {
           <span className="tabular-nums">{course.code}</span>
           {course.programme && (
             <Link to="/" search={{ programme: course.programme }} className="underline-offset-4 hover:text-foreground hover:underline">
-              {snapshot.programmes[course.programme] ?? course.programme}
+              {snapshot.programmes[course.programme]?.name ?? course.programme}
             </Link>
           )}
+          {credits !== undefined && <span className="tabular-nums">{formatCredits(credits)}</span>}
           {course.ended && <Badge variant="secondary">Ended</Badge>}
+          {detail.placements.length > 0 && (
+            <a
+              href={syllabusUrl(code)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-0.5 underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Course syllabus
+              <ArrowUpRightIcon className="size-3.5" />
+            </a>
+          )}
         </div>
       </header>
+
+      {detail.placements.length > 0 && (
+        <CourseThisYear placements={detail.placements} plans={snapshot.plans} programmes={snapshot.programmes} />
+      )}
 
       <StatStrip course={course} latest={latest} />
 
@@ -74,11 +98,15 @@ export function CoursePage() {
               onValueChange={(value) => value && navigate({ search: (prev) => ({ ...prev, part: Number(value) }), replace: true })}
               className="flex-wrap"
             >
-              {detail.parts.slice(0, MAX_PART_TABS).map((p, index) => (
-                <ToggleGroupItem key={index} value={String(index)}>
-                  {partLabel(p.type)}
-                </ToggleGroupItem>
-              ))}
+              {detail.parts.slice(0, MAX_PART_TABS).map((p, index) => {
+                const partCredits = moduleCredits.get(p.code);
+                return (
+                  <ToggleGroupItem key={index} value={String(index)}>
+                    {partLabel(p.type)}
+                    {partCredits !== undefined && <span className="text-muted-foreground tabular-nums">{formatCredits(partCredits)}</span>}
+                  </ToggleGroupItem>
+                );
+              })}
             </ToggleGroup>
           )}
           <ExamTimeline key={selected} part={part} />

@@ -1,39 +1,40 @@
 import { describe, expect, it } from "vitest";
-import {
-  parsePrerequisites,
-  prerequisiteGraph,
-  prerequisiteIndex,
-  type Prerequisite,
-  type SyllabiFile,
-  type Syllabus,
-} from "./prerequisites.ts";
+import type { NamesFile } from "./names.ts";
+import { parsePrerequisites, prerequisiteIndex, prerequisiteSnapshot, type CourseSyllabus, type Prerequisite } from "./prerequisites.ts";
 
-const syllabus = (code: string, prerequisites: string, overrides: Partial<Syllabus> = {}): Syllabus => ({
+const syllabus = (code: string, prerequisites: string, overrides: Partial<CourseSyllabus> = {}): CourseSyllabus => ({
   code,
   name: code,
   level: "Second-cycle",
   credits: 7.5,
-  programmes: [],
   replaces: [],
   prerequisites,
   ...overrides,
 });
 
-const file: Pick<SyllabiFile, "programmes" | "catalog" | "courses"> = {
-  programmes: { MPSYS: "Systems, control and mechatronics", MPALG: "Computer science - algorithms, languages and logic" },
-  catalog: {
-    SSY285: "Linear control system design",
-    TDA367: "Object-oriented programming project",
-    EEK137: "Environmental engineering",
-    TMV166: "Linear algebra",
-    TMV216: "Linear algebra",
-    DAT341: "Applied machine learning",
-    TDA233: "Algorithms for machine learning and inference",
+const named = (en: string) => ({ en, sv: en });
+
+const names: NamesFile = {
+  programmes: {
+    MPSYS: named("Systems, control and mechatronics"),
+    MPALG: named("Computer science - algorithms, languages and logic"),
+    TKMAS: named("Mechanical engineering"),
   },
-  courses: [syllabus("DAT341", "", { replaces: ["DAT340"] })],
+  courses: [
+    { code: "SSY285", ...named("Linear control system design") },
+    { code: "TDA367", ...named("Object-oriented programming project") },
+    { code: "EEK137", ...named("Environmental engineering") },
+    { code: "TMV166", ...named("Linear algebra") },
+    { code: "TMV216", ...named("Linear algebra") },
+    { code: "DAT340", ...named("Applied machine learning") },
+    { code: "DAT341", ...named("Applied machine learning") },
+    { code: "TDA233", ...named("Algorithms for machine learning and inference") },
+  ],
 };
 
-const parse = (prerequisites: string, code = "XYZ100") => parsePrerequisites({ code, prerequisites }, prerequisiteIndex(file));
+const syllabi = [syllabus("DAT341", "", { replaces: ["DAT340"] }), syllabus("TDA233", "")];
+
+const parse = (text: string, from = "XYZ100") => parsePrerequisites(from, text, prerequisiteIndex(syllabi, names));
 
 /** The parsed edges with only the fields a test is about. */
 const summary = (edges: readonly Prerequisite[]) => edges.map(({ to, strength, via, credits }) => ({ to, strength, via, credits }));
@@ -61,7 +62,7 @@ describe("parsePrerequisites", () => {
   it("marks recommended sentences, and lines after a heading that recommends them", () => {
     const edges = parse(
       [
-        "The course Mathematics, teaching and assessment (MVE375). Recommended prerequisite is the course MVE370.",
+        "The course Learning in practice (MVE375). Recommended prerequisite is the course MVE370.",
         "The following are also recommended:",
         "- familiarity with functional programming",
       ].join("\n"),
@@ -98,9 +99,9 @@ describe("parsePrerequisites", () => {
     expect(edges.map((e) => e.to)).toEqual(["TDA367", "topic:programming", "topic:functional-programming"]);
   });
 
-  it("finds programmes by code and by name", () => {
+  it("finds programmes by code and master's programmes by name", () => {
     const edges = parse(
-      "Course specific prerequisites for MPEPO in the Admission Regulations. Students registered at the programme Systems, control and mechatronics should contact their student centre.",
+      "Course specific prerequisites for MPEPO in the Admission Regulations. Students registered at the programme Systems, control and mechatronics should contact their student centre. Basic courses in mechanical engineering.",
     );
     expect(edges.map((e) => e.to)).toEqual(["programme:MPEPO", "programme:MPSYS"]);
   });
@@ -113,19 +114,63 @@ describe("parsePrerequisites", () => {
   it("ignores the course's own code", () => {
     expect(parse("TDA233 can not be taken by students who have taken TDA231.", "TDA233").map((e) => e.to)).toEqual(["TDA231"]);
   });
+
+  it("reads credits in brackets after a subject, as master's programmes write them", () => {
+    const edges = parse("Mathematics (including Calculus (at least 7,5 cr.) and Linear Algebra (at least 7,5 cr.)), Programming.");
+    expect(summary(edges)).toEqual([
+      { to: "topic:mathematics", strength: "required", via: "topic", credits: null },
+      { to: "topic:linear-algebra", strength: "required", via: "topic", credits: 7.5 },
+      { to: "topic:calculus", strength: "required", via: "topic", credits: 7.5 },
+      { to: "topic:programming", strength: "required", via: "topic", credits: null },
+    ]);
+  });
 });
 
-describe("prerequisiteGraph", () => {
-  it("applies fixes over the parsed edges", () => {
-    const graph = prerequisiteGraph({ ...file, courses: [syllabus("XYZ100", "A first course in machine learning, such as TDA233.")] }, [
-      { from: "XYZ100", to: "topic:machine-learning", strength: "none" },
-      { from: "XYZ100", to: "TDA233", strength: "recommended" },
-      { from: "XYZ100", to: "TMV166", strength: "required", note: "Linear algebra is used throughout" },
-      { from: "OTHER1", to: "TMV216", strength: "required" },
+const programme = (code: string, prerequisites: string[], courses: string[]) => ({
+  code,
+  prerequisites,
+  years: [{ courses: courses.map((c) => ({ code: c })) }],
+});
+
+describe("prerequisiteSnapshot", () => {
+  it("parses the prerequisites of courses and master's programmes, and applies fixes over them", () => {
+    const snapshot = prerequisiteSnapshot({
+      syllabi: { academicYear: "2026/2027", courses: [syllabus("XYZ100", "A first course in machine learning, such as TDA233.")] },
+      names,
+      programmes: [programme("MPALG", ["Linear Algebra (at least 7,5 cr.)"], ["XYZ100"]), programme("TKMAS", ["Not parsed"], ["XYZ100"])],
+      fixes: [
+        { from: "XYZ100", to: "topic:machine-learning", strength: "none" },
+        { from: "XYZ100", to: "TDA233", strength: "recommended" },
+        { from: "XYZ100", to: "TMV166", strength: "required", note: "Linear algebra is used throughout" },
+        { from: "programme:MPALG", to: "topic:programming", strength: "required" },
+      ],
+    });
+    expect(snapshot.programmes.map((p) => [p.code, summary(p.edges)])).toEqual([
+      [
+        "MPALG",
+        [
+          { to: "topic:linear-algebra", strength: "required", via: "topic", credits: 7.5 },
+          { to: "topic:programming", strength: "required", via: "fix", credits: null },
+        ],
+      ],
     ]);
-    expect(summary(graph.get("XYZ100")!)).toEqual([
-      { to: "TDA233", strength: "recommended", via: "fix", credits: null },
-      { to: "TMV166", strength: "required", via: "fix", credits: null },
+    expect(snapshot.courses.map((c) => [c.code, c.programmes, summary(c.edges)])).toEqual([
+      [
+        "XYZ100",
+        ["MPALG", "TKMAS"],
+        [
+          { to: "TDA233", strength: "recommended", via: "fix", credits: null },
+          { to: "TMV166", strength: "required", via: "fix", credits: null },
+        ],
+      ],
     ]);
+    expect(snapshot.names).toEqual({
+      XYZ100: "XYZ100",
+      TDA233: "Algorithms for machine learning and inference",
+      TMV166: "Linear algebra",
+      "programme:MPALG": "Computer science - algorithms, languages and logic",
+      "topic:linear-algebra": "Linear algebra",
+      "topic:programming": "Programming",
+    });
   });
 });

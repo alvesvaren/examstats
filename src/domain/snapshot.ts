@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { answerCountsSchema, evaluationRoundSchema } from "./evaluation.ts";
 import { gradeCountsSchema } from "./grades.ts";
+import { coursePlacementSchema, publishedPlanInfoSchema } from "./programme-plans.ts";
 
 const isoDate = z.iso.date();
 
@@ -37,14 +38,18 @@ export const courseDetailSchema = z.object({
   parts: z.array(partSchema),
   /** Course survey rounds, newest first. */
   evaluations: z.array(evaluationRoundSchema),
+  /** Where this academic year's programme plans place the course, compulsory first. Empty when no plan has it. */
+  placements: z.array(coursePlacementSchema),
 });
 
 /** A pass rate in one academic year. A tuple, since the list loads thousands of them. */
 const trendPointSchema = z.tuple([z.number().int(), z.number()]);
 
-export const courseSummarySchema = z.object({
+/** Names in English and Swedish. Each is the other when Chalmers names only one, and both are the source's name when Chalmers names neither. */
+const namedSchema = z.object({ name: z.string(), swedishName: z.string() });
+
+export const courseSummarySchema = namedSchema.extend({
   code: z.string(),
-  name: z.string(),
   programme: z.string().nullable(),
   /** Grades on the main part over the recent academic years. Pass rate and average grade derive from these. */
   recentGrades: gradeCountsSchema,
@@ -61,7 +66,10 @@ export const snapshotSchema = z.object({
   generatedAt: z.iso.datetime(),
   /** When the course surveys were last crawled. */
   evaluationsFetchedAt: z.iso.datetime(),
-  programmes: z.record(z.string(), z.string()),
+  /** The academic year, rule names and start years of the programme plans. */
+  plans: publishedPlanInfoSchema,
+  /** Programme names by code. */
+  programmes: z.record(z.string(), namedSchema),
   courses: z.array(courseSummarySchema),
 });
 
@@ -71,4 +79,5 @@ export type CourseDetail = z.infer<typeof courseDetailSchema>;
 export type CourseSummary = z.infer<typeof courseSummarySchema>;
 export type TrendPoint = z.infer<typeof trendPointSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
+export type Named = z.infer<typeof namedSchema>;
 export type ResultsFile = z.infer<typeof resultsFileSchema>;

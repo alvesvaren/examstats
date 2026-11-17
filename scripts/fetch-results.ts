@@ -6,10 +6,11 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { orderParts } from "../src/domain/course-stats.ts";
-import { attemptsOf, gradeCountsSchema } from "../src/domain/grades.ts";
+import { partsOf } from "../src/domain/course-stats.ts";
+import { gradeCountsSchema } from "../src/domain/grades.ts";
 import type { Part, ResultsFile } from "../src/domain/snapshot.ts";
 import { toJsonLines } from "./json-lines.ts";
+import { mapConcurrent } from "./map-concurrent.ts";
 
 const env = z
   .object({
@@ -21,6 +22,7 @@ const env = z
 
 const PAGE_SIZE = 1000;
 const RETRIES = 3;
+/** The source writes "-" for a missing programme, and for some programmes' long names. */
 const NO_PROGRAMME = "-";
 
 const upstreamCourseSchema = z.object({
@@ -63,33 +65,8 @@ async function listCourses() {
   }
 }
 
-async function mapConcurrent<T, R>(items: readonly T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
-  const results: R[] = [];
-  let next = 0;
-  const worker = async () => {
-    while (next < items.length) {
-      const index = next++;
-      results[index] = await fn(items[index]!);
-    }
-  };
-  await Promise.all(Array.from({ length: limit }, worker));
-  return results;
-}
-
-function toParts(results: z.infer<typeof upstreamResultsSchema>): Part[] {
-  const groups = Map.groupBy(
-    results.filter((r) => attemptsOf(r) > 0),
-    (r) => `${r.type}\u0000${r.resultId}`,
-  );
-  const parts = [...groups.values()].map((group) => ({
-    type: group[0]!.type,
-    code: group[0]!.resultId,
-    sittings: group
-      .map(({ date, type: _type, resultId: _resultId, ...grades }) => ({ date, grades }))
-      .toSorted((a, b) => a.date.localeCompare(b.date)),
-  }));
-  return orderParts(parts);
-}
+const toParts = (results: z.infer<typeof upstreamResultsSchema>): Part[] =>
+  partsOf(results.map(({ date, type, resultId, ...grades }) => ({ date, type, code: resultId, grades })));
 
 /** "INFORMATIONSTEKNIK, CIVILINGENJÖR" becomes "Informationsteknik, civilingenjör". */
 const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
@@ -107,7 +84,10 @@ async function main() {
   const programmes = Object.fromEntries(
     upstream
       .filter((c) => c.programShort !== NO_PROGRAMME)
-      .map((c) => [c.programShort, c.programLong?.trim() ? sentenceCase(c.programLong.trim()) : c.programShort] as const)
+      .map((c) => {
+        const long = c.programLong?.trim();
+        return [c.programShort, long && long !== NO_PROGRAMME ? sentenceCase(long) : c.programShort] as const;
+      })
       .toSorted(([a], [b]) => a.localeCompare(b)),
   );
 

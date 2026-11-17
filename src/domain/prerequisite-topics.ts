@@ -5,11 +5,15 @@
  */
 export const TOPICS = {
   // Mathematics
+  mathematics: {
+    label: "Mathematics",
+    pattern: /(?<!(?:discrete|applied|engineering|financial) )\bmathematics\b(?! (?:and|or) (?:mathematical )?statistics)/,
+  },
   "linear-algebra": { label: "Linear algebra", pattern: /\blinear algebra\b/ },
   calculus: {
     label: "Calculus in one variable",
     pattern:
-      /\b(?:calculus|(?:mathematical )?analysis in one variable|single[- ]variable analysis)\b(?! in several)(?<!multi-?variable calculus)/,
+      /\b(?:calculus|(?:mathematical )?analysis in one variable|single[- ]variable analysis|mathematical analysis)\b(?! in several)(?<!multi-?variable calculus)/,
   },
   "multivariable-calculus": {
     label: "Multivariable calculus",
@@ -65,6 +69,11 @@ export const TOPICS = {
   python: { label: "Python", pattern: /\bpython\b/ },
 
   // Physics
+  physics: {
+    label: "Physics",
+    pattern:
+      /(?<!(?:quantum|solid[- ]state|statistical|building|nuclear|semiconductor|computational|condensed matter|engineering) )\bphysics\b/,
+  },
   mechanics: {
     label: "Mechanics",
     pattern:
@@ -141,6 +150,10 @@ export const TOPICS = {
   semiconductors: { label: "Semiconductor physics", pattern: /\bsemiconductors?\b/ },
 
   // Chemistry and biology
+  chemistry: {
+    label: "Chemistry",
+    pattern: /(?<!(?:general|basic|inorganic|organic|physical|analytical|surface|polymer|water|food|environmental) )\bchemistry\b/,
+  },
   "general-chemistry": { label: "General chemistry", pattern: /\b(?:general|basic|inorganic) chemistry\b|\bchemical bonding\b/ },
   "organic-chemistry": { label: "Organic chemistry", pattern: /\borganic chemistry\b|\borganic(?:,| and) (?:physical|inorganic)/ },
   "physical-chemistry": { label: "Physical chemistry", pattern: /\bphysical chemistry\b/ },
