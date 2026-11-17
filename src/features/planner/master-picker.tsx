@@ -69,7 +69,7 @@ interface MasterOptionProps {
 function MasterOption({ master, summary, otherName, accreditation, onChoose }: MasterOptionProps) {
   const { tracks, compulsory, compulsoryCredits, electives, passRate, rating } = summary;
   const facts = [
-    tracks.length > 0 && plural(tracks.length, "track"),
+    tracks.length > 0 && plural(tracks.length, "specialisation"),
     compulsoryCredits > 0 ? `${formatCredits(compulsoryCredits)} compulsory` : "Nothing compulsory for all",
     plural(electives, "elective"),
   ]

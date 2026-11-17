@@ -20,6 +20,16 @@ export type PlannerSortKey = (typeof PLANNER_SORT_KEYS)[number];
 /** Credits of full-time study in one study period. */
 export const PERIOD_CREDITS = 15;
 
+/** The choice of no track: the student follows none, and sees the courses of every track. */
+export const NO_TRACK = "";
+
+/** The first of `wanted` that is a choice for a year with `tracks`: one of them, or none. Undefined when none of them is. */
+export const chosenTrack = (tracks: readonly string[], ...wanted: (string | undefined)[]) =>
+  wanted.find((t) => t === NO_TRACK || (t !== undefined && tracks.includes(t)));
+
+/** What Chalmers calls a track: a specialisation in a master's programme, and a programme concentration before it. */
+export const trackNoun = (planCode: string) => (planCode.startsWith("MP") ? "specialisation" : "concentration");
+
 /** The lane of courses whose study periods are not known yet: those only an upcoming master's course list names. */
 export const UNSCHEDULED = "Unscheduled";
 /** What the planner lists courses by: a study period, or the courses without one. */

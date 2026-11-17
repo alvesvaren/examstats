@@ -3,6 +3,7 @@ import { toCatalogCourse } from "./catalog.ts";
 import { emptyCounts } from "./grades.ts";
 import {
   candidatesIn,
+  chosenTrack,
   creditsIn,
   exclusiveWith,
   findElsewhere,
@@ -17,6 +18,7 @@ import {
   searchProgrammes,
   otherNameOf,
   togglePick,
+  trackNoun,
 } from "./planner.ts";
 import {
   roundKey,
@@ -441,5 +443,29 @@ describe("otherNameOf", () => {
 
   it("gives the name in the other language only when it differs", () => {
     expect(["TKDAT", "MPSOF", "MBATT"].map((code) => otherNameOf(names, code))).toEqual(["Datateknik", undefined, undefined]);
+  });
+});
+
+describe("chosenTrack", () => {
+  const tracks = ["Machine Learning", "Robotics"];
+
+  it("takes the first wanted track the year has, such as the link's before the remembered one", () => {
+    expect(chosenTrack(tracks, "Robotics", "Machine Learning")).toBe("Robotics");
+    expect(chosenTrack(tracks, undefined, "Machine Learning")).toBe("Machine Learning");
+  });
+
+  it("skips a track the year does not have, and keeps a choice of none", () => {
+    expect(chosenTrack(tracks, "Financial mathematics", "")).toBe("");
+  });
+
+  it("is undefined when nothing chosen fits, so the student has to choose", () => {
+    expect(chosenTrack(tracks, undefined, "Financial mathematics")).toBeUndefined();
+  });
+});
+
+describe("trackNoun", () => {
+  it("calls a master's programme's tracks specialisations, and the programme concentrations before it", () => {
+    expect(trackNoun("MPAIN")).toBe("specialisation");
+    expect(trackNoun("TKIEK")).toBe("concentration");
   });
 });
