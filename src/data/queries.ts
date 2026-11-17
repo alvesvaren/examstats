@@ -2,6 +2,8 @@ import { QueryClient, queryOptions } from "@tanstack/react-query";
 import { z } from "zod";
 import { toCatalog } from "@/domain/catalog";
 import type { Language } from "@/domain/names";
+import { prerequisiteLookup } from "@/domain/prerequisite-check";
+import { prerequisiteSnapshotSchema } from "@/domain/prerequisites";
 import { planInLanguage, publishedPlanSchema } from "@/domain/programme-plans";
 import { courseDetailSchema, snapshotSchema } from "@/domain/snapshot";
 
@@ -58,3 +60,10 @@ export function plansQuery(language: Language, start: number) {
   plansQueries.set(key, query);
   return query;
 }
+
+/** The prerequisite graph, read for the planner's checks. Only the course planner loads it. */
+export const prerequisitesQuery = queryOptions({
+  queryKey: ["prerequisites"],
+  queryFn: ({ signal }) => getJson(`${DATA_URL}/prerequisites.json`, prerequisiteSnapshotSchema, signal),
+  select: prerequisiteLookup,
+});

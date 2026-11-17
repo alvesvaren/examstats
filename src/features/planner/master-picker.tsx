@@ -2,9 +2,12 @@ import { ChevronRightIcon, ExternalLinkIcon, InfoIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Catalog } from "@/domain/catalog";
 import { masterSummary, otherNameOf } from "@/domain/planner";
+import type { PrerequisiteGroup } from "@/domain/prerequisite-check";
 import { academicYearOf, programmeUrl, type ProgrammePlan, type UpcomingMasters } from "@/domain/programme-plans";
-import { formatCount, formatCredits, formatPercent, formatScore } from "@/lib/format";
+import { formatAlternatives, formatCount, formatCredits, formatPercent, formatScore } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { ChalmersWords, PrerequisiteCheck } from "./prerequisite-check";
+import type { Naming } from "./naming";
 
 /** What it takes for a master's programme to complete a programme's degree. */
 export interface Accreditation {
@@ -21,13 +24,16 @@ interface MasterPickerProps {
   /** What each master's programme needs to complete the degree, by code. */
   accredited: ReadonlyMap<string, Accreditation>;
   catalog: Catalog;
+  /** A master's programme's prerequisites, checked against the courses of the programme's years. */
+  checkMaster: (code: string) => PrerequisiteGroup[];
+  naming: Naming;
   onChoose: (code: string) => void;
 }
 
 const plural = (count: number, word: string) => `${formatCount(count)} ${word}${count === 1 ? "" : "s"}`;
 
 /** The master's programmes a programme leads on to, each in short, to choose the fourth and fifth year from. */
-export function MasterPicker({ programme, masters, accredited, catalog, onChoose }: MasterPickerProps) {
+export function MasterPicker({ programme, masters, accredited, catalog, checkMaster, naming, onChoose }: MasterPickerProps) {
   const stats = new Map(catalog.courses.map((c) => [c.code, c]));
   const options = masters
     .toSorted((a, b) => a.name.localeCompare(b.name, "sv"))
@@ -36,6 +42,7 @@ export function MasterPicker({ programme, masters, accredited, catalog, onChoose
       summary: masterSummary(master, stats),
       otherName: otherNameOf(catalog.programmes, master.code),
       accreditation: accredited.get(master.code) ?? { specialisations: [], courseList: null },
+      prerequisites: checkMaster(master.code),
     }));
 
   return (
@@ -50,7 +57,7 @@ export function MasterPicker({ programme, masters, accredited, catalog, onChoose
       <ul className="grid gap-2 sm:grid-cols-2">
         {options.map((option) => (
           <li key={option.master.code}>
-            <MasterOption {...option} onChoose={() => onChoose(option.master.code)} />
+            <MasterOption {...option} naming={naming} onChoose={() => onChoose(option.master.code)} />
           </li>
         ))}
       </ul>
@@ -63,10 +70,12 @@ interface MasterOptionProps {
   summary: ReturnType<typeof masterSummary>;
   otherName: string | undefined;
   accreditation: Accreditation;
+  prerequisites: PrerequisiteGroup[];
+  naming: Naming;
   onChoose: () => void;
 }
 
-function MasterOption({ master, summary, otherName, accreditation, onChoose }: MasterOptionProps) {
+function MasterOption({ master, summary, otherName, accreditation, prerequisites, naming, onChoose }: MasterOptionProps) {
   const { tracks, compulsory, compulsoryCredits, electives, passRate, rating } = summary;
   const facts = [
     tracks.length > 0 && plural(tracks.length, "track"),
@@ -99,25 +108,37 @@ function MasterOption({ master, summary, otherName, accreditation, onChoose }: M
         <Specialisations names={accreditation.specialisations} className="text-xs" />
       </button>
       <ChalmersLink code={master.code} courseList={accreditation.courseList} className="self-start px-3 pb-2 text-xs" />
-      {master.prerequisites.length > 0 && (
-        <Prerequisites paragraphs={master.prerequisites} className="px-3 pb-2.5 text-xs">
-          Prerequisites
-        </Prerequisites>
-      )}
+      <MasterPrerequisites paragraphs={master.prerequisites} groups={prerequisites} naming={naming} className="px-3 pb-2.5 text-xs">
+        Prerequisites
+      </MasterPrerequisites>
     </div>
   );
 }
 
-interface PrerequisitesProps {
+interface MasterPrerequisitesProps {
   /** Paragraphs of a master's programme's prerequisites, as its syllabus words them. */
   paragraphs: readonly string[];
+  /** The prerequisites read from them, checked against the student's courses. */
+  groups: readonly PrerequisiteGroup[];
+  naming: Naming;
   /** The label of the button that shows them. */
   children: ReactNode;
   className?: string;
 }
 
-/** A master's programme's prerequisites behind a button, since they run to several lines. */
-export function Prerequisites({ paragraphs, children, className }: PrerequisitesProps) {
+/**
+ * A master's programme's prerequisites, checked against the student's courses. Without any read from its syllabus, its
+ * words behind a button, since they run to several lines.
+ */
+export function MasterPrerequisites({ paragraphs, groups, naming, children, className }: MasterPrerequisitesProps) {
+  if (groups.length > 0) {
+    return (
+      <PrerequisiteCheck groups={groups} naming={naming} footer={<ChalmersWords paragraphs={paragraphs} />} className={className}>
+        {children}
+      </PrerequisiteCheck>
+    );
+  }
+  if (paragraphs.length === 0) return null;
   return (
     <details className={cn("group", className)}>
       <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
@@ -165,8 +186,11 @@ const MASTERS_URL = "https://www.chalmers.se/en/education/find-masters-programme
 /** Says that a master's programme leads to the degree only with one of some of its specialisations. Nothing when any will do. */
 export function Specialisations({ names, className }: { names: readonly string[]; className?: string }) {
   if (names.length === 0) return null;
-  const list = new Intl.ListFormat("en", { type: "disjunction" }).format(names);
-  return <span className={cn("block text-muted-foreground", className)}>Gives your degree only with the specialisation {list}</span>;
+  return (
+    <span className={cn("block text-muted-foreground", className)}>
+      Gives your degree only with the specialisation {formatAlternatives(names)}
+    </span>
+  );
 }
 
 const linkClass = "text-foreground underline underline-offset-4";
