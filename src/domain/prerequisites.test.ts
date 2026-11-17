@@ -91,7 +91,7 @@ describe("parsePrerequisites", () => {
   });
 
   it("points an old course code at the course given this year under its name", () => {
-    expect(parse("The course DAT420 or equivalent.")).toMatchObject([{ to: "DAT610", writtenAs: "DAT420" }]);
+    expect(parse("The course DAT420.")).toMatchObject([{ to: "DAT610", writtenAs: "DAT420" }]);
   });
 
   it("marks a course that cannot be in the same degree as excluded", () => {
@@ -145,6 +145,12 @@ describe("parsePrerequisites", () => {
     ]);
   });
 
+  it("recommends everything in a text that opens with 'No strict requirements'", () => {
+    expect(parse("No strict requirements. The lectures assume linear algebra.").map(({ to, strength }) => [to, strength])).toEqual([
+      ["topic:linear-algebra", "recommended"],
+    ]);
+  });
+
   it("reads a decimal comma in a credit count", () => {
     expect(summary(parse("A course of 7,5 hp in programming."))).toEqual([
       { to: "topic:programming", strength: "required", via: "topic", credits: 7.5 },
@@ -168,7 +174,7 @@ describe("parsePrerequisites", () => {
   });
 
   it("reads a name next to a code as that code's title", () => {
-    expect(parse("TDA548 Introductory software development, or equivalent.").map((e) => e.to)).toEqual(["TDA548"]);
+    expect(parse("TDA548 Introductory software development.").map((e) => e.to)).toEqual(["TDA548"]);
   });
 
   it("reads a course name in a degree's subjects as no course", () => {
@@ -267,6 +273,29 @@ describe("parsePrerequisites groups", () => {
       ["EEM015", 1],
       ["topic:programming", null],
       ["topic:python", null],
+    ]);
+  });
+
+  it("makes a course the text allows an equivalent of an alternative to the subject its name says", () => {
+    expect(groups("Programming in Java. Courses DAT050, TDA548 or equivalent.")).toEqual([
+      ["topic:programming", 1],
+      ["DAT050", 1],
+      ["TDA548", 2],
+      ["topic:software-engineering", 2],
+    ]);
+  });
+
+  it("makes a course that a requirement 'could be acquired with' an alternative to it", () => {
+    expect(groups("Concepts in logic, sets and relations that could be acquired with, e.g., TDA233.")).toEqual([
+      ["topic:logic", 1],
+      ["TDA233", 1],
+    ]);
+  });
+
+  it("reads 'and/or' as or, also after examples", () => {
+    expect(groups("A course in programming (e.g. C/C++/Java or similar) and/or familiarity with software like MATLAB.")).toEqual([
+      ["topic:programming", 1],
+      ["topic:matlab", 1],
     ]);
   });
 

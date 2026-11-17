@@ -55,7 +55,10 @@ export const TOPICS = {
   algorithms: { label: "Algorithms and data structures", pattern: /\balgorithms\b|\bdata structures\b/ },
   databases: { label: "Databases", pattern: /\bdatabases?\b/ },
   "operating-systems": { label: "Operating systems", pattern: /\boperating systems?\b/ },
-  "computer-networks": { label: "Computer networks", pattern: /\bcomputer (?:networks?|communication)\b|\bnetworking\b/ },
+  "computer-networks": {
+    label: "Computer networks",
+    pattern: /\bcomputer (?:networks?|communication)\b|\bdata ?communications?\b|\bnetworking\b/,
+  },
   "computer-security": { label: "Computer security", pattern: /\b(?:computer|information|network|cyber) ?security\b/ },
   "computer-organization": {
     label: "Computer organization",
@@ -207,3 +210,12 @@ export const TOPICS = {
 } as const satisfies Record<string, { label: string; pattern: RegExp }>;
 
 export type TopicId = keyof typeof TOPICS;
+
+/** The general subject each more specific one is part of, so that a course in the specific one also covers it. */
+export const PARENT_TOPICS: Partial<Record<TopicId, TopicId>> = {
+  "functional-programming": "programming",
+  "object-oriented-programming": "programming",
+  "concurrent-programming": "programming",
+  python: "programming",
+  matlab: "programming",
+};

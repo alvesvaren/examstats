@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { NamesFile } from "./names.ts";
-import { TOPICS } from "./prerequisite-topics.ts";
+import { PARENT_TOPICS, TOPICS } from "./prerequisite-topics.ts";
 import type { ProgrammePlan } from "./programme-plans.ts";
 
 /** A course's syllabus, as far as its prerequisites go. */
@@ -118,11 +118,18 @@ const PROGRAMME_CONTEXT = /\bprogram(?:me)?s?\b|\bmaster'?s?\b|\bm\.?sc\b/i;
 const MIN_NAME_LENGTH = 10;
 /** Words that make a course name no more specific than its subject, as in "Basic physics". */
 const GENERIC_PREFIX = /^(?:basic|general|introductory|fundamental|introduction to) /;
+/**
+ * Words that make a course name no more than its subject when the course stands for the subject, as in
+ * "Introductory course in mathematics". A text that names such a course by name still means the course.
+ */
+const COURSE_IN_SUBJECT_PREFIX = /^(?:introductory course in|basic|general|introductory|fundamental|introduction to) /;
 
 const strengthOf = (text: string): Strength | null => (EXCLUDED.test(text) ? "excluded" : RECOMMENDED.test(text) ? "recommended" : null);
 
 /** A line this short that recommends, such as "Recommended prerequisites", heads the lines after it. */
 const MAX_HEADING_WORDS = 4;
+
+const NO_REQUIREMENTS = /^\s*no (?:strict |formal |specific |particular )?(?:entry )?(?:requirements|prerequisites)\b/i;
 
 /** Words that ask for one of what follows them, as in "one of the following courses" or "either". */
 const ONE_OF = /\b(?:(?:one|any) of|either)\b/i;
@@ -134,7 +141,8 @@ const ONE_OF = /\b(?:(?:one|any) of|either)\b/i;
  * `list` of alternatives.
  */
 export function sentencesOf(text: string) {
-  let heading: Strength = "required";
+  // A text that opens with "No strict requirements" goes on to say what helps, not what is required.
+  let heading: Strength = NO_REQUIREMENTS.test(text) ? "recommended" : "required";
   let list: string | null = null;
   // A line that goes on in lower case continues the sentence of the line before, unless that one ended.
   return text
@@ -205,8 +213,8 @@ function creditsOf(sentence: string, start: number, end: number) {
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** Whether a name says no more than one of the subjects in `TOPICS`, as "Linear algebra" or "Basic physics" do. */
-function isSubject(name: string) {
-  const subject = name.toLowerCase().replace(GENERIC_PREFIX, "");
+function isSubject(name: string, prefix = GENERIC_PREFIX) {
+  const subject = name.toLowerCase().replace(prefix, "");
   return Object.values(TOPICS).some(({ pattern }) => new RegExp(`^(?:${pattern.source})$`).test(subject));
 }
 
@@ -271,9 +279,18 @@ export function prerequisiteIndex(syllabi: readonly CourseSyllabus[], names: Nam
     findProgrammes: nameFinder(masters, only),
     subjects: new Set(
       Object.values(courses)
-        .filter(isSubject)
+        .filter((name) => isSubject(name))
         .map((name) => name.toLowerCase()),
     ),
+    /**
+     * The one subject a course's name says, such as functional programming for "TDA452 Functional programming", and
+     * whether the name says no more than that subject. Null when it says none or several.
+     */
+    subjectOf: (code: string) => {
+      const name = courses[code] ?? "";
+      const ids = Object.entries(TOPICS).flatMap(([id, { pattern }]) => (pattern.test(name.toLowerCase()) ? [id] : []));
+      return ids.length === 1 ? { id: ids[0]!, only: isSubject(name, COURSE_IN_SUBJECT_PREFIX) } : null;
+    },
   };
 }
 export type PrerequisiteIndex = ReturnType<typeof prerequisiteIndex>;
@@ -316,7 +333,10 @@ interface Mention {
 const OR_LINK = /^,?\s*(?:(?!and\b)[\w-]+\s+){0,2}(?:(?:and\/)?or|\/)(?:\s+(?!and\b)[\w-]+){0,2}$/;
 const AND_LINK = /^,?\s*and$/;
 /** Words that end in a cue for examples of what came before them, as in "a course in databases (e.g.". */
-const EXAMPLES = /(?:such as|e\.\s?g\.?|for example|for instance|like)[\s,:]*$/i;
+const EXAMPLES = /(?:such as|e\.\s?g\.?|for example|for instance|like)(?:\s+[^\s,;]+){0,4}?[\s,:/]*$/i;
+/** Words before a course that the requirement before them can be met with, as in "that could be acquired with, e.g.,". */
+const ACQUIRED =
+  /\b(?:acquired|obtained|taught|gained|learn(?:ed|t)|covered)\b[^;]*?\b(?:in|with|through|from|by)\b[\s,]*(?:(?:e\.\s?g\.?|for example|for instance|such as)[\s,]*)?(?:the courses?\s*)?$/i;
 /** Words that start a list of alternatives, as in "one of the following:" or "Examples of this can be:". */
 const LIST = new RegExp(`${ONE_OF.source}|\\bexamples? (?:of|are|include|can)\\b`, "i");
 
@@ -348,6 +368,8 @@ function groupsOf(mentions: readonly Mention[], gaps: string, sentenceKey: strin
     // subjects side by side, as in "programming (Python)", say one thing more precisely.
     if (clean === "") return isTopic(i - 1) !== isTopic(i) || (!isTopic(i) && bracketed) ? "adjacent" : null;
     if (OR_LINK.test(clean)) return clean.startsWith(",") ? "listOr" : "or";
+    if (/\band\/or\b/.test(clean) && !clean.includes(";")) return "or";
+    if (ACQUIRED.test(clean) && !clean.includes(";")) return "examples";
     if (clean === "," && !bracketed) return "comma";
     if (AND_LINK.test(clean) && !bracketed) return "and";
     // The examples' head is the mention right before them, with no other phrase between, as in "programming, e.g.,
@@ -478,12 +500,57 @@ export function parsePrerequisites(from: string, text: string, index: Prerequisi
     );
     return { ...best!, credits: best!.edge.credits ?? all.find((m) => m.edge.credits)?.edge.credits ?? null };
   });
+  const withSubjects = coveredSubjects(chosen, index);
   const sizes = Map.groupBy(
-    chosen.filter((c) => c.group !== null),
+    withSubjects.filter((c) => c.group !== null),
     (c) => c.group,
   );
   const numbers = new Map([...sizes].filter(([, members]) => members.length > 1).map(([key], i) => [key, i + 1]));
-  return chosen.map(({ edge, group, credits }) => ({ ...edge, credits, group: (group !== null && numbers.get(group)) || null }));
+  return withSubjects.map(({ edge, group, credits }) => ({ ...edge, credits, group: (group !== null && numbers.get(group)) || null }));
+}
+
+/** A sentence that lets something else stand in for what it names, as in "TDA452 or equivalent". */
+const EQUIVALENT = /\bor (?:an? |the )?(?:equivalent|similar|corresponding|comparable|equal)\b|\b(?:equivalent|corresponding) to\b/i;
+
+type Chosen = { edge: Prerequisite; group: string | null; credits: number | null };
+
+/**
+ * `chosen` with each course that a sentence allows an equivalent of made an alternative to the subject its name says:
+ * the subject's edge in the text, or the general subject it is part of, or else a new edge when the name says no more
+ * than the subject. "TDA452 Functional programming, … or equivalent" asks for TDA452 or functional programming.
+ */
+function coveredSubjects(chosen: readonly Chosen[], index: PrerequisiteIndex): Chosen[] {
+  const result = chosen.map((c) => ({ ...c }));
+  const byNode = new Map(result.map((c) => [c.edge.to, c]));
+  const join = (a: Chosen, b: Chosen) => {
+    const key = a.group ?? b.group ?? `subject ${a.edge.to}`;
+    const old = [a.group, b.group].filter((g) => g !== null && g !== key);
+    for (const c of result) if (c.group !== null && old.includes(c.group)) c.group = key;
+    a.group = key;
+    b.group = key;
+  };
+  for (const { edge } of chosen) {
+    const course = byNode.get(edge.to)!;
+    if (edge.to.includes(":") || edge.strength === "excluded" || !EQUIVALENT.test(edge.source)) continue;
+    const subject = index.subjectOf(edge.to);
+    if (!subject) continue;
+    const parent = Object.entries(PARENT_TOPICS).find(([child]) => child === subject.id)?.[1];
+    const existing = byNode.get(topicNode(subject.id)) ?? (parent ? byNode.get(topicNode(parent)) : undefined);
+    if (existing) {
+      if (existing.edge.strength === edge.strength) join(course, existing);
+      continue;
+    }
+    if (!subject.only) continue;
+    const added: Chosen = {
+      edge: { ...edge, to: topicNode(subject.id), via: "topic", credits: null, writtenAs: null },
+      group: null,
+      credits: null,
+    };
+    result.splice(result.indexOf(course) + 1, 0, added);
+    byNode.set(added.edge.to, added);
+    join(course, added);
+  }
+  return result;
 }
 
 /** `edges` with the fixes for `from` applied: each fix replaces or removes the edge to its node, or adds one. */
