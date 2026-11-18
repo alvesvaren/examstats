@@ -59,8 +59,9 @@ const file: UpcomingMastersFile = {
       name: "Computer Science",
       courseList: "https://example.com/mpcos.pdf",
       accreditations: [
-        { programme: "TKDAT", degree: "engineering", specialisations: [] },
-        { programme: "TKELT", degree: "engineering", specialisations: ["Algorithms"] },
+        { programme: "TKDAT", degree: "engineering", specialisations: [], courses: [] },
+        { programme: "TKELT", degree: "engineering", specialisations: ["Algorithms"], courses: [] },
+        { programme: "TKITE", degree: "engineering", specialisations: [], courses: ["MVE655", "LMA017"] },
       ],
       courses: [
         listed("Algorithms advanced course", { requirement: "compulsory" }),
@@ -74,7 +75,7 @@ const file: UpcomingMastersFile = {
       code: "MPBIO",
       name: "Biotechnology",
       courseList: null,
-      accreditations: [{ programme: "TKDAT", degree: "engineering", specialisations: [] }],
+      accreditations: [{ programme: "TKDAT", degree: "engineering", specialisations: [], courses: [] }],
       courses: null,
     },
   ],
@@ -118,13 +119,14 @@ describe("upcomingMasters", () => {
     expect(plans.find((p) => p.code === "MPBIO")).not.toHaveProperty("academicYear");
   });
 
-  it("lists the master's programmes of each programme, with the specialisations the degree needs", () => {
+  it("lists the master's programmes of each programme, with the specialisations and courses the degree needs", () => {
     expect(info.accreditations).toEqual({
       TKDAT: [
-        { code: "MPCOS", specialisations: [] },
-        { code: "MPBIO", specialisations: [] },
+        { code: "MPCOS", specialisations: [], courses: [] },
+        { code: "MPBIO", specialisations: [], courses: [] },
       ],
-      TKELT: [{ code: "MPCOS", specialisations: ["Algorithms"] }],
+      TKELT: [{ code: "MPCOS", specialisations: ["Algorithms"], courses: [] }],
+      TKITE: [{ code: "MPCOS", specialisations: [], courses: ["MVE655", "LMA017"] }],
     });
   });
 });

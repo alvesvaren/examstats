@@ -13,6 +13,8 @@ import type { Naming } from "./naming";
 export interface Accreditation {
   /** Specialisations of the master's programme that the degree needs one of. Empty when any will do. */
   specialisations: readonly string[];
+  /** Courses the degree needs one of, by code. Empty when it needs none. */
+  courses: readonly string[];
   /** The course list of a master's programme Chalmers has announced but not planned yet. */
   courseList: string | null;
 }
@@ -41,7 +43,7 @@ export function MasterPicker({ programme, masters, accredited, catalog, checkMas
       master,
       summary: masterSummary(master, stats),
       otherName: otherNameOf(catalog.programmes, master.code),
-      accreditation: accredited.get(master.code) ?? { specialisations: [], courseList: null },
+      accreditation: accredited.get(master.code) ?? { specialisations: [], courses: [], courseList: null },
       prerequisites: checkMaster(master.code),
     }));
 

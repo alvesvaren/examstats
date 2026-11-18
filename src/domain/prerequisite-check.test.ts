@@ -6,6 +6,7 @@ import {
   missingOf,
   prerequisiteLookup,
   subjectsOf,
+  withRequiredCourses,
   type DegreeCourse,
 } from "./prerequisite-check.ts";
 import type { Prerequisite, PrerequisiteSnapshot } from "./prerequisites.ts";
@@ -170,6 +171,26 @@ describe("checkPrerequisites", () => {
       { nodes: ["multivariable-calculus"], strength: "recommended", met: false, fixes: ["LMA017", "MVE655"] },
     ]);
     expect(missingOf(groups)).toEqual([]);
+  });
+});
+
+describe("withRequiredCourses", () => {
+  const edges = [edge("topic:programming", { group: 1 }), edge("topic:algorithms", { group: 1 }), edge("topic:calculus")];
+
+  it("asks for one of the courses, apart from the master's programme's own groups", () => {
+    const required = withRequiredCourses(edges, ["LMA017", "MVE655"], "The matrix asks for one of these.");
+    const offered = [...firstYears, course("MVE655", 2, ["LP2"])];
+    const groups = checkPrerequisites(required, lookup, { taken: firstYears, offered, programmes: [] });
+    expect(summary(groups)).toEqual([
+      { nodes: ["programming", "algorithms"], strength: "required", met: true, fixes: [] },
+      { nodes: ["calculus"], strength: "required", met: true, fixes: [] },
+      { nodes: ["LMA017", "MVE655"], strength: "required", met: false, fixes: ["MVE655"] },
+    ]);
+    expect(groups[2]?.sources).toEqual(["The matrix asks for one of these."]);
+  });
+
+  it("leaves the edges as they are without courses", () => {
+    expect(withRequiredCourses(edges, [], "Unused.")).toEqual(edges);
   });
 });
 

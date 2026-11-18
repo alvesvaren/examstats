@@ -226,5 +226,18 @@ export function checkPrerequisites(
     .toSorted((a, b) => Number(a.strength !== "required") - Number(b.strength !== "required"));
 }
 
+/**
+ * A master's programme's prerequisite `edges` with the courses a programme's degree needs one of for it, as one more
+ * group of alternatives that `source` explains.
+ */
+export function withRequiredCourses(edges: readonly Prerequisite[], courses: readonly string[], source: string): Prerequisite[] {
+  if (courses.length === 0) return [...edges];
+  const group = Math.max(0, ...edges.map((e) => e.group ?? 0)) + 1;
+  return [
+    ...edges,
+    ...courses.map((to): Prerequisite => ({ to, strength: "required", via: "code", credits: null, writtenAs: null, group, source })),
+  ];
+}
+
 /** The required groups of a check that the student's courses do not meet. */
 export const missingOf = (groups: readonly PrerequisiteGroup[]) => groups.filter((g) => g.strength === "required" && !g.met);

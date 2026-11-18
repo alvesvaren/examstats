@@ -115,6 +115,8 @@ export const upcomingMastersSchema = z.object({
         code: z.string(),
         /** Specialisations of the master's programme that the degree needs one of. Empty when any will do. */
         specialisations: z.array(z.string()),
+        /** Courses the degree needs one of, by code. Empty when it needs none. */
+        courses: z.array(z.string()),
       }),
     ),
   ),

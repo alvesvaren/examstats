@@ -16,7 +16,8 @@ const REQUIREMENTS = ["compulsory", "compulsoryElective", "elective"] as const;
  * The committed file `data/upcoming-masters.json`: the master's programmes Chalmers has announced for an academic year
  * it has no plans for yet. Who they accredit comes from Chalmers' accreditation matrix. Their courses come from the
  * course list on each programme's page, by name, since the lists give no codes or study periods. A master's programme
- * that keeps its code has no course list, and follows its current plan.
+ * that keeps its code has no course list, and follows its current plan. A conditional accreditation names the
+ * specialisations or the courses the degree needs.
  */
 export const upcomingMastersFileSchema = z.object({
   academicYear: z.string(),
@@ -33,6 +34,8 @@ export const upcomingMastersFileSchema = z.object({
           programme: z.string(),
           degree: z.enum(["engineering", "architect"]),
           specialisations: z.array(z.string()),
+          /** Courses the degree needs one of, by code, which Chalmers calls "kurskrav". Empty when it needs none. */
+          courses: z.array(z.string()),
         }),
       ),
       courses: z
@@ -150,7 +153,7 @@ export function upcomingMasters(
 
   const accreditations = Map.groupBy(
     file.masters.flatMap(({ code, accreditations: rows }) =>
-      rows.map(({ programme, specialisations }) => ({ programme, code, specialisations })),
+      rows.map(({ programme, specialisations, courses }) => ({ programme, code, specialisations, courses })),
     ),
     (a) => a.programme,
   );
