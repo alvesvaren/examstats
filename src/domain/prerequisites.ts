@@ -57,7 +57,8 @@ export type Prerequisite = z.infer<typeof prerequisiteSchema>;
 
 /**
  * A hand-written correction of the parser. It sets the edge from `from`, a course code or `programme:<code>`, to `to`,
- * replacing what the parser found, and "none" removes it. Without `group` the edge keeps the group the parser gave it.
+ * replacing what the parser found, and "none" removes it. Without `group` or `credits` the edge keeps the group or
+ * credits the parser gave it.
  * A new group takes a number the parser does not use for that course.
  */
 export const prerequisiteFixSchema = z.object({
@@ -65,6 +66,7 @@ export const prerequisiteFixSchema = z.object({
   to: z.string(),
   strength: z.enum([...STRENGTHS, "none"]),
   group: z.number().int().positive().nullable().optional(),
+  credits: z.number().positive().nullable().optional(),
   note: z.string().optional(),
 });
 export const prerequisiteFixesSchema = z.array(prerequisiteFixSchema);
@@ -131,8 +133,8 @@ const MAX_HEADING_WORDS = 4;
 
 const NO_REQUIREMENTS = /^\s*no (?:strict |formal |specific |particular )?(?:entry )?(?:requirements|prerequisites)\b/i;
 
-/** Words that ask for one of what follows them, as in "one of the following courses" or "either". */
-const ONE_OF = /\b(?:(?:one|any) of|either)\b/i;
+/** Words that ask for one of what follows them, as in "one of the following courses", "one or more of" or "either". */
+const ONE_OF = /\b(?:(?:one|any)(?: or (?:more|several))? of|either)\b/i;
 
 /**
  * The sentences of a prerequisite text with the strength each inherits. A line that ends in a colon, such as "The
@@ -337,8 +339,16 @@ const EXAMPLES = /(?:such as|e\.\s?g\.?|for example|for instance|like)(?:\s+[^\s
 /** Words before a course that the requirement before them can be met with, as in "that could be acquired with, e.g.,". */
 const ACQUIRED =
   /\b(?:acquired|obtained|taught|gained|learn(?:ed|t)|covered)\b[^;]*?\b(?:in|with|through|from|by)\b[\s,]*(?:(?:e\.\s?g\.?|for example|for instance|such as)[\s,]*)?(?:the courses?\s*)?$/i;
-/** Words that start a list of alternatives, as in "one of the following:" or "Examples of this can be:". */
-const LIST = new RegExp(`${ONE_OF.source}|\\bexamples? (?:of|are|include|can)\\b`, "i");
+/**
+ * Words that start a list of alternatives, as in "one of the following:", "Examples of this can be:", or "20 cr. within
+ * the following areas:", which the credits can come from any of.
+ */
+const LIST = new RegExp(
+  `${ONE_OF.source}|\\bexamples? (?:of|are|include|can)\\b|\\b(?:cr|credits?|hec|hp|ects)\\.?\\s+(?:with)?in the following\\b`,
+  "i",
+);
+/** "and/or" that joins only the two mentions around it, with no "and", comma or colon after it, as in "programming and/or familiarity with MATLAB". */
+const AND_OR_LINK = /\band\/or\b(?![^]*(?:\band\b(?!\/)|[,;:]))/;
 
 type Link = "adjacent" | "or" | "listOr" | "comma" | "and" | "examples" | null;
 
@@ -367,8 +377,9 @@ function groupsOf(mentions: readonly Mention[], gaps: string, sentenceKey: strin
     // A subject and a course right after it, as in "Electromagnetism (EEM015)", are one requirement and its course. Two
     // subjects side by side, as in "programming (Python)", say one thing more precisely.
     if (clean === "") return isTopic(i - 1) !== isTopic(i) || (!isTopic(i) && bracketed) ? "adjacent" : null;
-    if (OR_LINK.test(clean)) return clean.startsWith(",") ? "listOr" : "or";
-    if (/\band\/or\b/.test(clean) && !clean.includes(";")) return "or";
+    // "A, B, or C" asks for one of the whole list. In "A, automation or B" the "or" joins a word the parser does not know.
+    if (OR_LINK.test(clean)) return !clean.startsWith(",") ? "or" : /^,\s*(?:and\/)?or\b/.test(clean) ? "listOr" : "comma";
+    if (AND_OR_LINK.test(clean)) return "or";
     if (ACQUIRED.test(clean) && !clean.includes(";")) return "examples";
     if (clean === "," && !bracketed) return "comma";
     if (AND_LINK.test(clean) && !bracketed) return "and";
@@ -556,21 +567,21 @@ function coveredSubjects(chosen: readonly Chosen[], index: PrerequisiteIndex): C
 /** `edges` with the fixes for `from` applied: each fix replaces or removes the edge to its node, or adds one. */
 export function applyFixes(from: string, edges: readonly Prerequisite[], fixes: readonly PrerequisiteFix[]) {
   const own = new Map(fixes.filter((f) => f.from === from).map((f) => [f.to, f]));
-  const fixed = [...own.values()].flatMap((fix): Prerequisite[] =>
-    fix.strength === "none"
-      ? []
-      : [
-          {
-            to: fix.to,
-            strength: fix.strength,
-            via: "fix",
-            credits: null,
-            writtenAs: null,
-            group: fix.group === undefined ? (edges.find((e) => e.to === fix.to)?.group ?? null) : fix.group,
-            source: fix.note ?? "",
-          },
-        ],
-  );
+  const fixed = [...own.values()].flatMap((fix): Prerequisite[] => {
+    if (fix.strength === "none") return [];
+    const parsed = edges.find((e) => e.to === fix.to);
+    return [
+      {
+        to: fix.to,
+        strength: fix.strength,
+        via: "fix",
+        credits: fix.credits === undefined ? (parsed?.credits ?? null) : fix.credits,
+        writtenAs: null,
+        group: fix.group === undefined ? (parsed?.group ?? null) : fix.group,
+        source: fix.note ?? "",
+      },
+    ];
+  });
   const all = [...edges.filter((e) => !own.has(e.to)), ...fixed];
   // A group that the fixes leave with one member asks for that member on its own.
   const sizes = Map.groupBy(all, (e) => e.group);
