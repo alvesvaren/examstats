@@ -7,7 +7,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { catalogQuery, plansQuery, prerequisitesQuery } from "@/data/queries";
 import { otherNameOf } from "@/domain/planner";
 import { degreePicks, rememberedPicks, withMaster, withStart } from "@/domain/planner-memory";
-import { checkPrerequisites, degreeCourses } from "@/domain/prerequisite-check";
+import { checkPrerequisites, degreeCourses, withRequiredCourses } from "@/domain/prerequisite-check";
 import { academicYearOf, cohortOf, MASTER_START_YEAR, studyYears, tracksOf, type StudyYear } from "@/domain/programme-plans";
 import { useLanguage } from "@/hooks/use-language";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
@@ -53,11 +53,11 @@ export function PlannerPage() {
   const upcoming = cohort.upcomingMasters;
   const accredited = new Map<string, Accreditation>(
     upcoming
-      ? (upcoming.accreditations[programme.code] ?? []).map(({ code, specialisations }) => [
+      ? (upcoming.accreditations[programme.code] ?? []).map(({ code, specialisations, courses }) => [
           code,
-          { specialisations, courseList: upcoming.masters[code]?.courseList ?? null },
+          { specialisations, courses, courseList: upcoming.masters[code]?.courseList ?? null },
         ])
-      : programme.masters.map((code) => [code, { specialisations: [], courseList: null }]),
+      : programme.masters.map((code) => [code, { specialisations: [], courses: [], courseList: null }]),
   );
   const masters = masterPlans.filter((p) => accredited.has(p.code));
   // A master's programme in the URL is a shared plan and wins. Without one, the degree is as this device remembers it.
@@ -119,8 +119,17 @@ export function PlannerPage() {
     picks,
     track,
   );
+  // A conditional accreditation's courses count as prerequisites, since the degree needs one of them.
   const checkMaster = (code: string) =>
-    checkPrerequisites(lookup.edgesOfProgramme(code), lookup, { ...beforeMaster, programmes: [programme.code] });
+    checkPrerequisites(
+      withRequiredCourses(
+        lookup.edgesOfProgramme(code),
+        accredited.get(code)?.courses ?? [],
+        `Chalmers' accreditation matrix asks for one of these courses for ${programme.name} to finish with this master's programme.`,
+      ),
+      lookup,
+      { ...beforeMaster, programmes: [programme.code] },
+    );
   const naming = namingOf([programme, ...masters], catalog, lookup);
   const unplanned =
     master && current?.plan === master ? upcoming?.masters[master.code]?.unplanned.find((u) => u.year === current.year)?.names : undefined;

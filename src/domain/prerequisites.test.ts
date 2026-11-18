@@ -299,6 +299,47 @@ describe("parsePrerequisites groups", () => {
     ]);
   });
 
+  it("reads 'and/or' as or only up to the next 'and', comma or colon", () => {
+    expect(
+      groups(
+        "Algorithms and/or Data Structures (at least 5 cr.) and one of the following courses: Discrete Mathematics or Probability Theory",
+      ),
+    ).toEqual([
+      ["topic:algorithms", null],
+      ["topic:discrete-mathematics", 1],
+      ["topic:probability", 1],
+    ]);
+    expect(
+      groups("Algorithms and/or Data Structures (at least 6 cr.), Basic Software Engineering or Software Engineering Project"),
+    ).toEqual([
+      ["topic:algorithms", null],
+      ["topic:software-engineering", null],
+    ]);
+  });
+
+  it("ends a group at a comma before 'or' that joins a word the parser does not know", () => {
+    expect(groups("Engineering Materials, Manufacturing Engineering, Automation or Automatic Control, Industrial Economics")).toEqual([
+      ["topic:materials-science", null],
+      ["topic:manufacturing", null],
+      ["topic:automatic-control", null],
+      ["topic:economics", null],
+    ]);
+  });
+
+  it("makes a list of subjects that credits can come from alternatives", () => {
+    expect(
+      groups(
+        "Mathematics and at least 15 cr. in one or several of the following subjects: Project Management, Economics. 20 cr. within the following areas: Geotechnics, Fluid Mechanics.",
+      ),
+    ).toEqual([
+      ["topic:mathematics", null],
+      ["topic:project-management", 1],
+      ["topic:economics", 1],
+      ["topic:geotechnics", 2],
+      ["topic:fluid-mechanics", 2],
+    ]);
+  });
+
   it("reads the title after a code as part of that course", () => {
     expect(groups("TIN093 Algorithms or equivalent.")).toEqual([["TIN093", null]]);
   });
@@ -328,6 +369,18 @@ describe("applyFixes", () => {
       ["topic:machine-learning", "required", 1],
       ["TDA233", "recommended", 1],
       ["SSY340", "required", null],
+    ]);
+  });
+
+  it("keeps the credits the parser gave an edge unless the fix sets them", () => {
+    const edges = parse("Mathematics (at least 30 cr.), Programming (at least 7,5 cr.).");
+    const fixed = applyFixes("XYZ100", edges, [
+      { from: "XYZ100", to: "topic:mathematics", strength: "required", credits: 65 },
+      { from: "XYZ100", to: "topic:programming", strength: "recommended" },
+    ]);
+    expect(fixed.map(({ to, strength, credits }) => [to, strength, credits])).toEqual([
+      ["topic:mathematics", "required", 65],
+      ["topic:programming", "recommended", 7.5],
     ]);
   });
 });

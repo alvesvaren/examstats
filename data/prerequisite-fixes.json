@@ -12,6 +12,8 @@
   {"from":"IMS125","to":"topic:materials-science","strength":"required","note":"Materials science and engineering basic courses."},
   {"from":"MMK082","to":"MTT011","strength":"none","note":"Asks for basic courses in the subject, and MTT011 is no longer given."},
   {"from":"MMK082","to":"topic:materials-science","strength":"required","note":"Basic courses in Materials Science and Engineering."},
+  {"from":"MMS196","to":"topic:industrial-design","strength":"required","group":2,"note":"Product development such as machine elements, machine design or design methodology: any of them."},
+  {"from":"MMS196","to":"topic:machine-elements","strength":"required","group":2,"note":"Product development such as machine elements, machine design or design methodology: any of them."},
   {"from":"MPP126","to":"programme:MPDES","strength":"required","group":3,"note":"Registration on MPPDE, MPQOM or MPDES: any one of the three."},
   {"from":"MPP126","to":"programme:MPPDE","strength":"required","group":3,"note":"Registration on MPPDE, MPQOM or MPDES: any one of the three."},
   {"from":"MPP126","to":"programme:MPQOM","strength":"required","group":3,"note":"Registration on MPPDE, MPQOM or MPDES: any one of the three."},
@@ -19,6 +21,8 @@
   {"from":"MPP126","to":"topic:industrial-design","strength":"none","note":"From the name of MPDES."},
   {"from":"RRY025","to":"LMA017","strength":"none","note":"Names the subject, not the course."},
   {"from":"RRY025","to":"topic:multivariable-calculus","strength":"required","note":"Mathematical analysis in several variables."},
+  {"from":"RRY071","to":"topic:materials-science","strength":"none","note":"Names a bachelor programme that often teaches electromagnetics, not a requirement."},
+  {"from":"RRY071","to":"topic:physics","strength":"none","note":"Names a bachelor programme that often teaches electromagnetics, not a requirement."},
   {"from":"SJO297","to":"MMS257","strength":"none","note":"The text means MMS256 Introduction to international logistics, now MMS265. The code MMS256 now belongs to another course."},
   {"from":"SJO297","to":"MMS265","strength":"required","note":"Introduction to international logistics, written as MMS256."},
   {"from":"TDA362","to":"topic:linear-algebra","strength":"recommended","note":"Some understanding of vectors in three dimensions: dot product, cross product and matrix multiplication."},
@@ -36,5 +40,11 @@
   {"from":"VBB048","to":"VSM167","strength":"required","note":"Finite element method - basics, named differently in the text."},
   {"from":"VBB072","to":"TME245","strength":"recommended","note":"Finite element method - structures, named differently in the text."},
   {"from":"VBB072","to":"VSM167","strength":"required","note":"Finite element methods - basics, named differently in the text."},
-  {"from":"VSM196","to":"VSM167","strength":"recommended","note":"Finite element method - basics, named differently in the text."}
+  {"from":"VSM196","to":"VSM167","strength":"recommended","note":"Finite element method - basics, named differently in the text."},
+  {"from":"programme:MPEPO","to":"topic:electromagnetism","strength":"none","note":"Courses in electromagnetism can count towards the mathematics asked for, but are not asked for themselves."},
+  {"from":"programme:MPLOL","to":"topic:chemistry","strength":"none","note":"Asks for engineering-, physics- or chemistry-related subjects, which an engineering degree has without either."},
+  {"from":"programme:MPLOL","to":"topic:mathematics","strength":"required","credits":65,"note":"At least 65 cr. of mathematics-related subjects, or 85 cr. with fewer of the other subjects."},
+  {"from":"programme:MPLOL","to":"topic:physics","strength":"none","note":"Asks for engineering-, physics- or chemistry-related subjects, which an engineering degree has without either."},
+  {"from":"programme:MPNAT","to":"topic:matlab","strength":"recommended","group":2,"note":"Software for numerical computation, for example Matlab, Octave or Python: any of them."},
+  {"from":"programme:MPNAT","to":"topic:python","strength":"recommended","group":2,"note":"Software for numerical computation, for example Matlab, Octave or Python: any of them."}
 ]
