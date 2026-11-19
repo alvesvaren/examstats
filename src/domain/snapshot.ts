@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { answerCountsSchema, evaluationRoundSchema } from "./evaluation.ts";
+import { evaluationRoundSchema, surveyAnswersSchema } from "./evaluation.ts";
 import { gradeCountsSchema } from "./grades.ts";
 import { coursePlacementSchema, publishedPlanInfoSchema } from "./programme-plans.ts";
 
@@ -58,8 +58,8 @@ export const courseSummarySchema = namedSchema.extend({
   ended: z.boolean(),
   /** Pass rate on the main part per academic year, oldest first, as `[academicYear, passRate]`. */
   trend: z.array(trendPointSchema),
-  /** Answers to the overall impression question over all survey rounds, or null when too few to rate. */
-  overallAnswers: answerCountsSchema.nullable(),
+  /** Answers to each survey question over all rounds. A question with too few answers to score is missing. */
+  surveyAnswers: surveyAnswersSchema,
 });
 
 export const snapshotSchema = z.object({

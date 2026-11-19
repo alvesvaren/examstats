@@ -2,28 +2,40 @@ import { Link } from "@tanstack/react-router";
 import { ArrowDownIcon, ArrowUpIcon, ChevronDownIcon } from "lucide-react";
 import { memo, type CSSProperties } from "react";
 import { cn } from "cn";
-import { AverageGradeCell, PassRateCell, RatingCell, StackedCell } from "@/components/course-cells";
+import { AverageGradeCell, PassRateCell, StackedCell, SurveyCell } from "@/components/course-cells";
 import { SizeBar, Sparkline } from "@/components/marks";
 import { MetricInfo, type Metric } from "@/components/metric-label";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { defaultSortDir, type CatalogCourse, type SortDir, type SortKey } from "@/domain/catalog";
+import { isOtherQuestion, type OtherQuestion } from "@/domain/evaluation";
 import type { InLanguage } from "@/domain/names";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useScrollLeftSync } from "@/hooks/use-scroll-left-sync";
 import { useWindowVirtualList } from "@/hooks/use-window-virtual-list";
 import { formatCount, formatMonth } from "@/lib/format";
+import { QUESTION_LABELS } from "@/lib/survey-questions";
 
 /**
  * Below `lg` the table scrolls sideways and the course column narrows to the course code, so the numbers get the screen.
- * The minimum width is the fixed columns, the gaps, the padding and that narrow course column.
+ * The minimum width is the fixed columns, the gaps, the padding and that narrow course column. Sorting by a survey
+ * question adds its column after the rating.
  */
-const TABLE_WIDTH = "min-w-[45.25rem]";
-const GRID = cn(
-  "grid items-center gap-x-4",
-  TABLE_WIDTH,
-  "grid-cols-[minmax(5rem,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_4rem_5rem] lg:grid-cols-[minmax(0,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_4rem_5rem]",
-);
+const LAYOUTS = {
+  base: {
+    width: "min-w-[45.25rem]",
+    grid: "grid-cols-[minmax(5rem,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_4rem_5rem] lg:grid-cols-[minmax(0,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_4rem_5rem]",
+  },
+  withQuestion: {
+    width: "min-w-[52.25rem]",
+    grid: "grid-cols-[minmax(5rem,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_4rem_6rem_5rem] lg:grid-cols-[minmax(0,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_4rem_6rem_5rem]",
+  },
+};
+const layoutOf = (question: OtherQuestion | undefined) => (question ? LAYOUTS.withQuestion : LAYOUTS.base);
+function gridOf(question: OtherQuestion | undefined) {
+  const { width, grid } = layoutOf(question);
+  return cn("grid items-center gap-x-4", width, grid);
+}
 /** Stays in view while the table scrolls sideways, covering what scrolls under it, with an edge once something has. */
 const PINNED =
   "sticky left-0 z-20 -ml-2 self-stretch bg-background pr-2 pl-2 group-data-scrolled/table:shadow-[1px_0_0_var(--color-border)]";
@@ -40,7 +52,7 @@ interface Column {
   align?: "center" | "end";
 }
 
-const COLUMNS: Column[] = [
+const BASE_COLUMNS: Column[] = [
   { key: "name", label: "Course" },
   { key: "programme", label: "Programme", align: "center" },
   { key: "attemptsPerYear", label: "Attempts", metric: "attemptsPerYear", align: "end" },
@@ -50,6 +62,13 @@ const COLUMNS: Column[] = [
   { key: "rating", label: "Rating", metric: "rating", align: "end" },
   { key: "lastResult", label: "Last exam", align: "end" },
 ];
+
+/** The columns, with the survey question the list is sorted by after the rating. */
+function columnsOf(question: OtherQuestion | undefined): Column[] {
+  if (!question) return BASE_COLUMNS;
+  const column: Column = { key: question, label: QUESTION_LABELS[question].short, metric: question, align: "end" };
+  return BASE_COLUMNS.flatMap((c) => (c.key === "rating" ? [c, column] : [c]));
+}
 
 const flip = (dir: SortDir): SortDir => (dir === "asc" ? "desc" : "asc");
 
@@ -89,6 +108,7 @@ export function CourseTable({
     ...(showEnded ? ended.map((course) => ({ kind: "course" as const, course })) : []),
   ];
   const sortBy = (key: SortKey) => onSortChange(key, key === sort ? flip(dir) : defaultSortDir(key));
+  const question = isOtherQuestion(sort) ? sort : undefined;
 
   if (!items.length) return <p className="py-10 text-center text-muted-foreground">No courses match.</p>;
 
@@ -96,8 +116,8 @@ export function CourseTable({
   return (
     <div>
       <div ref={headerRef} className="group/table sticky z-30 overflow-hidden border-b bg-background" style={{ top: stickyTop }}>
-        <div className={cn(GRID, "px-2 py-2 text-xs text-muted-foreground")}>
-          {COLUMNS.map((column) => (
+        <div className={cn(gridOf(question), "px-2 py-2 text-xs text-muted-foreground")}>
+          {columnsOf(question).map((column) => (
             <SortHeader key={column.key} column={column} sort={sort} dir={dir} onSort={sortBy} />
           ))}
         </div>
@@ -105,6 +125,7 @@ export function CourseTable({
       <div ref={bodyRef} onScroll={onScroll} className="group/table overflow-x-auto overscroll-x-none">
         <VirtualRows
           items={items}
+          question={question}
           canHover={canHover}
           showEnded={showEnded}
           onToggleEnded={onToggleEnded}
@@ -118,10 +139,12 @@ export function CourseTable({
 
 interface VirtualRowsProps extends Pick<CourseTableProps, "showEnded" | "onToggleEnded" | "programmes" | "maxAttempts"> {
   items: Item[];
+  /** The survey question the list is sorted by, which gets a column. */
+  question: OtherQuestion | undefined;
   canHover: boolean;
 }
 
-function VirtualRows({ items, canHover, showEnded, onToggleEnded, programmes, maxAttempts }: VirtualRowsProps) {
+function VirtualRows({ items, question, canHover, showEnded, onToggleEnded, programmes, maxAttempts }: VirtualRowsProps) {
   const { listRef, virtualizer } = useWindowVirtualList({
     count: items.length,
     rowHeight: (index) => (items[index]?.kind === "ended" ? TOGGLE_ROW_HEIGHT : ROW_HEIGHT),
@@ -134,7 +157,7 @@ function VirtualRows({ items, canHover, showEnded, onToggleEnded, programmes, ma
   return (
     <div
       ref={listRef}
-      className={cn("relative [overflow-anchor:none] row-lines", TABLE_WIDTH)}
+      className={cn("relative [overflow-anchor:none] row-lines", layoutOf(question).width)}
       style={{ height: virtualizer.getTotalSize(), "--row-height": `${ROW_HEIGHT}px` } as CSSProperties}
     >
       {virtualizer.getVirtualItems().map((row) => {
@@ -148,6 +171,7 @@ function VirtualRows({ items, canHover, showEnded, onToggleEnded, programmes, ma
             {item.kind === "course" ? (
               <CourseRow
                 course={item.course}
+                question={question}
                 canHover={canHover}
                 programmeName={item.course.programme ? programmes[item.course.programme]?.name : undefined}
                 maxAttempts={maxAttempts}
@@ -200,6 +224,7 @@ function SortHeader({ column, sort, dir, onSort }: { column: Column; sort: SortK
 
 interface CourseRowProps {
   course: CatalogCourse;
+  question: OtherQuestion | undefined;
   /** False on touch screens, where tooltips would swallow taps on the row link. */
   canHover: boolean;
   programmeName?: string;
@@ -210,12 +235,12 @@ interface CourseRowProps {
  * The whole row links to the course. Controls inside it sit above the link with `relative z-10`.
  * Memoized because the virtualizer re-renders on every scroll frame and rows carry several tooltips.
  */
-const CourseRow = memo(function CourseRow({ course, canHover, programmeName, maxAttempts }: CourseRowProps) {
+const CourseRow = memo(function CourseRow({ course, question, canHover, programmeName, maxAttempts }: CourseRowProps) {
   const muted = course.ended && "opacity-50";
   return (
     <div className={cn("group relative h-[61px] border-b bg-background px-2 hover:bg-row-hover", course.ended && "text-muted-foreground")}>
       <Link to="/course/$code" params={{ code: course.code }} className="absolute inset-0" aria-label={`${course.code} ${course.name}`} />
-      <div className={cn(GRID, "h-full")}>
+      <div className={cn(gridOf(question), "h-full")}>
         {/* Taps pass through the pinned column to the row link below it. */}
         {/* The code leads on phones and the name on wider screens. */}
         <div
@@ -264,8 +289,13 @@ const CourseRow = memo(function CourseRow({ course, canHover, programmeName, max
           <Sparkline trend={course.trend} interactive={canHover} className={cn(muted)} />
         </div>
         <div className="flex justify-end">
-          <RatingCell answers={course.overallAnswers} muted={course.ended} interactive={canHover} />
+          <SurveyCell question="overall" answers={course.surveyAnswers.overall} muted={course.ended} interactive={canHover} />
         </div>
+        {question && (
+          <div className="flex justify-end">
+            <SurveyCell question={question} answers={course.surveyAnswers[question]} muted={course.ended} interactive={canHover} />
+          </div>
+        )}
         <div className="text-right tabular-nums">{formatMonth(course.lastResult)}</div>
       </div>
     </div>

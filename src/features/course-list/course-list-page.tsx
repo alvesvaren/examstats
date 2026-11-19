@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { catalogQuery } from "@/data/queries";
-import { matchProgrammes, queryCourses, type SortDir, type SortKey } from "@/domain/catalog";
+import { SurveySortMenu } from "@/components/survey-sort-menu";
+import { defaultSortDir, matchProgrammes, queryCourses, type SortDir, type SortKey } from "@/domain/catalog";
+import { isOtherQuestion } from "@/domain/evaluation";
 import type { InLanguage } from "@/domain/names";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { useElementSize } from "@/hooks/use-element-size";
@@ -70,7 +72,7 @@ export function CourseListPage() {
       {/* The negative margin cancels the padding the filters need when stuck, so the top of this box is where they stick. */}
       <div ref={resultsRef} className="-mt-2 flex flex-col gap-2">
         <div ref={filtersRef} className="sticky top-0 z-30 flex flex-wrap gap-2 bg-background py-2">
-          <div className="relative min-w-60 flex-1">
+          <div className="relative min-w-60 flex-1 basis-full sm:basis-0">
             <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               key={programme ?? ALL_PROGRAMMES}
@@ -85,6 +87,11 @@ export function CourseListPage() {
             />
           </div>
           <ProgrammeSelect programme={programme} programmes={snapshot.listedProgrammes} onChange={setProgramme} />
+          <SurveySortMenu
+            value={isOtherQuestion(sort) ? sort : undefined}
+            onChange={(question) => setSort(question, defaultSortDir(question))}
+            className="h-10"
+          />
         </div>
 
         {programmeMatches.length > 0 && (
@@ -141,7 +148,7 @@ function ProgrammeSelect({ programme, programmes, onChange }: ProgrammeSelectPro
         onChange(value === ALL_PROGRAMMES ? undefined : value);
       }}
       aria-label="Programme"
-      className={cn("w-full sm:w-72", FIELD_SIZE)}
+      className={cn("min-w-0 flex-1 sm:w-72 sm:flex-none", FIELD_SIZE)}
     >
       <NativeSelectOption value={ALL_PROGRAMMES}>All programmes</NativeSelectOption>
       {options.map(([code, name]) => (

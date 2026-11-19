@@ -8,7 +8,7 @@ import path from "node:path";
 import { z } from "zod";
 import { summarizeCourse } from "../src/domain/course-stats.ts";
 import { nameOf, namesFileSchema } from "../src/domain/names.ts";
-import { compareRounds, evaluationFileSchema, summarizeEvaluations, type EvaluationRound } from "../src/domain/evaluation.ts";
+import { compareRounds, evaluationFileSchema, surveyAnswersOf, type EvaluationRound } from "../src/domain/evaluation.ts";
 import { resultsFileSchema, type CourseDetail, type Snapshot } from "../src/domain/snapshot.ts";
 import {
   cohortPlans,
@@ -79,7 +79,7 @@ async function main() {
     await writeFile(path.join(coursesDir, `${course.code}.json`), JSON.stringify(detail));
     courses.push({
       ...summarizeCourse({ ...course, ...nameOf(courseNames.get(course.code), name) }, parts, today),
-      overallAnswers: summarizeEvaluations(rounds)?.overallAnswers ?? null,
+      surveyAnswers: surveyAnswersOf(rounds),
     });
   }
 

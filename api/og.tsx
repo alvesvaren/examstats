@@ -111,7 +111,8 @@ interface CourseImageProps {
  * What a shared link most needs to answer: how hard the course is and what students think of it.
  */
 export function CourseImage({ course, programme }: CourseImageProps) {
-  const { code, name, recentGrades, overallAnswers, passRate, rating } = toCatalogCourse(course);
+  const { code, name, recentGrades, surveyAnswers, passRate, rating } = toCatalogCourse(course);
+  const overallAnswers = surveyAnswers.overall;
   return (
     <div
       style={{

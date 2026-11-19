@@ -1,16 +1,27 @@
-import { meanAnswer } from "./evaluation.ts";
+import { isOtherQuestion, meanAnswer, OTHER_QUESTIONS, QUESTIONS, type OtherQuestion, type Question } from "./evaluation.ts";
 import { averageGradeOf, passRateOf } from "./grades.ts";
 import { inLanguage, type InLanguage, type Language } from "./names.ts";
 import type { CourseSummary, Snapshot, TrendPoint } from "./snapshot.ts";
 
-export const SORT_KEYS = ["name", "programme", "attemptsPerYear", "passRate", "trend", "averageGrade", "rating", "lastResult"] as const;
+export const SORT_KEYS = [
+  "name",
+  "programme",
+  "attemptsPerYear",
+  "passRate",
+  "trend",
+  "averageGrade",
+  "rating",
+  "lastResult",
+  ...OTHER_QUESTIONS,
+] as const;
 export type SortKey = (typeof SORT_KEYS)[number];
 export type SortDir = "asc" | "desc";
 
-const TEXT_SORTS: readonly SortKey[] = ["name", "programme"];
+/** Text starts A to Z, and workload with the lightest, since 5 is too high. */
+const ASCENDING_SORTS: readonly SortKey[] = ["name", "programme", "workload"];
 
-/** Text sorts start A to Z. Numbers start with the largest. */
-export const defaultSortDir = (key: SortKey): SortDir => (TEXT_SORTS.includes(key) ? "asc" : "desc");
+/** The direction a sort starts in: the rest start with the largest. */
+export const defaultSortDir = (key: SortKey): SortDir => (ASCENDING_SORTS.includes(key) ? "asc" : "desc");
 
 const TREND_BASELINE_YEARS = 3;
 const MIN_PROGRAMME_QUERY = 2;
@@ -43,12 +54,20 @@ export function trendDelta(trend: readonly TrendPoint[]): number | null {
 /** A course named in `language`, plus the values the list filters and sorts on, computed once when the snapshot loads. */
 export function toCatalogCourse(summary: CourseSummary, language: Language = "en") {
   const course = inLanguage(summary, language);
+  const scores: Partial<Record<Question, number>> = Object.fromEntries(
+    QUESTIONS.flatMap((q) => {
+      const mean = meanAnswer(course.surveyAnswers[q] ?? []);
+      return mean === null ? [] : [[q, mean]];
+    }),
+  );
   return {
     ...course,
     passRate: passRateOf(course.recentGrades),
     averageGrade: averageGradeOf(course.recentGrades),
     trendDelta: trendDelta(course.trend),
-    rating: course.overallAnswers && meanAnswer(course.overallAnswers),
+    /** Mean answer to each survey question with enough answers to score. */
+    scores,
+    rating: scores.overall ?? null,
     searchText: normalize(`${course.code} ${course.name} ${course.otherName} ${course.programme ?? ""}`),
   };
 }
@@ -69,7 +88,7 @@ export function toCatalog(snapshot: Snapshot, language: Language) {
 }
 export type Catalog = ReturnType<typeof toCatalog>;
 
-const sortValue: Record<SortKey, (c: CatalogCourse) => number | string | null> = {
+const sortValue: Record<Exclude<SortKey, OtherQuestion>, (c: CatalogCourse) => number | string | null> = {
   name: (c) => c.name,
   programme: (c) => c.programme,
   attemptsPerYear: (c) => c.attemptsPerYear || null,
@@ -80,6 +99,10 @@ const sortValue: Record<SortKey, (c: CatalogCourse) => number | string | null> =
   lastResult: (c) => c.lastResult,
 };
 
+/** The value a course sorts by on `key`, or null when it has none. */
+export const sortValueOf = (course: CatalogCourse, key: SortKey) =>
+  isOtherQuestion(key) ? (course.scores[key] ?? null) : sortValue[key](course);
+
 /** Orders two sort values in `dir`, with nulls last either way. */
 export function compareSortValues(x: number | string | null, y: number | string | null, dir: SortDir) {
   if (x === null || y === null) return Number(x === null) - Number(y === null);
@@ -88,8 +111,7 @@ export function compareSortValues(x: number | string | null, y: number | string 
 }
 
 function compareBy(key: SortKey, dir: SortDir) {
-  const value = sortValue[key];
-  return (a: CatalogCourse, b: CatalogCourse) => compareSortValues(value(a), value(b), dir);
+  return (a: CatalogCourse, b: CatalogCourse) => compareSortValues(sortValueOf(a, key), sortValueOf(b, key), dir);
 }
 
 export interface CourseQuery {

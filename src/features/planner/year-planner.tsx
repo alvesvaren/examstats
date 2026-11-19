@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowDownIcon, ArrowUpRightIcon, CheckIcon, LockIcon, PlusIcon, XIcon } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, ArrowUpRightIcon, CheckIcon, LockIcon, PlusIcon, XIcon } from "lucide-react";
 import { cn } from "cn";
-import { PassRateCell, RatingCell } from "@/components/course-cells";
+import { PassRateCell, SurveyCell } from "@/components/course-cells";
 import { MetricInfo } from "@/components/metric-label";
+import { SurveySortMenu } from "@/components/survey-sort-menu";
 import { Badge } from "@/components/ui/badge";
-import type { Catalog } from "@/domain/catalog";
+import { defaultSortDir, type Catalog } from "@/domain/catalog";
 import {
   amountTowards,
   candidatesIn,
@@ -36,17 +37,37 @@ import {
   type StudyYear,
   type Theme,
 } from "@/domain/programme-plans";
+import { isOtherQuestion, type OtherQuestion } from "@/domain/evaluation";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import { formatCount, formatCredits, formatNumber, formatPercent, formatPeriods } from "@/lib/format";
+import { QUESTION_LABELS } from "@/lib/survey-questions";
 
 const DEFAULT_SORT: PlannerSortKey = "rating";
-/** The add button, the course, its pass rate and its rating. Phones get narrower numbers, so the name keeps its room. */
-const ROW = "grid grid-cols-[2rem_minmax(0,1fr)_4rem_3rem] items-center gap-x-2 sm:grid-cols-[2rem_minmax(0,1fr)_5.5rem_4.5rem] sm:gap-x-3";
+/**
+ * The add button, the course, its pass rate, its rating, and the survey question the list is sorted by, if any.
+ * Phones get narrower numbers, and show that question in place of the rating, so the name keeps its room.
+ */
+const ROWS = {
+  base: "grid grid-cols-[2rem_minmax(0,1fr)_4rem_3rem] items-center gap-x-2 sm:grid-cols-[2rem_minmax(0,1fr)_5.5rem_4.5rem] sm:gap-x-3",
+  withQuestion:
+    "grid grid-cols-[2rem_minmax(0,1fr)_4rem_4rem] items-center gap-x-2 sm:grid-cols-[2rem_minmax(0,1fr)_5.5rem_4.5rem_6rem] sm:gap-x-3",
+};
+/** Hides the rating on phones while a survey question takes its place. */
+const ratingOf = (question: OtherQuestion | undefined) => (question ? "max-sm:hidden" : undefined);
+const rowOf = (question: OtherQuestion | undefined) => (question ? ROWS.withQuestion : ROWS.base);
 
-const COLUMNS = [
+interface Column {
+  key: PlannerSortKey;
+  label: string;
+}
+
+const BASE_COLUMNS: Column[] = [
   { key: "passRate", label: "Pass rate" },
   { key: "rating", label: "Rating" },
-] as const satisfies readonly { key: PlannerSortKey; label: string }[];
+];
+
+const columnsOf = (question: OtherQuestion | undefined): Column[] =>
+  question ? [...BASE_COLUMNS, { key: question, label: QUESTION_LABELS[question].short }] : BASE_COLUMNS;
 
 const THEME_LABELS = {
   mts: { short: "MTS", name: "Human, technology and society" },
@@ -92,6 +113,7 @@ export function YearPlanner({ programme, years, current, track, search, onChange
   if (!period) return <p className="text-muted-foreground">The plan has no courses for this year.</p>;
 
   const listed = candidatesIn(candidates, period, sort);
+  const question = isOtherQuestion(sort) ? sort : undefined;
   const planned = plan.reduce((sum, r) => sum + r.credits, 0);
   // Degree requirements count the whole degree: the compulsory courses and the picks of every year of every plan.
   const plans = [...new Set(years.map((y) => y.plan))];
@@ -169,13 +191,22 @@ export function YearPlanner({ programme, years, current, track, search, onChange
       </section>
 
       <section>
-        <div className={cn(ROW, "items-end border-b pb-2")}>
-          <h2 className="col-span-2 text-xl font-semibold">
-            {formatPeriods([period])}{" "}
-            <span className="text-base font-normal text-muted-foreground">{formatCount(listed.length)} to choose from</span>
-          </h2>
-          {COLUMNS.map((column) => (
-            <SortHeader key={column.key} column={column} active={column.key === sort} onSort={(key) => onChange({ sort: key })} />
+        <div className={cn(rowOf(question), "items-end border-b pb-2")}>
+          <div className="col-span-2 flex flex-wrap items-end justify-between gap-2">
+            <h2 className="text-xl font-semibold">
+              {formatPeriods([period])}{" "}
+              <span className="text-base font-normal text-muted-foreground">{formatCount(listed.length)} to choose from</span>
+            </h2>
+            <SurveySortMenu value={question} onChange={(next) => onChange({ sort: next })} />
+          </div>
+          {columnsOf(question).map((column) => (
+            <SortHeader
+              key={column.key}
+              column={column}
+              active={column.key === sort}
+              onSort={(key) => onChange({ sort: key })}
+              className={column.key === "rating" ? ratingOf(question) : undefined}
+            />
           ))}
         </div>
         <ul>
@@ -183,6 +214,7 @@ export function YearPlanner({ programme, years, current, track, search, onChange
             <Candidate
               key={round.key}
               round={round}
+              question={question}
               period={period}
               picked={picked.includes(round)}
               elsewhere={findElsewhere(round, picked, other)}
@@ -384,22 +416,24 @@ function DegreeMark({ mark }: { mark: DegreeRuleProgress & { amount: number } })
 }
 
 interface SortHeaderProps {
-  column: (typeof COLUMNS)[number];
+  column: Column;
   active: boolean;
   onSort: (key: PlannerSortKey) => void;
+  className?: string;
 }
 
-function SortHeader({ column, active, onSort }: SortHeaderProps) {
+function SortHeader({ column, active, onSort, className }: SortHeaderProps) {
+  const Arrow = defaultSortDir(column.key) === "asc" ? ArrowUpIcon : ArrowDownIcon;
   return (
-    <div className="flex items-center justify-end gap-1 text-xs whitespace-nowrap text-muted-foreground">
+    <div className={cn("flex items-center justify-end gap-1 text-xs text-muted-foreground", className)}>
       <button
         type="button"
         onClick={() => onSort(column.key)}
         aria-pressed={active}
-        className={cn("inline-flex items-center gap-0.5 font-medium hover:text-foreground", active && "text-foreground")}
+        className={cn("inline-flex items-center gap-0.5 text-right font-medium hover:text-foreground", active && "text-foreground")}
       >
         {column.label}
-        {active && <ArrowDownIcon className="size-3" aria-hidden />}
+        {active && <Arrow className="size-3" aria-hidden />}
       </button>
       <span className="hidden sm:inline-flex">
         <MetricInfo metric={column.key} name={column.label.toLowerCase()} />
@@ -429,6 +463,8 @@ function CourseLink({ round }: { round: PlannerRound }) {
 
 interface CandidateProps {
   round: PlannerRound;
+  /** The survey question the list is sorted by, which gets a column. */
+  question: OtherQuestion | undefined;
   /** The study period the list shows. */
   period: StudyPeriod;
   picked: boolean;
@@ -440,7 +476,7 @@ interface CandidateProps {
   onToggle: () => void;
 }
 
-function Candidate({ round, period, picked, elsewhere, warnings, marks, onToggle }: CandidateProps) {
+function Candidate({ round, question, period, picked, elsewhere, warnings, marks, onToggle }: CandidateProps) {
   const { requirement, stats } = round;
   const inOtherYear = Boolean(elsewhere?.year);
   // A round over several study periods gives only part of its credits in the one listed.
@@ -458,7 +494,7 @@ function Candidate({ round, period, picked, elsewhere, warnings, marks, onToggle
     .filter(Boolean)
     .join(" · ");
   return (
-    <li className={cn(ROW, "border-b py-2.5", picked && "bg-row-hover", elsewhere && "text-muted-foreground")}>
+    <li className={cn(rowOf(question), "border-b py-2.5", picked && "bg-row-hover", elsewhere && "text-muted-foreground")}>
       <button
         type="button"
         onClick={onToggle}
@@ -511,10 +547,15 @@ function Candidate({ round, period, picked, elsewhere, warnings, marks, onToggle
       {stats ? (
         <>
           <PassRateCell grades={stats.recentGrades} muted={Boolean(elsewhere)} />
-          <RatingCell answers={stats.overallAnswers} muted={Boolean(elsewhere)} />
+          <div className={ratingOf(question)}>
+            <SurveyCell question="overall" answers={stats.surveyAnswers.overall} muted={Boolean(elsewhere)} />
+          </div>
+          {question && <SurveyCell question={question} answers={stats.surveyAnswers[question]} muted={Boolean(elsewhere)} />}
         </>
       ) : (
-        <span className="col-span-2 text-right text-xs text-muted-foreground">No results yet</span>
+        <span className={cn("text-right text-xs text-muted-foreground", question ? "col-span-2 sm:col-span-3" : "col-span-2")}>
+          No results yet
+        </span>
       )}
     </li>
   );

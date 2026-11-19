@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchProgrammes, partLabel, queryCourses, toCatalogCourse, trendDelta } from "./catalog.ts";
+import { defaultSortDir, matchProgrammes, partLabel, queryCourses, toCatalogCourse, trendDelta } from "./catalog.ts";
 import { emptyCounts } from "./grades.ts";
 import type { CourseSummary, TrendPoint } from "./snapshot.ts";
 
@@ -14,7 +14,7 @@ const row = (code: string, name: string, extra: Partial<CourseSummary> = {}) =>
     lastResult: null,
     ended: false,
     trend: [],
-    overallAnswers: null,
+    surveyAnswers: {},
     ...extra,
   });
 
@@ -29,7 +29,7 @@ const courses = [
     swedishName: "Databaser",
     programme: "TKITE",
     attemptsPerYear: 380,
-    overallAnswers: [0, 5, 10, 30, 45],
+    surveyAnswers: { overall: [0, 5, 10, 30, 45], workload: [0, 0, 5, 30, 10] },
   }),
   row("TDA545", "Objektorienterad programvaruutveckling", { programme: "TKITE", attemptsPerYear: 0, ended: true }),
 ];
@@ -72,7 +72,7 @@ describe("queryCourses", () => {
     const rated = [
       ...courses,
       row("TMA976", "Matematisk analys, fortsättning", {
-        overallAnswers: [5, 8, 12, 10, 5],
+        surveyAnswers: { overall: [5, 8, 12, 10, 5], workload: [0, 10, 20, 5, 0] },
       }),
     ];
     expect(
@@ -85,6 +85,12 @@ describe("queryCourses", () => {
         .active.map((c) => c.code)
         .slice(0, 2),
     ).toEqual(["TMA976", "TDA357"]);
+  });
+
+  it("sorts by another survey question, starting with the lightest workload", () => {
+    const rated = [...courses, row("TMA976", "Matematisk analys, fortsättning", { surveyAnswers: { workload: [0, 10, 20, 5, 0] } })];
+    const sorted = queryCourses(rated, { sort: "workload", dir: defaultSortDir("workload") }).active.map((c) => c.code);
+    expect(sorted.slice(0, 2)).toEqual(["TMA976", "TDA357"]);
   });
 
   it("matches any of several searches separated by semicolons", () => {

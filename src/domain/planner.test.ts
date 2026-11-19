@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { toCatalogCourse } from "./catalog.ts";
+import type { SurveyAnswers } from "./evaluation.ts";
 import { emptyCounts } from "./grades.ts";
 import {
   candidatesIn,
@@ -56,7 +57,7 @@ const round = (code: string, periods: StudyPeriod[], overrides: Partial<PlanRoun
   };
 };
 
-const stats = (code: string, passed: number, failed: number, overallAnswers: number[] | null = null) =>
+const stats = (code: string, passed: number, failed: number, surveyAnswers: SurveyAnswers = {}) =>
   toCatalogCourse({
     code,
     name: `${code} name`,
@@ -67,7 +68,7 @@ const stats = (code: string, passed: number, failed: number, overallAnswers: num
     lastResult: null,
     ended: false,
     trend: [],
-    overallAnswers,
+    surveyAnswers,
   });
 
 const keys = (rounds: readonly PlanRound[]) => rounds.map((r) => r.key);
@@ -144,13 +145,20 @@ describe("periodsOf and firstOpenPeriod", () => {
 describe("candidatesIn", () => {
   const candidates = [round("NEW", ["LP3", "LP4"]), round("EASY", ["LP3"]), round("LIKED", ["LP3"]), round("EARLY", ["LP1"])].map((r) => ({
     ...r,
-    stats: { EASY: stats("EASY", 9, 1, [0, 0, 1, 0, 0]), LIKED: stats("LIKED", 5, 5, [0, 0, 0, 0, 1]) }[r.codes[0]!],
+    stats: {
+      EASY: stats("EASY", 9, 1, { overall: [0, 0, 1, 0, 0], workload: [0, 0, 0, 1, 0] }),
+      LIKED: stats("LIKED", 5, 5, { overall: [0, 0, 0, 0, 1], workload: [0, 0, 1, 0, 0] }),
+    }[r.codes[0]!],
   }));
 
   it("lists the rounds that run in the study period, the best first, with rounds without results last", () => {
     expect(keys(candidatesIn(candidates, "LP3", "rating"))).toEqual(["LIKED.LP3", "EASY.LP3", "NEW.LP3-LP4"]);
     expect(keys(candidatesIn(candidates, "LP3", "passRate"))).toEqual(["EASY.LP3", "LIKED.LP3", "NEW.LP3-LP4"]);
     expect(keys(candidatesIn(candidates, "LP4", "rating"))).toEqual(["NEW.LP3-LP4"]);
+  });
+
+  it("lists the lightest workload first", () => {
+    expect(keys(candidatesIn(candidates, "LP3", "workload"))).toEqual(["LIKED.LP3", "EASY.LP3", "NEW.LP3-LP4"]);
   });
 });
 
@@ -361,8 +369,8 @@ describe("masterSummary", () => {
 
   it("gives the mean pass rate and rating of its courses with results, each course alike", () => {
     const results = new Map([
-      ["TDA251", stats("TDA251", 9, 1, [0, 0, 0, 0, 4])],
-      ["DAT060", stats("DAT060", 1, 1, [0, 0, 4, 0, 0])],
+      ["TDA251", stats("TDA251", 9, 1, { overall: [0, 0, 0, 0, 4] })],
+      ["DAT060", stats("DAT060", 1, 1, { overall: [0, 0, 4, 0, 0] })],
       ["DAT151", stats("DAT151", 3, 1)],
     ]);
     const { passRate, rating } = masterSummary(mpalg, results);
