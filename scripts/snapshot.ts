@@ -12,6 +12,7 @@ import { compareRounds, evaluationFileSchema, surveyAnswersOf, type EvaluationRo
 import { resultsFileSchema, type CourseDetail, type Snapshot } from "../src/domain/snapshot.ts";
 import {
   cohortPlans,
+  courseThisYear,
   placementsByCourse,
   programmePlansFileSchema,
   startYearOf,
@@ -70,16 +71,18 @@ async function main() {
   const courses: Snapshot["courses"] = [];
   for (const { parts, name, ...course } of results.courses) {
     const rounds = roundsOf(course.code);
+    const coursePlacements = placements.get(course.code) ?? [];
     const detail: CourseDetail = {
       code: course.code,
       parts,
       evaluations: rounds,
-      placements: placements.get(course.code) ?? [],
+      placements: coursePlacements,
     };
     await writeFile(path.join(coursesDir, `${course.code}.json`), JSON.stringify(detail));
     courses.push({
       ...summarizeCourse({ ...course, ...nameOf(courseNames.get(course.code), name) }, parts, today),
       surveyAnswers: surveyAnswersOf(rounds),
+      ...courseThisYear(coursePlacements),
     });
   }
 

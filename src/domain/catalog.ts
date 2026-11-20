@@ -1,6 +1,7 @@
 import { isOtherQuestion, meanAnswer, OTHER_QUESTIONS, QUESTIONS, type OtherQuestion, type Question } from "./evaluation.ts";
 import { averageGradeOf, passRateOf } from "./grades.ts";
 import { inLanguage, type InLanguage, type Language } from "./names.ts";
+import type { StudyPeriod } from "./programme-plans.ts";
 import type { CourseSummary, Snapshot, TrendPoint } from "./snapshot.ts";
 
 export const SORT_KEYS = [
@@ -23,8 +24,19 @@ const ASCENDING_SORTS: readonly SortKey[] = ["name", "programme", "workload"];
 /** The direction a sort starts in: the rest start with the largest. */
 export const defaultSortDir = (key: SortKey): SortDir => (ASCENDING_SORTS.includes(key) ? "asc" : "desc");
 
+/** The sort key of a survey question. The overall impression sorts as the rating. */
+export const surveySortKey = (question: Question): "rating" | OtherQuestion => (question === "overall" ? "rating" : question);
+
+/** The survey question the survey column shows: the one sorted by, else the one picked for it, else the overall impression. */
+export function surveyColumn(sort: SortKey, picked: OtherQuestion | undefined): Question {
+  if (isOtherQuestion(sort)) return sort;
+  return sort === "rating" ? "overall" : (picked ?? "overall");
+}
+
 const TREND_BASELINE_YEARS = 3;
 const MIN_PROGRAMME_QUERY = 2;
+/** Shorter queries match too many names to suggest examiners. */
+const MIN_EXAMINER_QUERY = 3;
 
 export const normalize = (text: string) =>
   text
@@ -68,7 +80,7 @@ export function toCatalogCourse(summary: CourseSummary, language: Language = "en
     /** Mean answer to each survey question with enough answers to score. */
     scores,
     rating: scores.overall ?? null,
-    searchText: normalize(`${course.code} ${course.name} ${course.otherName} ${course.programme ?? ""}`),
+    searchText: normalize(`${course.code} ${course.name} ${course.otherName} ${course.programme ?? ""} ${course.examiners.join(" ")}`),
   };
 }
 
@@ -84,8 +96,22 @@ export function toCatalog(snapshot: Snapshot, language: Language) {
     programmes: Object.fromEntries(programmes),
     /** Programmes with courses with results, which the course list can show. */
     listedProgrammes: Object.fromEntries(programmes.filter(([code]) => withResults.has(code))),
+    examiners: examinersOf(snapshot.courses),
   };
 }
+
+/** Everyone who examines a course with results this year, by name, with how many such courses. */
+function examinersOf(courses: readonly CourseSummary[]) {
+  return [
+    ...Map.groupBy(
+      courses.flatMap((c) => c.examiners),
+      (name) => name,
+    ),
+  ]
+    .map(([name, rounds]) => ({ name, courses: rounds.length }))
+    .toSorted((a, b) => a.name.localeCompare(b.name, "sv"));
+}
+export type Examiner = ReturnType<typeof examinersOf>[number];
 export type Catalog = ReturnType<typeof toCatalog>;
 
 const sortValue: Record<Exclude<SortKey, OtherQuestion>, (c: CatalogCourse) => number | string | null> = {
@@ -114,9 +140,17 @@ function compareBy(key: SortKey, dir: SortDir) {
   return (a: CatalogCourse, b: CatalogCourse) => compareSortValues(sortValueOf(a, key), sortValueOf(b, key), dir);
 }
 
+/** Whether the course is in the list's scope: its programme, or an examiner's courses. */
+export const inScope = (course: CatalogCourse, { programme, examiner }: Pick<CourseQuery, "programme" | "examiner">) =>
+  (!programme || course.programme === programme) && (!examiner || course.examiners.includes(examiner));
+
 export interface CourseQuery {
   q?: string;
   programme?: string;
+  /** An examiner's name, as the plans write it. */
+  examiner?: string;
+  /** Study periods this year. A course matches if it runs in any of them. */
+  periods?: readonly StudyPeriod[];
   sort?: SortKey;
   dir?: SortDir;
 }
@@ -127,15 +161,16 @@ export interface CourseQuery {
  */
 export function queryCourses(
   courses: readonly CatalogCourse[],
-  { q = "", programme, sort = "attemptsPerYear", dir = "desc" }: CourseQuery,
+  { q = "", programme, examiner, periods = [], sort = "attemptsPerYear", dir = "desc" }: CourseQuery,
 ) {
   const parts = searchParts(q);
   const searches = parts.map(words);
   const exactCodes = new Set(parts.map((part) => part.toLowerCase()));
   const isExact = (c: CatalogCourse) => exactCodes.has(c.code.toLowerCase());
   const matchesSearch = (c: CatalogCourse) => !searches.length || searches.some((terms) => terms.every((t) => c.searchText.includes(t)));
+  const inPeriods = (c: CatalogCourse) => !periods.length || c.periods.some((p) => periods.includes(p));
   const rows = courses
-    .filter((c) => (!programme || c.programme === programme) && matchesSearch(c))
+    .filter((c) => inScope(c, { programme, examiner }) && inPeriods(c) && matchesSearch(c))
     .toSorted(compareBy(sort, dir))
     .toSorted((a, b) => Number(isExact(b)) - Number(isExact(a)));
   return { active: rows.filter((c) => !c.ended), ended: rows.filter((c) => c.ended) };
@@ -154,6 +189,26 @@ export function matchProgrammes(programmes: Readonly<Record<string, InLanguage>>
     .slice(0, limit)
     .map(([code, { name }]) => ({ code, name }));
 }
+
+/** Examiners whose name contains every word of a `;`-separated part of the query. */
+export function matchExaminers(examiners: readonly Examiner[], query: string, limit = 4) {
+  const searches = searchParts(query)
+    .filter((part) => normalize(part).length >= MIN_EXAMINER_QUERY)
+    .map(words);
+  if (!searches.length) return [];
+  return examiners.filter(({ name }) => matchesName(name, searches)).slice(0, limit);
+}
+
+/** The course's examiner that the query names, which explains why the course matched. */
+export function examinerNamed(course: CatalogCourse, query: string) {
+  const searches = searchParts(query).map(words);
+  return course.examiners.find((name) => matchesName(name, searches));
+}
+
+const matchesName = (name: string, searches: readonly string[][]) => {
+  const normalized = normalize(name);
+  return searches.some((terms) => terms.length > 0 && terms.every((t) => normalized.includes(t)));
+};
 
 const PART_WORDS: readonly [sv: string, en: string][] = [
   ["Muntlig tentamen", "Oral exam"],

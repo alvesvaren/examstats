@@ -9,9 +9,13 @@ export const QUESTION_LABELS = {
   assessment: { label: "Assessment", short: "Assessment" },
   administration: { label: "Administration", short: "Admin" },
   learningOutcomes: { label: "Clear learning outcomes", short: "Outcomes" },
-  prerequisites: { label: "Enough prior knowledge", short: "Prior knowledge" },
+  prerequisites: { label: "Enough prior knowledge", short: "Prereqs" },
   workload: { label: "Workload", short: "Workload" },
 } as const satisfies Record<Question, { label: string; short: string }>;
+
+/** Where survey answers come from and the years they cover. */
+export const SURVEY_SOURCE = `in Chalmers course surveys, from ${ANSWER_SCALE.min} to ${ANSWER_SCALE.max}, over the last ${EVALUATION_YEARS} academic years`;
+export const SPREAD_HELP = "In the mark, the darker a value, the larger its share of answers. The tick is the median.";
 
 export const WORKLOAD_SCALE = `${ANSWER_SCALE.min} too low, ${BALANCED_WORKLOAD} balanced, ${ANSWER_SCALE.max} too high`;
 

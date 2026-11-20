@@ -77,7 +77,7 @@ export function summarizeCourse(
   course: Pick<CourseSummary, "code" | "name" | "swedishName" | "programme">,
   parts: readonly Part[],
   today: Date,
-): Omit<CourseSummary, "surveyAnswers"> {
+): Omit<CourseSummary, "surveyAnswers" | "periods" | "examiners"> {
   const [main] = orderParts(parts);
   const dates = parts.flatMap((p) => p.sittings.map((s) => s.date)).toSorted();
   const lastResult = dates.at(-1) ?? null;

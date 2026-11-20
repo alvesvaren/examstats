@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { evaluationRoundSchema, surveyAnswersSchema } from "./evaluation.ts";
 import { gradeCountsSchema } from "./grades.ts";
-import { coursePlacementSchema, publishedPlanInfoSchema } from "./programme-plans.ts";
+import { coursePlacementSchema, publishedPlanInfoSchema, STUDY_PERIODS } from "./programme-plans.ts";
 
 const isoDate = z.iso.date();
 
@@ -60,6 +60,10 @@ export const courseSummarySchema = namedSchema.extend({
   trend: z.array(trendPointSchema),
   /** Answers to each survey question over all rounds. A question with too few answers to score is missing. */
   surveyAnswers: surveyAnswersSchema,
+  /** Study periods the course runs in this academic year, from the programme plans. Empty when no plan has it. */
+  periods: z.array(z.enum(STUDY_PERIODS)),
+  /** Examiners of the course's rounds this academic year. Empty when no plan has it. */
+  examiners: z.array(z.string()),
 });
 
 export const snapshotSchema = z.object({

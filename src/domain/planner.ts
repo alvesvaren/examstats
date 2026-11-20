@@ -1,4 +1,4 @@
-import { compareSortValues, defaultSortDir, normalize, sortValueOf, type CatalogCourse } from "./catalog.ts";
+import { compareSortValues, defaultSortDir, normalize, sortValueOf, type CatalogCourse, type SortDir } from "./catalog.ts";
 import { OTHER_QUESTIONS } from "./evaluation.ts";
 import type { InLanguage } from "./names.ts";
 import {
@@ -72,14 +72,19 @@ export const firstOpenPeriod = (periods: readonly StudyPeriod[], plan: readonly 
   periods.find((p) => creditsIn(plan, p) < PERIOD_CREDITS) ?? periods[0];
 
 /**
- * The rounds that run in `period`, ordered by `sort` the way the course list starts it: the best first, and the lightest
- * workload first. Rounds without the value go last, ties by name.
+ * The rounds that run in `period`, ordered by `sort` in `dir`, by default as the course list starts it: the best first,
+ * and the lightest workload first. Rounds without the value go last, ties by name.
  */
-export function candidatesIn(candidates: readonly PlannerRound[], period: StudyPeriod, sort: PlannerSortKey): PlannerRound[] {
+export function candidatesIn(
+  candidates: readonly PlannerRound[],
+  period: StudyPeriod,
+  sort: PlannerSortKey,
+  dir: SortDir = defaultSortDir(sort),
+): PlannerRound[] {
   const value = (round: PlannerRound) => (round.stats ? sortValueOf(round.stats, sort) : null);
   return candidates
     .filter((r) => r.periods.includes(period))
-    .toSorted((a, b) => compareSortValues(value(a), value(b), defaultSortDir(sort)) || a.name.localeCompare(b.name, "sv"));
+    .toSorted((a, b) => compareSortValues(value(a), value(b), dir) || a.name.localeCompare(b.name, "sv"));
 }
 
 /** The picks after adding `round`, or after removing it when it is one. A course has one round in a plan, so adding another round of it moves it. */

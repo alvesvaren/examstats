@@ -69,6 +69,8 @@ const stats = (code: string, passed: number, failed: number, surveyAnswers: Surv
     ended: false,
     trend: [],
     surveyAnswers,
+    periods: [],
+    examiners: [],
   });
 
 const keys = (rounds: readonly PlanRound[]) => rounds.map((r) => r.key);
@@ -159,6 +161,10 @@ describe("candidatesIn", () => {
 
   it("lists the lightest workload first", () => {
     expect(keys(candidatesIn(candidates, "LP3", "workload"))).toEqual(["LIKED.LP3", "EASY.LP3", "NEW.LP3-LP4"]);
+  });
+
+  it("flips the order and keeps rounds without results last", () => {
+    expect(keys(candidatesIn(candidates, "LP3", "rating", "asc"))).toEqual(["EASY.LP3", "LIKED.LP3", "NEW.LP3-LP4"]);
   });
 });
 

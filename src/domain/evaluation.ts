@@ -16,6 +16,7 @@ export const OTHER_QUESTIONS = [
 export const QUESTIONS = ["overall", ...OTHER_QUESTIONS] as const;
 export type OtherQuestion = (typeof OTHER_QUESTIONS)[number];
 export const isOtherQuestion = (value: string): value is OtherQuestion => (OTHER_QUESTIONS as readonly string[]).includes(value);
+export const isQuestion = (value: string): value is Question => (QUESTIONS as readonly string[]).includes(value);
 export type Question = (typeof QUESTIONS)[number];
 
 export const ANSWER_SCALE = { min: 1, max: 5 } as const;

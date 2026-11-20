@@ -5,6 +5,7 @@ import { AppLayout, ErrorState, NotFoundState, PageSkeleton } from "@/components
 import { courseQuery, plansQuery, queryClient, snapshotQuery } from "@/data/queries";
 import { SORT_KEYS, toCatalogCourse } from "@/domain/catalog";
 import { PLANNER_SORT_KEYS } from "@/domain/planner";
+import { OTHER_QUESTIONS } from "@/domain/evaluation";
 import { cohortOf, STUDY_PERIODS } from "@/domain/programme-plans";
 import { getLanguage } from "@/hooks/use-language";
 import { CoursePage } from "@/features/course/course-page";
@@ -20,8 +21,14 @@ const rootRoute = createRootRouteWithContext<{ queryClient: QueryClient }>()({
 const listSearchSchema = z.object({
   q: z.string().optional().catch(undefined),
   programme: z.string().optional().catch(undefined),
+  /** An examiner's name, as the plans write it. */
+  examiner: z.string().optional().catch(undefined),
+  /** Study periods this year that listed courses run in. */
+  periods: z.array(z.enum(STUDY_PERIODS)).optional().catch(undefined),
   sort: z.enum(SORT_KEYS).optional().catch(undefined),
   dir: z.enum(["asc", "desc"]).optional().catch(undefined),
+  /** The course survey question the survey column shows, when not the overall impression. */
+  survey: z.enum(OTHER_QUESTIONS).optional().catch(undefined),
   ended: z.boolean().optional().catch(undefined),
 });
 
@@ -66,6 +73,9 @@ const plannerSearchSchema = z.object({
   /** The study period whose courses are listed. */
   period: z.enum(STUDY_PERIODS).optional().catch(undefined),
   sort: z.enum(PLANNER_SORT_KEYS).optional().catch(undefined),
+  dir: z.enum(["asc", "desc"]).optional().catch(undefined),
+  /** The course survey question the survey column shows, when not the overall impression. */
+  survey: z.enum(OTHER_QUESTIONS).optional().catch(undefined),
   /** Round keys of the courses added to the year, such as "TDA357.LP2". */
   picked: z.array(z.string()).optional().catch(undefined),
 });

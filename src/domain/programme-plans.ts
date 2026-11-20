@@ -354,6 +354,14 @@ export function courseYearSummary(placements: readonly CoursePlacement[], ruleNa
   return { rounds, requirements };
 }
 
+/** The study periods a course runs in this academic year, in calendar order, and the examiners of its rounds. */
+export function courseThisYear(placements: readonly CoursePlacement[]) {
+  return {
+    periods: STUDY_PERIODS.filter((period) => placements.some((p) => p.periods.includes(period))),
+    examiners: [...new Set(placements.flatMap((p) => p.examiners))],
+  };
+}
+
 /** The English course syllabus page on chalmers.se. */
 export const syllabusUrl = (code: string) =>
   `https://www.chalmers.se/en/education/your-studies/find-course-and-programme-syllabi/course-syllabus/${encodeURIComponent(code)}/`;
