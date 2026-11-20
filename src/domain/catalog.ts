@@ -55,12 +55,12 @@ const searchParts = (query: string) =>
 
 const words = (query: string) => normalize(query).split(/\s+/).filter(Boolean);
 
-/** Last year's pass rate minus the mean of the years before it, or null without history. */
+/** Last year's rating minus the mean of the years before it, or null without history. */
 export function trendDelta(trend: readonly TrendPoint[]): number | null {
   const last = trend.at(-1);
   const before = trend.slice(-1 - TREND_BASELINE_YEARS, -1);
   if (!last || !before.length) return null;
-  return last[1] - before.reduce((sum, [, passRate]) => sum + passRate, 0) / before.length;
+  return last[1] - before.reduce((sum, [, rating]) => sum + rating, 0) / before.length;
 }
 
 /** A course named in `language`, plus the values the list filters and sorts on, computed once when the snapshot loads. */

@@ -42,7 +42,7 @@ export const courseDetailSchema = z.object({
   placements: z.array(coursePlacementSchema),
 });
 
-/** A pass rate in one academic year. A tuple, since the list loads thousands of them. */
+/** A rating in one academic year. A tuple, since the list loads thousands of them. */
 const trendPointSchema = z.tuple([z.number().int(), z.number()]);
 
 /** Names in English and Swedish. Each is the other when Chalmers names only one, and both are the source's name when Chalmers names neither. */
@@ -56,9 +56,9 @@ export const courseSummarySchema = namedSchema.extend({
   attemptsPerYear: z.number().int(),
   lastResult: isoDate.nullable(),
   ended: z.boolean(),
-  /** Pass rate on the main part per academic year, oldest first, as `[academicYear, passRate]`. */
+  /** Mean overall impression in the course surveys per academic year, oldest first, as `[academicYear, rating]`. */
   trend: z.array(trendPointSchema),
-  /** Answers to each survey question over all rounds. A question with too few answers to score is missing. */
+  /** Answers to each survey question over the rated rounds. A question with too few answers to score is missing. */
   surveyAnswers: surveyAnswersSchema,
   /** Study periods the course runs in this academic year, from the programme plans. Empty when no plan has it. */
   periods: z.array(z.enum(STUDY_PERIODS)),

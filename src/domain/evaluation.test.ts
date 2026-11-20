@@ -4,6 +4,8 @@ import {
   pooledAnswerCounts,
   questionMean,
   QUESTIONS,
+  ratedRounds,
+  ratingTrend,
   summarizeEvaluations,
   surveyAnswersOf,
   type EvaluationRound,
@@ -56,6 +58,33 @@ describe("surveyAnswersOf", () => {
       { ...round(2024, 2, {}), answerCounts: { overall: [0, 0, 0, 2, 0], teaching: [0, 0, 0, 2, 0] } },
     ];
     expect(surveyAnswersOf(rounds)).toEqual({ overall: [0, 0, 1, 3, 1] });
+  });
+});
+
+describe("ratedRounds", () => {
+  it("keeps the last three academic years up to the newest year with surveys", () => {
+    const rounds = [2021, 2022, 2023, 2024].map((year) => round(year, 4, { overall: 3 }));
+    expect(ratedRounds(rounds, 2024).map((r) => r.academicYear)).toEqual([2022, 2023, 2024]);
+  });
+
+  it("keeps nothing of a course whose surveys are all older", () => {
+    expect(ratedRounds([round(2020, 10, { overall: 4 })], 2024)).toEqual([]);
+  });
+});
+
+describe("ratingTrend", () => {
+  it("pools the overall answers of each academic year, oldest first", () => {
+    const rounds = [
+      round(2024, 4, { overall: 4.5 }, [0, 0, 0, 2, 2]),
+      round(2023, 4, { overall: 2 }, [1, 2, 1, 0, 0]),
+      round(2023, 2, { overall: 5 }, [0, 0, 0, 0, 2]),
+    ];
+    // 2023: 1, 2, 2, 3, 5, 5. 2024 has too few answers.
+    expect(ratingTrend(rounds)).toEqual([[2023, 3]]);
+  });
+
+  it("leaves out years with fewer than five answers", () => {
+    expect(ratingTrend([round(2024, 4, { overall: 4.5 }, [0, 0, 0, 2, 2])])).toEqual([]);
   });
 });
 

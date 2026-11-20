@@ -1,6 +1,6 @@
 /** Every word the site shows in Swedish, in the shape of the English messages. */
 import { RECENT_YEARS } from "@/domain/course-stats";
-import { ANSWER_SCALE, BALANCED_WORKLOAD, EVALUATION_YEARS, type Question } from "@/domain/evaluation";
+import { ANSWER_SCALE, BALANCED_WORKLOAD, EVALUATION_YEARS, RATING_YEARS, type Question } from "@/domain/evaluation";
 import type { Requirement, Theme } from "@/domain/programme-plans";
 import { FORMATS, periodsWith } from "@/lib/format";
 import type { Messages } from "./en";
@@ -12,7 +12,7 @@ const counted = (value: number, one: string, many: string) => `${f.count(value)}
 const courses = (value: number) => counted(value, "kurs", "kurser");
 
 const RECENT = `ordinarie tentan under de senaste ${RECENT_YEARS} läsåren med resultat`;
-const SURVEY_SOURCE = `i Chalmers kursenkäter, från ${ANSWER_SCALE.min} till ${ANSWER_SCALE.max}, under de senaste ${EVALUATION_YEARS} läsåren`;
+const SURVEY_SOURCE = `i Chalmers kursenkäter, från ${ANSWER_SCALE.min} till ${ANSWER_SCALE.max}, under de senaste ${RATING_YEARS} läsåren`;
 const SPREAD_HELP = "Ju mörkare ett värde är i markeringen, desto större andel av svaren. Strecket är medianen.";
 
 const QUESTIONS = {
@@ -86,23 +86,23 @@ export const sv: Messages = {
       passRate: `Andel av försöken som blev godkända på ${RECENT}. En omtenta räknas som ett nytt försök.`,
       averageGrade: `Medelvärdet av betygen 3, 4 och 5 på ${RECENT}. Underkända räknas inte.`,
       attemptsPerYear: `Försök per år på ${RECENT}.`,
-      trend: "Andel godkända per läsår på ordinarie tentan.",
+      trend: `Studenternas helhetsintryck av kursen per läsår i Chalmers kursenkäter, från ${ANSWER_SCALE.min} till ${ANSWER_SCALE.max}, under de senaste ${EVALUATION_YEARS} läsåren. Sorteringen jämför det senaste läsåret med åren före.`,
       rating: `Studenternas helhetsintryck av kursen ${SURVEY_SOURCE}, räknat över alla svar. ${SPREAD_HELP}`,
     },
     recent: `Ordinarie tenta, senaste ${RECENT_YEARS} åren`,
-    trend: ([firstYear, firstRate], [lastYear, lastRate]) =>
-      `Andel godkända ${f.percent(firstRate)} läsåret ${f.academicYear(firstYear)}, ${f.percent(lastRate)} läsåret ${f.academicYear(lastYear)}`,
+    trend: ([firstYear, firstRating], [lastYear, lastRating]) =>
+      `Helhetsintryck ${f.score(firstRating)} läsåret ${f.academicYear(firstYear)}, ${f.score(lastRating)} läsåret ${f.academicYear(lastYear)}`,
   },
 
   survey: {
     title: "Kursenkät",
     questions: QUESTIONS,
-    window: (question) => `${QUESTIONS[question].label}, senaste ${EVALUATION_YEARS} åren`,
+    window: (question) => `${QUESTIONS[question].label}, senaste ${RATING_YEARS} åren`,
     choose: "Välj fråga ur kursenkäten",
     meanAnswer: `Medelsvar ${SURVEY_SOURCE}. ${SPREAD_HELP}`,
     hints: HINTS,
     workloadScale: `${ANSWER_SCALE.min} för låg, ${BALANCED_WORKLOAD} lagom, ${ANSWER_SCALE.max} för hög`,
-    none: `Inga kursenkäter under de senaste ${EVALUATION_YEARS} läsåren.`,
+    none: `Inga kursenkäter under de senaste ${RATING_YEARS} läsåren.`,
     source: { before: "Från ", link: "Chalmers kursenkäter", after: (day) => `, hämtade ${day}.` },
     rounds: (count) => `alla ${f.count(count)} omgångar`,
     answered: (answers, respondents) => `${f.count(answers)} av ${f.count(respondents)} svarade`,
