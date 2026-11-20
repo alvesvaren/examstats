@@ -2,7 +2,7 @@ import { cn } from "cn";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { GRADE_STYLE } from "@/components/grade-style";
 import { GRADES, type Grade, type GradeCounts } from "@/domain/grades";
-import { formatCount } from "@/lib/format";
+import { useMessages } from "@/hooks/use-messages";
 
 /** A grade shown as a coloured tile with its label inside. */
 export function GradeChip({ grade, className }: { grade: Grade; className?: string }) {
@@ -16,12 +16,13 @@ export function GradeChip({ grade, className }: { grade: Grade; className?: stri
 
 /** Each grade present, as a chip followed by its count. */
 export function GradeTally({ grades, className }: { grades: GradeCounts; className?: string }) {
+  const t = useMessages();
   return (
     <span className={cn("flex flex-wrap gap-x-3 gap-y-1 tabular-nums", className)}>
       {GRADES.filter((grade) => grades[grade] > 0).map((grade) => (
         <span key={grade} className="inline-flex items-center gap-1">
           <GradeChip grade={grade} />
-          {formatCount(grades[grade])}
+          {t.format.count(grades[grade])}
         </span>
       ))}
     </span>

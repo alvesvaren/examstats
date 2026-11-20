@@ -9,8 +9,8 @@ import { otherNameOf } from "@/domain/planner";
 import { rememberedPicks, withMaster, withStart } from "@/domain/planner-memory";
 import { academicYearOf, cohortOf, MASTER_START_YEAR, studyYears, tracksOf, type StudyYear } from "@/domain/programme-plans";
 import { useLanguage } from "@/hooks/use-language";
+import { useMessages } from "@/hooks/use-messages";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
-import { PLANNER_HEADING } from "@/lib/page-meta";
 import {
   ChalmersLink,
   MasterPicker,
@@ -34,6 +34,7 @@ export function PlannerPage() {
   const search = route.useSearch();
   const navigate = route.useNavigate();
   const language = useLanguage();
+  const t = useMessages();
   const { data: catalog } = useSuspenseQuery(catalogQuery(language));
   const { memory, remember } = usePlannerMemory();
   // A start year in the URL is a shared plan and wins. Without one, it is the one this device remembers.
@@ -65,7 +66,7 @@ export function PlannerPage() {
   const choosingMaster = !master && masters.length > 0 && search.year === MASTER_START_YEAR;
   const current = years.find((y) => y.number === search.year) ?? years[0];
   const tracks = choosingMaster ? [] : tracksOf(current?.plan.years.find((y) => y.year === current.year)?.courses ?? []);
-  const track = tracks.find((t) => t === search.track);
+  const track = tracks.find((name) => name === search.track);
   const otherName = otherNameOf(catalog.programmes, programme.code);
 
   const picksIn = (shown: StudyYear | undefined) => shown && rememberedPicks(memory, shown.plan.code, shown.year);
@@ -116,7 +117,7 @@ export function PlannerPage() {
         <Button variant="ghost" size="sm" className="-ml-2 self-start" asChild>
           <Link to="/planner">
             <ArrowLeftIcon />
-            All programmes
+            {t.allProgrammes}
           </Link>
         </Button>
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -126,14 +127,14 @@ export function PlannerPage() {
         </div>
         {master && (
           <p className="text-muted-foreground">
-            Years 4 and 5: <span className="font-medium text-foreground">{master.name}</span> · {master.code}{" "}
+            {t.planner.mastersYears} <span className="font-medium text-foreground">{master.name}</span> · {master.code}{" "}
             <ChalmersLink code={master.code} courseList={masterAccreditation?.courseList} />
           </p>
         )}
         {masterAccreditation && <Specialisations names={masterAccreditation.specialisations} className="text-sm" />}
         {master && master.prerequisites.length > 0 && (
           <Prerequisites paragraphs={master.prerequisites} className="text-sm">
-            Prerequisites of {master.code}
+            {t.planner.prerequisitesOf(master.code)}
           </Prerequisites>
         )}
       </div>
@@ -141,14 +142,14 @@ export function PlannerPage() {
       <div className="flex flex-wrap items-center gap-3">
         {cohort.admitted.length > 1 && (
           <NativeSelect
-            aria-label="Year you started the programme"
+            aria-label={t.planner.startYear}
             className={FIELD_SIZE}
             value={String(start)}
             onChange={(event) => showStart(Number(event.target.value))}
           >
             {cohort.admitted.toReversed().map((year) => (
               <NativeSelectOption key={year} value={String(year)}>
-                Started {academicYearOf(year)}
+                {t.planner.started(academicYearOf(year))}
               </NativeSelectOption>
             ))}
           </NativeSelect>
@@ -159,11 +160,11 @@ export function PlannerPage() {
             variant="outline"
             value={choosingMaster || !current ? "" : String(current.number)}
             onValueChange={(value) => value && showYear(Number(value))}
-            aria-label="Year of study"
+            aria-label={t.planner.yearOfStudy}
           >
             {years.map(({ number }) => (
               <ToggleGroupItem key={number} value={String(number)}>
-                Year {number}
+                {t.planner.year(number)}
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
@@ -171,7 +172,7 @@ export function PlannerPage() {
             (master ? (
               <Button variant="ghost" onClick={() => chooseMaster(undefined)}>
                 <RepeatIcon />
-                Change master
+                {t.planner.changeMaster}
               </Button>
             ) : (
               <Button
@@ -181,21 +182,21 @@ export function PlannerPage() {
                 className="border-dashed aria-pressed:border-primary aria-pressed:bg-muted dark:aria-pressed:border-primary"
               >
                 <PlusIcon />
-                Add master
+                {t.planner.addMaster}
               </Button>
             ))}
         </div>
         {tracks.length > 0 && (
           <NativeSelect
-            aria-label="Track"
+            aria-label={t.planner.track}
             className={FIELD_SIZE}
             value={track ?? ALL_TRACKS}
             onChange={(event) => showTrack(event.target.value || undefined)}
           >
-            <NativeSelectOption value={ALL_TRACKS}>All tracks</NativeSelectOption>
-            {tracks.map((t) => (
-              <NativeSelectOption key={t} value={t}>
-                {t}
+            <NativeSelectOption value={ALL_TRACKS}>{t.planner.allTracks}</NativeSelectOption>
+            {tracks.map((name) => (
+              <NativeSelectOption key={name} value={name}>
+                {name}
               </NativeSelectOption>
             ))}
           </NativeSelect>
@@ -217,7 +218,7 @@ export function PlannerPage() {
       {choosingMaster ? (
         <MasterPicker programme={programme} masters={masters} accredited={accredited} catalog={catalog} onChoose={chooseMaster} />
       ) : current === undefined ? (
-        <p className="text-muted-foreground">{PLANNER_HEADING} has no courses for this programme yet.</p>
+        <p className="text-muted-foreground">{t.planner.noCourses}</p>
       ) : (
         <YearPlanner
           programme={programme}

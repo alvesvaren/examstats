@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { LANGUAGES, languageSchema } from "@/domain/names";
 import { setLanguage, useLanguage } from "@/hooks/use-language";
+import { useMessages } from "@/hooks/use-messages";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import { useScrolledPast } from "@/hooks/use-scrolled-past";
 import { useTheme } from "@/hooks/use-theme";
@@ -18,28 +19,30 @@ const SCROLL_TOP_OFFSET = 600;
 
 function ThemeToggle() {
   const { toggle } = useTheme();
+  const t = useMessages();
   return (
-    <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle dark mode">
+    <Button variant="ghost" size="icon" onClick={toggle} aria-label={t.layout.toggleTheme}>
       <SunIcon className="hidden dark:block" />
       <MoonIcon className="dark:hidden" />
     </Button>
   );
 }
 
-/** Picks the language of course and programme names. The rest of the site stays in English. */
+/** Picks the language of the whole site, course and programme names included. */
 function LanguageSwitcher() {
   const language = useLanguage();
+  const t = useMessages();
   const router = useRouter();
   const choose = (value: string) => {
     const next = languageSchema.safeParse(value);
     // Radix sends an empty value when the picked language is clicked again.
     if (!next.success) return;
     setLanguage(next.data);
-    // Loaders name the course in page titles, so they run again.
+    // Loaders and heads write page titles, so they run again.
     void router.invalidate();
   };
   return (
-    <ToggleGroup type="single" size="sm" spacing={0} value={language} onValueChange={choose} aria-label="Language of course names">
+    <ToggleGroup type="single" size="sm" spacing={0} value={language} onValueChange={choose} aria-label={t.layout.language}>
       {LANGUAGES.map((l) => (
         <ToggleGroupItem key={l} value={l} className="min-w-0 px-1.5 text-xs uppercase">
           {l}
@@ -54,12 +57,13 @@ const scrollUp = () => window.scrollTo({ top: 0, behavior: matchMedia("(prefers-
 /** Shows once the page has scrolled a way down. Hidden, it stays in place but out of sight and out of the tab order. */
 function ScrollToTop() {
   const visible = useScrolledPast(SCROLL_TOP_OFFSET);
+  const t = useMessages();
   return (
     <Button
       variant="outline"
       size="icon-lg"
       onClick={scrollUp}
-      aria-label="Back to top"
+      aria-label={t.layout.backToTop}
       inert={!visible}
       className={cn(
         "fixed right-4 bottom-4 z-40 rounded-full shadow-md transition-opacity md:right-6 md:bottom-6",
@@ -74,6 +78,7 @@ function ScrollToTop() {
 export function AppLayout() {
   // The planner link goes back to the programme and year last planned on this device.
   const { memory } = usePlannerMemory();
+  const t = useMessages();
   return (
     <div className="mx-auto flex min-h-svh max-w-6xl flex-col px-4">
       <HeadContent />
@@ -85,13 +90,13 @@ export function AppLayout() {
             ))}
           </span>
           {/* Phones have room for the logo alone. The name still labels the link. */}
-          <span className="sr-only sm:not-sr-only">Chalmers exam results</span>
+          <span className="sr-only sm:not-sr-only">{t.layout.siteHeading}</span>
         </Link>
         <nav className="flex items-center gap-1">
           <Button variant="ghost" size="sm" asChild>
             <Link to="/planner" search={memory.last ?? {}} activeOptions={{ includeSearch: false }} activeProps={{ className: "bg-muted" }}>
-              <span className="sm:hidden">Planner</span>
-              <span className="hidden sm:inline">Course planner</span>
+              <span className="sm:hidden">{t.layout.planner}</span>
+              <span className="hidden sm:inline">{t.layout.plannerHeading}</span>
             </Link>
           </Button>
           <LanguageSwitcher />
@@ -102,7 +107,7 @@ export function AppLayout() {
         <Outlet />
       </main>
       <footer className="border-t py-6 text-sm text-muted-foreground">
-        Data from{" "}
+        {t.layout.dataFrom}{" "}
         <a href="https://stats.ftek.se" className="underline underline-offset-4 hover:text-foreground">
           stats.ftek.se
         </a>
@@ -124,23 +129,25 @@ export function PageSkeleton() {
 }
 
 export function ErrorState({ error, reset }: ErrorComponentProps) {
+  const t = useMessages();
   return (
     <div className="flex flex-col items-start gap-3 py-16">
-      <h1 className="text-xl font-semibold">Could not load the data</h1>
-      <p className="text-muted-foreground">{error instanceof Error ? error.message : "Something went wrong."}</p>
+      <h1 className="text-xl font-semibold">{t.layout.loadError}</h1>
+      <p className="text-muted-foreground">{error instanceof Error ? error.message : t.layout.somethingWrong}</p>
       <Button variant="outline" onClick={reset}>
-        Try again
+        {t.layout.tryAgain}
       </Button>
     </div>
   );
 }
 
 export function NotFoundState() {
+  const t = useMessages();
   return (
     <div className="flex flex-col items-start gap-3 py-16">
-      <h1 className="text-xl font-semibold">No such course</h1>
+      <h1 className="text-xl font-semibold">{t.layout.noSuchCourse}</h1>
       <Button variant="outline" asChild>
-        <Link to="/">All courses</Link>
+        <Link to="/">{t.allCourses}</Link>
       </Button>
     </div>
   );

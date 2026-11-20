@@ -19,9 +19,12 @@ import { snapshotSchema, type CourseSummary } from "../src/domain/snapshot.ts";
 import { ANSWER_SCALE, answerFrequencies } from "../src/domain/evaluation.ts";
 import type { Frequencies } from "../src/domain/spread.ts";
 import { distributionMark } from "../src/lib/distribution-mark.ts";
-import { formatPercent, formatScore } from "../src/lib/format.ts";
+import { FORMATS } from "../src/lib/format.ts";
 import { GRADE_COLOURS } from "../src/lib/grade-colours.ts";
 import { COURSE_IMAGE_SIZE } from "../src/lib/page-meta.ts";
+
+/** Link previews know no language, so the image is in English, like the page meta the build writes. */
+const FORMAT = FORMATS.en;
 
 const FOREGROUND_RGB = "10, 10, 10";
 const FOREGROUND = `rgb(${FOREGROUND_RGB})`;
@@ -134,13 +137,13 @@ export function CourseImage({ course, programme }: CourseImageProps) {
       <div style={{ display: "flex", gap: COLUMN_GAP }}>
         <Metric
           label={`Pass rate, last ${RECENT_YEARS} years`}
-          value={formatPercent(passRate)}
+          value={FORMAT.percent(passRate)}
           chart={passRate === null ? null : <GradeBar grades={recentGrades} />}
           missing="No recent exam results"
         />
         <Metric
           label="Student rating"
-          value={formatScore(rating)}
+          value={FORMAT.score(rating)}
           unit={rating === null ? undefined : `/ ${ANSWER_SCALE.max}`}
           chart={overallAnswers && <DistributionMark frequencies={answerFrequencies(overallAnswers)} {...ANSWER_SCALE} />}
           missing="Too few survey answers"

@@ -8,13 +8,14 @@ import { PLANNER_SORT_KEYS } from "@/domain/planner";
 import { OTHER_QUESTIONS } from "@/domain/evaluation";
 import { cohortOf, STUDY_PERIODS } from "@/domain/programme-plans";
 import { getLanguage } from "@/hooks/use-language";
+import { getMessages } from "@/hooks/use-messages";
 import { CoursePage } from "@/features/course/course-page";
 import { CourseListPage } from "@/features/course-list/course-list-page";
 import { PlannerPage } from "@/features/planner/planner-page";
-import { courseHeading, HOME_HEADING, pageTitle, PLANNER_HEADING } from "@/lib/page-meta";
+import { courseHeading, pageTitle } from "@/lib/page-meta";
 
 const rootRoute = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({ meta: [{ title: pageTitle(HOME_HEADING) }] }),
+  head: () => ({ meta: [{ title: pageTitle(getMessages().layout.siteHeading) }] }),
   component: AppLayout,
 });
 
@@ -91,7 +92,7 @@ const plannerRoute = createRoute({
     // A start year this device remembers loads in the page instead.
     await Promise.all([start, masterPlans].map((year) => context.queryClient.ensureQueryData(plansQuery(getLanguage(), year))));
   },
-  head: () => ({ meta: [{ title: pageTitle(PLANNER_HEADING) }] }),
+  head: () => ({ meta: [{ title: pageTitle(getMessages().layout.plannerHeading) }] }),
   component: PlannerPage,
 });
 

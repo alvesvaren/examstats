@@ -30,7 +30,8 @@ Exam results and course survey ratings for every Chalmers course, and a course p
 
 ## Data rules
 
-- Show course and programme names in the language picked in the header, English or Swedish, from `data/names.json`. It starts as the device's language and the browser remembers it. The rest of the UI stays in English. Search matches names in both languages. A name Chalmers has in only one language shows in that one. Courses and programmes that chalmers.se no longer lists keep the name from stats.ftek.se, which is usually Swedish.
+- The whole site shows in the language picked in the header, English or Swedish. It starts as the device's language and the browser remembers it. Every UI word lives in `src/lib/i18n/en.ts`, and `src/lib/i18n/sv.ts` has the same shape, so the type checker finds a missing translation. Components read them, and the number and date formats of the language, with `useMessages()`. Link previews know no language, so the build and `api/og.tsx` write English.
+- Course and programme names come from `data/names.json`. Search matches names in both languages. A name Chalmers has in only one language shows in that one. Courses and programmes that chalmers.se no longer lists keep the name from stats.ftek.se, which is usually Swedish.
 - Show grades in the order of `GRADES` in `src/domain/grades.ts`: U first, then 3, 4 and 5. Vertical displays put U at the bottom and 5 at the top.
 - Grade colours are the `--grade-*` tokens in `src/index.css`. Grade 3 is the lightest and 5 the darkest in both themes.
 - Metric definitions and the journeys behind the layout are in `docs/user-journeys.md`.

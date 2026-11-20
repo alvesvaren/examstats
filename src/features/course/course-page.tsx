@@ -2,19 +2,17 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, Link, useCanGoBack, useRouter } from "@tanstack/react-router";
 import { ArrowLeftIcon, ArrowUpRightIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { RECENT_LABEL } from "@/components/course-cells";
 import { GradeBar } from "@/components/grade";
 import { MetricLabel } from "@/components/metric-label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { catalogQuery, courseQuery } from "@/data/queries";
-import { normalize, partLabel, type CatalogCourse } from "@/domain/catalog";
+import { normalize, type CatalogCourse } from "@/domain/catalog";
 import { latestExam } from "@/domain/course-stats";
 import { gradeSpreadOf } from "@/domain/grades";
-import { syllabusUrl } from "@/domain/programme-plans";
 import { useLanguage } from "@/hooks/use-language";
-import { formatCount, formatCredits, formatDay, formatGrade, formatNumber, formatPercent } from "@/lib/format";
+import { useMessages } from "@/hooks/use-messages";
 import { GradeBreakdown, OtherInstances, OtherParts } from "./course-sections";
 import { CourseSurvey } from "./course-survey";
 import { CourseThisYear } from "./course-this-year";
@@ -27,6 +25,7 @@ export function CoursePage() {
   const { code } = route.useParams();
   const { part: partIndex = 0, survey } = route.useSearch();
   const language = useLanguage();
+  const t = useMessages();
   const { data: snapshot } = useSuspenseQuery(catalogQuery(language));
   // The loader checked that the course exists. The catalog names it in the language picked since.
   const loaded = route.useLoaderData().course;
@@ -53,7 +52,7 @@ export function CoursePage() {
     <div className="flex flex-col gap-6">
       <Button variant="ghost" size="sm" className="-ml-2 self-start" onClick={goBack}>
         <ArrowLeftIcon />
-        Back
+        {t.course.back}
       </Button>
 
       <header className="flex flex-col gap-1.5">
@@ -65,16 +64,16 @@ export function CoursePage() {
               {snapshot.programmes[course.programme]?.name ?? course.programme}
             </Link>
           )}
-          {credits !== undefined && <span className="tabular-nums">{formatCredits(credits)}</span>}
-          {course.ended && <Badge variant="secondary">Ended</Badge>}
+          {credits !== undefined && <span className="tabular-nums">{t.credits(credits)}</span>}
+          {course.ended && <Badge variant="secondary">{t.course.ended}</Badge>}
           {detail.placements.length > 0 && (
             <a
-              href={syllabusUrl(code)}
+              href={t.chalmers.syllabus(code)}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-0.5 underline-offset-4 hover:text-foreground hover:underline"
             >
-              Course syllabus
+              {t.course.syllabus}
               <ArrowUpRightIcon className="size-3.5" />
             </a>
           )}
@@ -102,8 +101,8 @@ export function CoursePage() {
                 const partCredits = moduleCredits.get(p.code);
                 return (
                   <ToggleGroupItem key={index} value={String(index)}>
-                    {partLabel(p.type)}
-                    {partCredits !== undefined && <span className="text-muted-foreground tabular-nums">{formatCredits(partCredits)}</span>}
+                    {t.part(p.type)}
+                    {partCredits !== undefined && <span className="text-muted-foreground tabular-nums">{t.credits(partCredits)}</span>}
                   </ToggleGroupItem>
                 );
               })}
@@ -112,7 +111,7 @@ export function CoursePage() {
           <ExamTimeline key={selected} part={part} />
         </section>
       ) : (
-        <p className="text-muted-foreground">No results.</p>
+        <p className="text-muted-foreground">{t.course.noResults}</p>
       )}
 
       <div className="grid gap-10 pt-2 md:grid-cols-2">
@@ -126,24 +125,28 @@ export function CoursePage() {
 }
 
 function StatStrip({ course, latest }: { course: CatalogCourse; latest: ReturnType<typeof latestExam> }) {
+  const t = useMessages();
   const gradeSpread = gradeSpreadOf(course.recentGrades);
   return (
     <dl className="grid grid-cols-2 overflow-hidden rounded-lg border md:grid-cols-4">
       <Stat
-        label={<MetricLabel metric="passRate">Pass rate</MetricLabel>}
-        value={formatPercent(course.passRate)}
-        detail={<GradeBar grades={course.recentGrades} label={RECENT_LABEL} className="mt-1 w-full" />}
+        label={<MetricLabel metric="passRate">{t.course.passRate}</MetricLabel>}
+        value={t.format.percent(course.passRate)}
+        detail={<GradeBar grades={course.recentGrades} label={t.metrics.recent} className="mt-1 w-full" />}
       />
       <Stat
-        label={<MetricLabel metric="averageGrade">Average grade</MetricLabel>}
-        value={formatGrade(course.averageGrade)}
-        detail={gradeSpread && `Median ${formatNumber(gradeSpread.median)} · SD ${formatNumber(gradeSpread.sd)}`}
+        label={<MetricLabel metric="averageGrade">{t.course.averageGrade}</MetricLabel>}
+        value={t.format.grade(course.averageGrade)}
+        detail={gradeSpread && t.medianAndSd(gradeSpread.median, gradeSpread.sd)}
       />
-      <Stat label={<MetricLabel metric="attemptsPerYear">Attempts per year</MetricLabel>} value={formatCount(course.attemptsPerYear)} />
       <Stat
-        label="Latest exam"
-        value={latest ? formatPercent(latest.passRate) : "–"}
-        detail={latest && `${formatDay(latest.date)} · ${formatCount(latest.attempts)} attempts`}
+        label={<MetricLabel metric="attemptsPerYear">{t.course.attemptsPerYear}</MetricLabel>}
+        value={t.format.count(course.attemptsPerYear)}
+      />
+      <Stat
+        label={t.course.latestExam}
+        value={t.format.percent(latest?.passRate ?? null)}
+        detail={latest && `${t.format.day(latest.date)} · ${t.attempts(latest.attempts)}`}
       />
     </dl>
   );

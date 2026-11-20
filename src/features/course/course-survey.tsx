@@ -5,7 +5,6 @@ import { DistributionMark } from "@/components/marks";
 import { MetricLabel } from "@/components/metric-label";
 import {
   ANSWER_SCALE,
-  EVALUATION_YEARS,
   OTHER_QUESTIONS,
   answerFrequencies,
   pooledAnswerCounts,
@@ -13,11 +12,8 @@ import {
   summarizeEvaluations,
   type EvaluationRound,
 } from "@/domain/evaluation";
-import { QUESTION_LABELS, WORKLOAD_SCALE } from "@/lib/survey-questions";
-import { formatAcademicYear, formatCount, formatDay, formatNumber, formatScore } from "@/lib/format";
+import { useMessages } from "@/hooks/use-messages";
 import { SectionTitle } from "./course-sections";
-
-const SURVEYS_URL = "https://www.chalmers.se/en/education/your-studies/plan-and-conduct-your-studies/course-evaluation/";
 
 /** The questions the breakdown lists. Workload follows on its own, since its middle is best. */
 const BREAKDOWN = OTHER_QUESTIONS.filter((question) => question !== "workload");
@@ -42,17 +38,18 @@ interface CourseSurveyProps {
 
 /** What students answered in Chalmers course surveys: each round, and the rating and standard questions for the picked one. */
 export function CourseSurvey({ rounds, selected, onSelect, fetchedAt }: CourseSurveyProps) {
+  const t = useMessages();
   const picked = selected === ALL_ROUNDS ? rounds : rounds.filter((r) => roundKey(r) === selected);
   const shown = picked.length ? picked : rounds.slice(0, 1);
 
   return (
     <section>
       <SectionTitle>
-        <MetricLabel metric="rating">Course survey</MetricLabel>
+        <MetricLabel metric="rating">{t.survey.title}</MetricLabel>
       </SectionTitle>
       {!shown.length ? (
         <>
-          <p className="text-sm text-muted-foreground">No course surveys in the last {EVALUATION_YEARS} academic years.</p>
+          <p className="text-sm text-muted-foreground">{t.survey.none}</p>
           <SurveySource fetchedAt={fetchedAt} />
         </>
       ) : (
@@ -66,36 +63,42 @@ export function CourseSurvey({ rounds, selected, onSelect, fetchedAt }: CourseSu
 }
 
 function SurveySource({ fetchedAt }: { fetchedAt: string }) {
+  const t = useMessages();
+  const { before, link, after } = t.survey.source;
   return (
     <p className="mt-3 text-xs text-muted-foreground">
-      From{" "}
-      <a href={SURVEYS_URL} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-foreground">
-        Chalmers course surveys
+      {before}
+      <a href={t.chalmers.surveys} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-foreground">
+        {link}
       </a>
-      , fetched {formatDay(fetchedAt)}.
+      {after(t.format.day(fetchedAt))}
     </p>
   );
 }
 
 /** The rating and the standard questions, pooled over `rounds`. */
 function SurveySummary({ rounds }: { rounds: readonly EvaluationRound[] }) {
+  const t = useMessages();
+  const { format } = t;
   const evaluation = summarizeEvaluations(rounds);
   const years = rounds.map((r) => r.academicYear);
   const oldest = Math.min(...years);
   const newest = Math.max(...years);
   const isOneYear = oldest === newest;
-  const title = isOneYear ? formatAcademicYear(newest) : `${formatAcademicYear(oldest)}–${formatAcademicYear(newest)}`;
+  const title = isOneYear ? format.academicYear(newest) : `${format.academicYear(oldest)}–${format.academicYear(newest)}`;
   const detail = isOneYear
     ? rounds
         .map((r) => periodsLabel(r.periods))
         .filter(Boolean)
         .join(", ")
-    : `all ${formatCount(rounds.length)} rounds`;
+    : t.survey.rounds(rounds.length);
   const workload = questionMean(rounds, "workload");
   const workloadCounts = pooledAnswerCounts(rounds, "workload");
   const breakdown = BREAKDOWN.flatMap((question) => {
     const mean = questionMean(rounds, question);
-    return mean === null ? [] : [{ question, label: QUESTION_LABELS[question].label, mean, counts: pooledAnswerCounts(rounds, question) }];
+    return mean === null
+      ? []
+      : [{ question, label: t.survey.questions[question].label, mean, counts: pooledAnswerCounts(rounds, question) }];
   });
 
   return (
@@ -105,28 +108,30 @@ function SurveySummary({ rounds }: { rounds: readonly EvaluationRound[] }) {
           {title} <span className="font-normal text-muted-foreground">{detail}</span>
         </h3>
         <span className="text-xs text-muted-foreground tabular-nums">
-          {formatCount(sumOf(rounds, "answers"))} of {formatCount(sumOf(rounds, "respondents"))} answered
+          {t.survey.answered(sumOf(rounds, "answers"), sumOf(rounds, "respondents"))}
         </span>
       </div>
       <div className="flex flex-col gap-2">
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-semibold tabular-nums">{formatScore(evaluation?.mean ?? null)}</span>
+          <span className="text-4xl font-semibold tabular-nums">{format.score(evaluation?.mean ?? null)}</span>
           <span className="text-lg text-muted-foreground">/ {ANSWER_SCALE.max}</span>
           <span className="ml-auto text-right text-xs text-muted-foreground tabular-nums">
-            Overall impression
+            {t.survey.questions.overall.label}
             <br />
-            {evaluation ? `${formatCount(evaluation.answers)} answers` : "Too few answers"}
+            {evaluation ? t.survey.answers(evaluation.answers) : t.survey.tooFewAnswers}
           </span>
         </div>
         {evaluation && (
           <>
             <DistributionMark frequencies={answerFrequencies(evaluation.overallAnswers)} {...ANSWER_SCALE} className="w-full" />
             <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
-              <span>{ANSWER_SCALE.min} Very poor</span>
               <span>
-                Median {formatNumber(evaluation.median)} · SD {formatNumber(evaluation.sd)}
+                {ANSWER_SCALE.min} {t.survey.veryPoor}
               </span>
-              <span>{ANSWER_SCALE.max} Excellent</span>
+              <span>{t.medianAndSd(evaluation.median, evaluation.sd)}</span>
+              <span>
+                {ANSWER_SCALE.max} {t.survey.excellent}
+              </span>
             </div>
           </>
         )}
@@ -135,17 +140,17 @@ function SurveySummary({ rounds }: { rounds: readonly EvaluationRound[] }) {
         {breakdown.map(({ question, label, mean, counts }) => (
           <li key={question} className={QUESTION_GRID}>
             <span className="truncate">{label}</span>
-            <span className="text-right tabular-nums">{formatScore(mean)}</span>
+            <span className="text-right tabular-nums">{format.score(mean)}</span>
             {counts && <DistributionMark frequencies={answerFrequencies(counts)} {...ANSWER_SCALE} className="w-full" />}
           </li>
         ))}
         {workload !== null && (
           <li className={cn(QUESTION_GRID, "mt-1 border-t pt-2")}>
             <span className="flex flex-col">
-              {QUESTION_LABELS.workload.label}
-              <span className="text-xs text-muted-foreground">{WORKLOAD_SCALE}</span>
+              {t.survey.questions.workload.label}
+              <span className="text-xs text-muted-foreground">{t.survey.workloadScale}</span>
             </span>
-            <span className="text-right tabular-nums">{formatScore(workload)}</span>
+            <span className="text-right tabular-nums">{format.score(workload)}</span>
             {workloadCounts && <DistributionMark frequencies={answerFrequencies(workloadCounts)} {...ANSWER_SCALE} className="w-full" />}
           </li>
         )}
@@ -167,20 +172,21 @@ interface SurveyRoundsProps {
 
 /** Every round, newest first, then all of them together. Picking one shows it in the summary. */
 function SurveyRounds({ rounds, shown, onSelect, fetchedAt }: SurveyRoundsProps) {
+  const t = useMessages();
   const isAll = rounds.length > 1 && shown.length === rounds.length;
   return (
     <div className="self-start">
       <div className={cn(ROUND_GRID, "border-b px-2 pb-2 text-xs text-muted-foreground")}>
-        <span>Round</span>
-        <span className="text-right">Overall</span>
-        <span className="hidden text-right sm:block">Answers</span>
-        <span className="text-right">Minutes</span>
+        <span>{t.survey.columns.round}</span>
+        <span className="text-right">{t.survey.columns.overall}</span>
+        <span className="hidden text-right sm:block">{t.survey.columns.answers}</span>
+        <span className="text-right">{t.survey.columns.minutes}</span>
       </div>
       <ul className="flex flex-col text-sm tabular-nums">
         {rounds.map((round) => (
           <RoundRow
             key={roundKey(round)}
-            label={formatAcademicYear(round.academicYear)}
+            label={t.format.academicYear(round.academicYear)}
             detail={periodsLabel(round.periods)}
             mean={round.means.overall ?? null}
             counts={round.answerCounts.overall ?? null}
@@ -193,7 +199,7 @@ function SurveyRounds({ rounds, shown, onSelect, fetchedAt }: SurveyRoundsProps)
         ))}
         {rounds.length > 1 && (
           <RoundRow
-            label="All rounds"
+            label={t.survey.allRounds}
             mean={questionMean(rounds, "overall")}
             counts={pooledAnswerCounts(rounds, "overall")}
             answers={sumOf(rounds, "answers")}
@@ -226,6 +232,7 @@ interface RoundRowProps {
  * A picked row gets a bar on its left edge and, beside the summary, an arrow pointing at it.
  */
 function RoundRow({ label, detail, mean, counts, answers, respondents, minutes, selected, onSelect }: RoundRowProps) {
+  const t = useMessages();
   return (
     <li
       className={cn(
@@ -250,17 +257,15 @@ function RoundRow({ label, detail, mean, counts, answers, respondents, minutes, 
       </button>
       {counts ? (
         <DistributionCell
-          value={formatScore(mean)}
+          value={t.format.score(mean)}
           frequencies={answerFrequencies(counts)}
           scale={ANSWER_SCALE}
-          label="Overall impression"
+          label={t.survey.questions.overall.label}
         />
       ) : (
-        <span className="text-right">{formatScore(mean)}</span>
+        <span className="text-right">{t.format.score(mean)}</span>
       )}
-      <span className="hidden text-right text-muted-foreground sm:block">
-        {formatCount(answers)} of {formatCount(respondents)}
-      </span>
+      <span className="hidden text-right text-muted-foreground sm:block">{t.of(t.format.count(answers), t.format.count(respondents))}</span>
       <span className="text-right">
         {minutes ? (
           <a

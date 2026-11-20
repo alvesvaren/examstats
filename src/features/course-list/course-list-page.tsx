@@ -26,8 +26,8 @@ import type { StudyPeriod } from "@/domain/programme-plans";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { useElementSize } from "@/hooks/use-element-size";
 import { useLanguage } from "@/hooks/use-language";
+import { useMessages } from "@/hooks/use-messages";
 import { useScrollBack } from "@/hooks/use-scroll-back";
-import { formatCourses } from "@/lib/format";
 import { CourseTable } from "./course-table";
 
 const route = getRouteApi("/");
@@ -47,6 +47,7 @@ export function CourseListPage() {
   const search = route.useSearch();
   const navigate = route.useNavigate();
   const language = useLanguage();
+  const t = useMessages();
   const { data: snapshot } = useSuspenseQuery(catalogQuery(language));
   const { ref: filtersRef, height: filtersHeight } = useElementSize<HTMLDivElement>();
   const { ref: resultsRef, scrollBack } = useScrollBack<HTMLDivElement>();
@@ -58,7 +59,7 @@ export function CourseListPage() {
   const examinerMatches = scoped ? [] : matchExaminers(snapshot.examiners, q, EXAMINER_SUGGESTIONS);
   const survey = surveyColumn(sort, search.survey);
   // The heading counts the whole scope, whatever the other filters keep.
-  const scopeTotal = formatCourses(snapshot.courses.filter((c) => inScope(c, { programme, examiner })).length);
+  const scopeTotal = snapshot.courses.filter((c) => inScope(c, { programme, examiner })).length;
   const maxAttempts = Math.max(...snapshot.courses.map((c) => c.attemptsPerYear));
   const coursesIn = (code: string) => snapshot.courses.filter((c) => c.programme === code).length;
 
@@ -89,12 +90,12 @@ export function CourseListPage() {
     <div className="flex flex-col gap-4">
       {programme && (
         <ScopeHeading title={snapshot.programmes[programme]?.name ?? programme} onClear={clearScope}>
-          {programme} · {scopeTotal}
+          {programme} · {t.courses(scopeTotal)}
         </ScopeHeading>
       )}
       {examiner && (
         <ScopeHeading title={examiner} onClear={clearScope}>
-          Examiner of {scopeTotal} in {snapshot.plans.academicYear}
+          {t.list.examinerOfIn(scopeTotal, snapshot.plans.academicYear)}
         </ScopeHeading>
       )}
       {/* The negative margin cancels the padding the filters need when stuck, so the top of this box is where they stick. */}
@@ -107,8 +108,8 @@ export function CourseListPage() {
               type="search"
               defaultValue={q}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Course, programme or examiner, use ; for several"
-              aria-label="Search"
+              placeholder={t.list.searchPlaceholder}
+              aria-label={t.list.search}
               autoComplete="off"
               spellCheck={false}
               className="h-10 pl-9 text-base"
@@ -122,12 +123,12 @@ export function CourseListPage() {
           <ul className="flex flex-col gap-1">
             {programmeMatches.map((match) => (
               <Suggestion key={match.code} search={{ programme: match.code }} name={match.name}>
-                {match.code} · {formatCourses(coursesIn(match.code))}
+                {match.code} · {t.courses(coursesIn(match.code))}
               </Suggestion>
             ))}
             {examinerMatches.map((match) => (
               <Suggestion key={match.name} search={{ examiner: match.name }} name={match.name}>
-                Examiner of {formatCourses(match.courses)}
+                {t.list.examinerOf(match.courses)}
               </Suggestion>
             ))}
           </ul>
@@ -154,11 +155,12 @@ export function CourseListPage() {
 }
 
 function ScopeHeading({ title, onClear, children }: { title: string; onClear: () => void; children: ReactNode }) {
+  const t = useMessages();
   return (
     <div className="flex flex-col gap-2">
       <Button variant="ghost" size="sm" className="-ml-2 self-start" onClick={onClear}>
         <ArrowLeftIcon />
-        All courses
+        {t.allCourses}
       </Button>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 className="text-2xl font-semibold">{title}</h1>
@@ -196,7 +198,7 @@ interface PeriodFilterProps {
 
 /** Keeps the courses that run in any of the picked study periods this year. */
 function PeriodFilter({ periods, academicYear, onChange }: PeriodFilterProps) {
-  const label = `Runs in the study period in ${academicYear}`;
+  const label = useMessages().list.runsIn(academicYear);
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -220,6 +222,7 @@ interface ProgrammeSelectProps {
 }
 
 function ProgrammeSelect({ programme, programmes, onChange }: ProgrammeSelectProps) {
+  const t = useMessages();
   const options = Object.entries(programmes)
     .map(([code, { name }]) => [code, name] as const)
     .toSorted(([, a], [, b]) => a.localeCompare(b, "sv"));
@@ -230,10 +233,10 @@ function ProgrammeSelect({ programme, programmes, onChange }: ProgrammeSelectPro
         const { value } = event.target;
         onChange(value === ALL_PROGRAMMES ? undefined : value);
       }}
-      aria-label="Programme"
+      aria-label={t.list.programme}
       className={cn("min-w-0 flex-1 sm:w-72 sm:flex-none", FIELD_SIZE)}
     >
-      <NativeSelectOption value={ALL_PROGRAMMES}>All programmes</NativeSelectOption>
+      <NativeSelectOption value={ALL_PROGRAMMES}>{t.allProgrammes}</NativeSelectOption>
       {options.map(([code, name]) => (
         <NativeSelectOption key={code} value={code}>
           {name === code ? code : `${name} · ${code}`}

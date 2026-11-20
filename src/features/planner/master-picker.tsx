@@ -2,8 +2,8 @@ import { ChevronRightIcon, ExternalLinkIcon, InfoIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Catalog } from "@/domain/catalog";
 import { masterSummary, otherNameOf } from "@/domain/planner";
-import { academicYearOf, programmeUrl, type ProgrammePlan, type UpcomingMasters } from "@/domain/programme-plans";
-import { formatCount, formatCredits, formatPercent, formatScore } from "@/lib/format";
+import { academicYearOf, type ProgrammePlan, type UpcomingMasters } from "@/domain/programme-plans";
+import { useMessages } from "@/hooks/use-messages";
 import { cn } from "@/lib/utils";
 
 /** What it takes for a master's programme to complete a programme's degree. */
@@ -24,10 +24,9 @@ interface MasterPickerProps {
   onChoose: (code: string) => void;
 }
 
-const plural = (count: number, word: string) => `${formatCount(count)} ${word}${count === 1 ? "" : "s"}`;
-
 /** The master's programmes a programme leads on to, each in short, to choose the fourth and fifth year from. */
 export function MasterPicker({ programme, masters, accredited, catalog, onChoose }: MasterPickerProps) {
+  const t = useMessages();
   const stats = new Map(catalog.courses.map((c) => [c.code, c]));
   const options = masters
     .toSorted((a, b) => a.name.localeCompare(b.name, "sv"))
@@ -41,11 +40,8 @@ export function MasterPicker({ programme, masters, accredited, catalog, onChoose
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <h2 className="text-xl font-semibold">Choose your master's programme</h2>
-        <p className="text-sm text-muted-foreground">
-          {plural(masters.length, "master's programme")} complete {programme.name} as years 4 and 5. Pass rate and rating are the mean over
-          each one's courses with results.
-        </p>
+        <h2 className="text-xl font-semibold">{t.planner.chooseMaster}</h2>
+        <p className="text-sm text-muted-foreground">{t.planner.mastersIntro(masters.length, programme.name)}</p>
       </div>
       <ul className="grid gap-2 sm:grid-cols-2">
         {options.map((option) => (
@@ -67,11 +63,12 @@ interface MasterOptionProps {
 }
 
 function MasterOption({ master, summary, otherName, accreditation, onChoose }: MasterOptionProps) {
+  const t = useMessages();
   const { tracks, compulsory, compulsoryCredits, electives, passRate, rating } = summary;
   const facts = [
-    tracks.length > 0 && plural(tracks.length, "track"),
-    compulsoryCredits > 0 ? `${formatCredits(compulsoryCredits)} compulsory` : "Nothing compulsory for all",
-    plural(electives, "elective"),
+    tracks.length > 0 && t.planner.tracks(tracks.length),
+    compulsoryCredits > 0 ? t.planner.compulsoryCredits(compulsoryCredits) : t.planner.nothingCompulsory,
+    t.planner.electives(electives),
   ]
     .filter(Boolean)
     .join(" · ");
@@ -86,22 +83,22 @@ function MasterOption({ master, summary, otherName, accreditation, onChoose }: M
         <span className="text-sm text-muted-foreground">
           {hasResults ? (
             <>
-              Pass rate <span className="font-medium text-foreground tabular-nums">{formatPercent(passRate)}</span> · Rating{" "}
-              <span className="font-medium text-foreground tabular-nums">{formatScore(rating)}</span>
+              {t.list.columns.passRate} <span className="font-medium text-foreground tabular-nums">{t.format.percent(passRate)}</span> ·{" "}
+              {t.survey.questions.overall.short} <span className="font-medium text-foreground tabular-nums">{t.format.score(rating)}</span>
             </>
           ) : (
-            "No results yet"
+            t.noResultsYet
           )}
         </span>
         {compulsory.length > 0 && (
-          <span className="line-clamp-2 text-xs text-muted-foreground">Compulsory: {compulsory.map((c) => c.name).join(", ")}</span>
+          <span className="line-clamp-2 text-xs text-muted-foreground">{t.planner.compulsory(compulsory.map((c) => c.name))}</span>
         )}
         <Specialisations names={accreditation.specialisations} className="text-xs" />
       </button>
       <ChalmersLink code={master.code} courseList={accreditation.courseList} className="self-start px-3 pb-2 text-xs" />
       {master.prerequisites.length > 0 && (
         <Prerequisites paragraphs={master.prerequisites} className="px-3 pb-2.5 text-xs">
-          Prerequisites
+          {t.planner.prerequisites}
         </Prerequisites>
       )}
     </div>
@@ -143,9 +140,10 @@ interface ChalmersLinkProps {
 
 /** The programme's syllabus and plan on chalmers.se, or the course list of an upcoming master's programme. */
 export function ChalmersLink({ code, courseList, className }: ChalmersLinkProps) {
+  const t = useMessages();
   return (
     <a
-      href={courseList ?? programmeUrl(code)}
+      href={courseList ?? t.chalmers.programme(code)}
       target="_blank"
       rel="noreferrer"
       className={cn(
@@ -153,20 +151,17 @@ export function ChalmersLink({ code, courseList, className }: ChalmersLinkProps)
         className,
       )}
     >
-      {courseList ? "Course list" : "chalmers.se"}
+      {courseList ? t.planner.courseList : "chalmers.se"}
       <ExternalLinkIcon className="size-3.5" />
     </a>
   );
 }
 
-/** Chalmers' list of the master's programmes of the next admission. */
-const MASTERS_URL = "https://www.chalmers.se/en/education/find-masters-programme/";
-
 /** Says that a master's programme leads to the degree only with one of some of its specialisations. Nothing when any will do. */
 export function Specialisations({ names, className }: { names: readonly string[]; className?: string }) {
+  const t = useMessages();
   if (names.length === 0) return null;
-  const list = new Intl.ListFormat("en", { type: "disjunction" }).format(names);
-  return <span className={cn("block text-muted-foreground", className)}>Gives your degree only with the specialisation {list}</span>;
+  return <span className={cn("block text-muted-foreground", className)}>{t.planner.specialisations(names)}</span>;
 }
 
 const linkClass = "text-foreground underline underline-offset-4";
@@ -194,28 +189,24 @@ interface MastersNotPublishedProps {
  * year yet: its accreditation matrix and course lists of an upcoming year, or else this year's plans.
  */
 export function MastersNotPublished({ year, shown, upcoming }: MastersNotPublishedProps) {
+  const t = useMessages();
   const mastersLink = (
-    <a href={MASTERS_URL} target="_blank" rel="noreferrer" className={linkClass}>
-      Master's programmes on chalmers.se
+    <a href={t.chalmers.masters} target="_blank" rel="noreferrer" className={linkClass}>
+      {t.planner.mastersOnChalmers}
     </a>
   );
   if (!upcoming) {
     return (
       <Note>
-        Chalmers has not published the master's programmes of {academicYearOf(year)} yet. Until it does, these are the ones of {shown}, and
-        the programmes on offer can change. {mastersLink}
+        {t.planner.mastersNotPublished(academicYearOf(year), shown)} {mastersLink}
       </Note>
     );
   }
-  const announced = upcoming.academicYear;
   return (
     <Note>
-      Chalmers has not published the plans of the master's programmes of {academicYearOf(year)} yet. Until it does, these are the ones its
-      accreditation matrix lists for {announced}
-      {announced === academicYearOf(year) ? "" : ", the newest year it has announced"}. Their courses are the ones on each programme's
-      course list that run in {shown}, in the study periods they run in now. The programmes, their courses and when they run can change.{" "}
+      {t.planner.upcomingMasters(academicYearOf(year), upcoming.academicYear, shown)}{" "}
       <a href={upcoming.matrix} className={linkClass}>
-        Accreditation matrix
+        {t.planner.accreditationMatrix}
       </a>{" "}
       · {mastersLink}
     </Note>
@@ -233,13 +224,13 @@ interface UnplannedCoursesProps {
 
 /** The courses of an upcoming master's programme's year that the planner cannot place, since none of this year's plans gives them. */
 export function UnplannedCourses({ master, names, shown, courseList }: UnplannedCoursesProps) {
+  const t = useMessages();
   return (
     <Note>
-      The course list of {master} also names {names.join(", ")}. They are new or not given in {shown}, so the plan has no study periods for
-      them.{" "}
+      {t.planner.unplanned(master, names, shown)}{" "}
       {courseList && (
         <a href={courseList} target="_blank" rel="noreferrer" className={linkClass}>
-          Course list
+          {t.planner.courseList}
         </a>
       )}
     </Note>

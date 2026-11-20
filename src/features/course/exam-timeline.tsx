@@ -6,7 +6,7 @@ import { attemptsOf, passRateOf, type GradeCounts } from "@/domain/grades";
 import type { Part } from "@/domain/snapshot";
 import { layoutColumns, stackSegments } from "@/domain/timeline";
 import { useElementSize } from "@/hooks/use-element-size";
-import { formatCount, formatDay, formatPercent } from "@/lib/format";
+import { useMessages } from "@/hooks/use-messages";
 
 /** The chart draws in real pixels, so the gaps below are exact at every width. */
 const HEIGHT = 280;
@@ -29,6 +29,7 @@ const y = (share: number) => Math.round(TOP + PLOT_HEIGHT * (1 - share));
 /** One column per sitting, oldest first. Width shows attempts, height splits them by grade. */
 export function ExamTimeline({ part }: { part: Part }) {
   // The tooltip lives outside the scrolling box, so it records the scroll offset it was opened at.
+  const t = useMessages();
   const [hovered, setHovered] = useState<{ index: number; scrollLeft: number } | null>(null);
   const { ref, width: viewportWidth } = useElementSize<HTMLDivElement>();
 
@@ -46,6 +47,8 @@ export function ExamTimeline({ part }: { part: Part }) {
     return labels;
   }, []);
   const active = hovered && columns[hovered.index];
+  const [first] = part.sittings;
+  const last = part.sittings.at(-1);
   const hover = (index: number) => setHovered({ index, scrollLeft: ref.current?.scrollLeft ?? 0 });
 
   return (
@@ -65,14 +68,14 @@ export function ExamTimeline({ part }: { part: Part }) {
           viewBox={`0 0 ${width} ${HEIGHT}`}
           className="block"
           role="img"
-          aria-label={`${part.sittings.length} sittings from ${part.sittings[0]?.date ?? ""} to ${part.sittings.at(-1)?.date ?? ""}`}
+          aria-label={first && last ? t.course.sittings(part.sittings.length, first.date, last.date) : undefined}
           onPointerLeave={() => setHovered(null)}
         >
           {GRID_SHARES.map((share) => (
             <g key={share}>
               <line x1={AXIS_LEFT} x2={width} y1={y(share) + 0.5} y2={y(share) + 0.5} className="stroke-border" />
               <text x={AXIS_LEFT - 8} y={y(share) + 4} textAnchor="end" className="fill-muted-foreground text-xs">
-                {formatPercent(share)}
+                {t.format.percent(share)}
               </text>
             </g>
           ))}
@@ -119,6 +122,7 @@ interface SittingTooltipProps {
 }
 
 function SittingTooltip({ date, grades, center, viewportWidth }: SittingTooltipProps) {
+  const t = useMessages();
   const share = viewportWidth ? center / viewportWidth : 0;
   const align = share < TOOLTIP_EDGE_SHARE ? "translate-x-0" : share > 1 - TOOLTIP_EDGE_SHARE ? "-translate-x-full" : "-translate-x-1/2";
   return (
@@ -129,9 +133,9 @@ function SittingTooltip({ date, grades, center, viewportWidth }: SittingTooltipP
       )}
       style={{ left: center }}
     >
-      <div className="font-medium">{formatDay(date)}</div>
+      <div className="font-medium">{t.format.day(date)}</div>
       <div className="text-muted-foreground tabular-nums">
-        {formatPercent(passRateOf(grades))} passed · {formatCount(attemptsOf(grades))} attempts
+        {t.course.passed(passRateOf(grades))} · {t.attempts(attemptsOf(grades))}
       </div>
       <GradeTally grades={grades} className="mt-2 flex-nowrap" />
     </div>

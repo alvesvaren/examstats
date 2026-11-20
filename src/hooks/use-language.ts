@@ -16,12 +16,14 @@ function readLanguage(): Language {
 }
 
 let language = readLanguage();
+document.documentElement.lang = language;
 
-/** The language course and programme names show in. Route loaders read it outside React. */
+/** The language the site shows in. Route loaders read it outside React. */
 export const getLanguage = () => language;
 
 export function setLanguage(next: Language) {
   language = next;
+  document.documentElement.lang = next;
   try {
     localStorage.setItem(STORAGE_KEY, next);
   } catch {

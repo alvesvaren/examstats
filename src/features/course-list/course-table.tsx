@@ -14,8 +14,8 @@ import type { InLanguage } from "@/domain/names";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useScrollLeftSync } from "@/hooks/use-scroll-left-sync";
 import { useWindowVirtualList } from "@/hooks/use-window-virtual-list";
-import { formatCount, formatMonth } from "@/lib/format";
-import { QUESTION_LABELS } from "@/lib/survey-questions";
+import { useMessages } from "@/hooks/use-messages";
+import type { Messages } from "@/lib/i18n/en";
 
 /**
  * Below `lg` the table scrolls sideways and the course column narrows to the course code, so the numbers get the screen.
@@ -38,7 +38,6 @@ const TOGGLE_ROW_HEIGHT = 56;
 
 interface Column {
   key: SortKey;
-  label: string;
   metric?: Metric;
   align?: "center" | "end";
   /** The column of a course survey question, which the reader picks. */
@@ -47,19 +46,19 @@ interface Column {
 
 const columnsOf = (survey: Question): Column[] => [
   ...BASE_COLUMNS.slice(0, -1),
-  { key: surveySortKey(survey), label: QUESTION_LABELS[survey].short, align: "end", survey: true },
+  { key: surveySortKey(survey), align: "end", survey: true },
   ...BASE_COLUMNS.slice(-1),
 ];
 
-const BASE_COLUMNS: Column[] = [
-  { key: "name", label: "Course" },
-  { key: "programme", label: "Programme", align: "center" },
-  { key: "attemptsPerYear", label: "Attempts", metric: "attemptsPerYear", align: "end" },
-  { key: "passRate", label: "Pass rate", metric: "passRate", align: "end" },
-  { key: "averageGrade", label: "Grade", metric: "averageGrade", align: "end" },
-  { key: "trend", label: "Trend", metric: "trend", align: "end" },
-  { key: "lastResult", label: "Last exam", align: "end" },
-];
+const BASE_COLUMNS = [
+  { key: "name" },
+  { key: "programme", align: "center" },
+  { key: "attemptsPerYear", metric: "attemptsPerYear", align: "end" },
+  { key: "passRate", metric: "passRate", align: "end" },
+  { key: "averageGrade", metric: "averageGrade", align: "end" },
+  { key: "trend", metric: "trend", align: "end" },
+  { key: "lastResult", align: "end" },
+] as const satisfies (Column & { key: keyof Messages["list"]["columns"] })[];
 
 const flip = (dir: SortDir): SortDir => (dir === "asc" ? "desc" : "asc");
 
@@ -100,6 +99,7 @@ export function CourseTable({
   stickyTop,
 }: CourseTableProps) {
   const canHover = useMediaQuery(HOVER_QUERY);
+  const t = useMessages();
   const { leaderRef: bodyRef, followerRef: headerRef, onScroll } = useScrollLeftSync<HTMLDivElement, HTMLDivElement>();
   const items: Item[] = [
     ...active.map((course) => ({ kind: "course" as const, course })),
@@ -107,8 +107,10 @@ export function CourseTable({
     ...(showEnded ? ended.map((course) => ({ kind: "course" as const, course })) : []),
   ];
   const sortBy = (key: SortKey) => onSortChange(key, key === sort ? flip(dir) : defaultSortDir(key));
+  const columnLabels: Partial<Record<SortKey, string>> = t.list.columns;
+  const labelOf = (column: Column) => (column.survey ? t.survey.questions[survey].short : (columnLabels[column.key] ?? column.key));
 
-  if (!items.length) return <p className="py-10 text-center text-muted-foreground">No courses match.</p>;
+  if (!items.length) return <p className="py-10 text-center text-muted-foreground">{t.list.noMatch}</p>;
 
   // A box that scrolls sideways cannot also stick to the page, so the header sits outside it and follows its scroll.
   return (
@@ -116,7 +118,7 @@ export function CourseTable({
       <div ref={headerRef} className="group/table sticky z-30 overflow-hidden border-b bg-background" style={{ top: stickyTop }}>
         <div className={cn(GRID, "px-2 py-2 text-xs text-muted-foreground")}>
           {columnsOf(survey).map((column) => (
-            <SortHeader key={column.key} column={column} sort={sort} dir={dir} onSort={sortBy}>
+            <SortHeader key={column.key} column={column} label={labelOf(column)} sort={sort} dir={dir} onSort={sortBy}>
               {column.survey && <SurveyColumnPicker question={survey} onPick={onPickSurvey} />}
             </SortHeader>
           ))}
@@ -146,6 +148,7 @@ interface VirtualRowsProps extends Pick<CourseTableProps, "showEnded" | "onToggl
 }
 
 function VirtualRows({ items, survey, query, canHover, showEnded, onToggleEnded, programmes, maxAttempts }: VirtualRowsProps) {
+  const t = useMessages();
   const { listRef, virtualizer } = useWindowVirtualList({
     count: items.length,
     rowHeight: (index) => (items[index]?.kind === "ended" ? TOGGLE_ROW_HEIGHT : ROW_HEIGHT),
@@ -186,7 +189,7 @@ function VirtualRows({ items, survey, query, canHover, showEnded, onToggleEnded,
                 className="flex h-14 w-full items-center border-b bg-background text-sm font-medium text-muted-foreground hover:text-foreground"
               >
                 <span className="sticky left-0 flex items-center gap-2 px-2">
-                  Ended courses · {formatCount(item.count)}
+                  {t.list.ended} · {t.format.count(item.count)}
                   <ChevronDownIcon className={cn("size-4 transition-transform", showEnded && "rotate-180")} />
                 </span>
               </button>
@@ -200,6 +203,7 @@ function VirtualRows({ items, survey, query, canHover, showEnded, onToggleEnded,
 
 interface SortHeaderProps {
   column: Column;
+  label: string;
   sort: SortKey;
   dir: SortDir;
   onSort: (key: SortKey) => void;
@@ -207,7 +211,7 @@ interface SortHeaderProps {
   children?: ReactNode;
 }
 
-function SortHeader({ column, sort, dir, onSort, children }: SortHeaderProps) {
+function SortHeader({ column, label, sort, dir, onSort, children }: SortHeaderProps) {
   const isActive = sort === column.key;
   const Arrow = dir === "asc" ? ArrowUpIcon : ArrowDownIcon;
   return (
@@ -228,10 +232,10 @@ function SortHeader({ column, sort, dir, onSort, children }: SortHeaderProps) {
           isActive && "text-foreground",
         )}
       >
-        {column.label}
+        {label}
         {isActive && <Arrow className="size-3" aria-hidden />}
       </button>
-      {column.metric && <MetricInfo metric={column.metric} name={column.label.toLowerCase()} />}
+      {column.metric && <MetricInfo metric={column.metric} name={label.toLowerCase()} />}
       {children}
     </div>
   );
@@ -253,6 +257,7 @@ interface CourseRowProps {
  * Memoized because the virtualizer re-renders on every scroll frame and rows carry several tooltips.
  */
 const CourseRow = memo(function CourseRow({ course, survey, examiner, canHover, programmeName, maxAttempts }: CourseRowProps) {
+  const t = useMessages();
   const muted = course.ended && "opacity-50";
   return (
     <div className={cn("group relative h-[61px] border-b bg-background px-2 hover:bg-row-hover", course.ended && "text-muted-foreground")}>
@@ -296,7 +301,7 @@ const CourseRow = memo(function CourseRow({ course, survey, examiner, canHover, 
           )}
         </div>
         <div className="flex justify-end">
-          <StackedCell value={formatCount(course.attemptsPerYear)} className="w-16">
+          <StackedCell value={t.format.count(course.attemptsPerYear)} className="w-16">
             <SizeBar value={course.attemptsPerYear} max={maxAttempts} className={cn(muted)} />
           </StackedCell>
         </div>
@@ -312,7 +317,7 @@ const CourseRow = memo(function CourseRow({ course, survey, examiner, canHover, 
         <div className="flex justify-end">
           <SurveyCell question={survey} answers={course.surveyAnswers[survey]} muted={course.ended} interactive={canHover} />
         </div>
-        <div className="text-right tabular-nums">{formatMonth(course.lastResult)}</div>
+        <div className="text-right tabular-nums">{t.format.month(course.lastResult)}</div>
       </div>
     </div>
   );

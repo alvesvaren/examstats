@@ -3,14 +3,10 @@ import { cn } from "cn";
 import { GradeBar, GradeTally } from "@/components/grade";
 import { DistributionMark } from "@/components/marks";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { RECENT_YEARS } from "@/domain/course-stats";
 import { ANSWER_SCALE, answerFrequencies, meanAnswer, type Question } from "@/domain/evaluation";
 import { gradeSpreadOf, passRateOf, type GradeCounts } from "@/domain/grades";
 import { spreadOf, type Frequencies } from "@/domain/spread";
-import { formatGrade, formatPercent, formatScore, formatSpread } from "@/lib/format";
-import { questionWindow } from "@/lib/survey-questions";
-
-export const RECENT_LABEL = `Main exam, last ${RECENT_YEARS} years`;
+import { useMessages } from "@/hooks/use-messages";
 
 interface CellProps {
   muted?: boolean;
@@ -57,10 +53,11 @@ const emptyCell = (className: string) => <span className={cn("ml-auto text-cente
 
 /** Pass rate above the grade bar it comes from. Shared by the course list and the course page. */
 export function PassRateCell({ grades, muted, interactive }: CellProps & { grades: GradeCounts }) {
-  const value = formatPercent(passRateOf(grades));
+  const t = useMessages();
+  const value = t.format.percent(passRateOf(grades));
   const tooltip = (
     <>
-      {RECENT_LABEL}
+      {t.metrics.recent}
       <GradeTally grades={grades} />
     </>
   );
@@ -81,11 +78,12 @@ interface DistributionCellProps extends CellProps {
 
 /** A value above the distribution it comes from. */
 export function DistributionCell({ value, frequencies, scale, label, muted, interactive }: DistributionCellProps) {
+  const t = useMessages();
   const spread = spreadOf(frequencies);
   const tooltip = (
     <>
       {label}
-      {spread && <span>{formatSpread(spread)}</span>}
+      {spread && <span>{t.spread(spread)}</span>}
     </>
   );
   return (
@@ -97,15 +95,16 @@ export function DistributionCell({ value, frequencies, scale, label, muted, inte
 
 /** Average grade on its own. The pass rate bar beside it already shows how the grades spread. */
 export function AverageGradeCell({ grades, interactive }: Pick<CellProps, "interactive"> & { grades: GradeCounts }) {
+  const t = useMessages();
   const spread = gradeSpreadOf(grades);
   if (!spread) return emptyCell("w-12");
   const tooltip = (
     <>
-      {RECENT_LABEL}
-      <span>{formatSpread(spread)}</span>
+      {t.metrics.recent}
+      <span>{t.spread(spread)}</span>
     </>
   );
-  return <StackedCell value={formatGrade(spread.mean)} tooltip={tooltip} interactive={interactive} className="w-12" />;
+  return <StackedCell value={t.format.grade(spread.mean)} tooltip={tooltip} interactive={interactive} className="w-12" />;
 }
 
 interface SurveyCellProps extends CellProps {
@@ -116,13 +115,14 @@ interface SurveyCellProps extends CellProps {
 
 /** The mean answer to a course survey question above how the answers spread. The overall impression is the rating. */
 export function SurveyCell({ question, answers, muted, interactive }: SurveyCellProps) {
+  const t = useMessages();
   if (!answers) return emptyCell("w-12");
   return (
     <DistributionCell
-      value={formatScore(meanAnswer(answers))}
+      value={t.format.score(meanAnswer(answers))}
       frequencies={answerFrequencies(answers)}
       scale={ANSWER_SCALE}
-      label={questionWindow(question)}
+      label={t.survey.window(question)}
       muted={muted}
       interactive={interactive}
     />

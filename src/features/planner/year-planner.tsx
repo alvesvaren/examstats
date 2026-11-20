@@ -30,29 +30,22 @@ import { otherPicks, rememberedPicks, withPicks } from "@/domain/planner-memory"
 import {
   plannedCourses,
   planYear,
-  syllabusUrl,
   type PlanChoice,
   type PlanRequirement,
   type ProgrammePlan,
   type StudyPeriod,
   type StudyYear,
-  type Theme,
 } from "@/domain/programme-plans";
 import type { OtherQuestion, Question } from "@/domain/evaluation";
+import { useMessages } from "@/hooks/use-messages";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
-import { formatCount, formatCredits, formatNumber, formatPercent, formatPeriods } from "@/lib/format";
-import { QUESTION_LABELS } from "@/lib/survey-questions";
+import type { Messages } from "@/lib/i18n/en";
 
 const DEFAULT_SORT: PlannerSortKey = "rating";
 /** The add button, the course, its pass rate and a course survey question. Phones get narrower numbers, so the name keeps its room. */
 const ROW = "grid grid-cols-[2rem_minmax(0,1fr)_4rem_6rem] items-center gap-x-2 sm:grid-cols-[2rem_minmax(0,1fr)_5.5rem_6.5rem] sm:gap-x-3";
 
 const flip = (dir: SortDir): SortDir => (dir === "asc" ? "desc" : "asc");
-
-const THEME_LABELS = {
-  mts: { short: "MTS", name: "Human, technology and society" },
-  environment: { short: "Environment", name: "Environment and sustainable development" },
-} as const satisfies Record<Theme, { short: string; name: string }>;
 
 interface YearSearch {
   period?: StudyPeriod;
@@ -79,8 +72,9 @@ interface YearPlannerProps {
  */
 export function YearPlanner({ programme, years, current, track, search, onChange, catalog }: YearPlannerProps) {
   // The programme whose plan holds this year: the master's programme in years 4 and 5.
+  const t = useMessages();
   const { plan: yearProgramme, year } = current;
-  const { rounds, picks } = planYear(yearProgramme, year, { track, ruleNames: catalog.plans.ruleNames });
+  const { rounds, picks } = planYear(yearProgramme, year, { track, ruleNames: t.ruleNames(catalog.plans.ruleNames) });
   const stats = new Map(catalog.courses.map((c) => [c.code, c]));
   const { fixed, candidates } = plannerYear(rounds, stats);
   const { memory, remember } = usePlannerMemory();
@@ -92,7 +86,7 @@ export function YearPlanner({ programme, years, current, track, search, onChange
   const periods = periodsOf([...fixed, ...candidates]);
   const period = periods.find((p) => p === search.period) ?? firstOpenPeriod(periods, plan);
   const sort = search.sort ?? DEFAULT_SORT;
-  if (!period) return <p className="text-muted-foreground">The plan has no courses for this year.</p>;
+  if (!period) return <p className="text-muted-foreground">{t.planner.noCoursesThisYear}</p>;
 
   const dir = search.dir ?? defaultSortDir(sort);
   const listed = candidatesIn(candidates, period, sort, dir);
@@ -137,15 +131,17 @@ export function YearPlanner({ programme, years, current, track, search, onChange
   const warningsOf = (round: PlannerRound) => {
     const clash = lectureClash(round, plan);
     const exclusive = exclusiveWith(round, plan);
-    return [
-      clash && `Same lecture times as ${clash.name}${fixed.includes(clash) ? ", which is compulsory" : ""}`,
-      exclusive && `Only one of this and ${exclusive.name} counts towards the degree`,
-    ].filter((warning) => typeof warning === "string");
+    return [clash && t.planner.sameLectures(clash.name, fixed.includes(clash)), exclusive && t.planner.exclusive(exclusive.name)].filter(
+      (warning) => typeof warning === "string",
+    );
   };
 
   return (
     <>
-      <section aria-label="Your year" className="z-20 -mx-4 flex flex-col gap-3 border-b bg-background px-4 pt-1 pb-3 sm:sticky sm:top-0">
+      <section
+        aria-label={t.planner.yourYear}
+        className="z-20 -mx-4 flex flex-col gap-3 border-b bg-background px-4 pt-1 pb-3 sm:sticky sm:top-0"
+      >
         <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
           {periods.map((p) => (
             <PeriodCard
@@ -167,10 +163,10 @@ export function YearPlanner({ programme, years, current, track, search, onChange
             <DegreeRule key={requirementKey(rule.requirement)} rule={rule} offered={offered} />
           ))}
           <p className="flex items-center gap-3 text-muted-foreground">
-            {formatCredits(planned)} in your year
+            {t.planner.inYourYear(planned)}
             {picked.length > 0 && (
               <button type="button" onClick={() => setPicks([])} className="underline underline-offset-2 hover:text-foreground">
-                Clear my picks
+                {t.planner.clearPicks}
               </button>
             )}
           </p>
@@ -180,15 +176,15 @@ export function YearPlanner({ programme, years, current, track, search, onChange
       <section>
         <div className={cn(ROW, "items-end border-b pb-2")}>
           <h2 className="col-span-2 text-xl font-semibold">
-            {formatPeriods([period])}{" "}
-            <span className="text-base font-normal text-muted-foreground">{formatCount(listed.length)} to choose from</span>
+            {t.periods([period])}{" "}
+            <span className="text-base font-normal text-muted-foreground">{t.planner.toChooseFrom(listed.length)}</span>
           </h2>
-          <SortHeader sortKey="passRate" label="Pass rate" sort={sort} dir={dir} onSort={sortBy}>
+          <SortHeader sortKey="passRate" label={t.list.columns.passRate} sort={sort} dir={dir} onSort={sortBy}>
             <span className="hidden sm:inline-flex">
-              <MetricInfo metric="passRate" name="pass rate" />
+              <MetricInfo metric="passRate" name={t.list.columns.passRate.toLowerCase()} />
             </span>
           </SortHeader>
-          <SortHeader sortKey={surveySortKey(survey)} label={QUESTION_LABELS[survey].short} sort={sort} dir={dir} onSort={sortBy}>
+          <SortHeader sortKey={surveySortKey(survey)} label={t.survey.questions[survey].short} sort={sort} dir={dir} onSort={sortBy}>
             <SurveyColumnPicker question={survey} onPick={pickSurvey} />
           </SortHeader>
         </div>
@@ -208,11 +204,7 @@ export function YearPlanner({ programme, years, current, track, search, onChange
           ))}
         </ul>
         {listed.length === 0 && (
-          <p className="py-6 text-muted-foreground">
-            {plan.some(inPeriod)
-              ? "Every course in this study period is already in your year."
-              : "The plan has no courses in this study period."}
-          </p>
+          <p className="py-6 text-muted-foreground">{plan.some(inPeriod) ? t.planner.allInYear : t.planner.noCoursesInPeriod}</p>
         )}
       </section>
     </>
@@ -231,10 +223,12 @@ interface PeriodCardProps {
 
 /** A study period of the year with what is in it, how full it is, and whether two of its courses meet. */
 function PeriodCard({ period, fixed, picked, active, onFocus, onRemove }: PeriodCardProps) {
+  const t = useMessages();
   const rounds = [...fixed, ...picked];
   const credits = creditsIn(rounds, period);
   const free = PERIOD_CREDITS - credits;
-  const pace = credits > PERIOD_CREDITS ? formatPercent(credits / PERIOD_CREDITS) : null;
+  const pace = credits > PERIOD_CREDITS ? ` (${t.format.percent(credits / PERIOD_CREDITS)})` : "";
+  const fill = `${t.of(t.format.number(credits), t.credits(PERIOD_CREDITS))}${pace}`;
   const clashing = rounds.some((round) => lectureClash(round, rounds));
   return (
     <div
@@ -247,14 +241,13 @@ function PeriodCard({ period, fixed, picked, active, onFocus, onRemove }: Period
         type="button"
         onClick={onFocus}
         aria-pressed={active}
-        aria-label={`${formatPeriods([period])}, ${formatNumber(credits)} of ${formatCredits(PERIOD_CREDITS)}${pace ? ` (${pace})` : ""}`}
+        aria-label={`${t.periods([period])}, ${fill}`}
         className="flex flex-col gap-1 text-left outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-ring"
       >
         <span className="flex items-baseline justify-between gap-2">
-          <span className="text-lg leading-none font-semibold">{formatPeriods([period])}</span>
+          <span className="text-lg leading-none font-semibold">{t.periods([period])}</span>
           <span className={cn("text-right text-xs tabular-nums", free < 0 ? "font-semibold text-grade-u" : "text-muted-foreground")}>
-            {formatNumber(credits)} of {formatCredits(PERIOD_CREDITS)}
-            {pace && ` (${pace})`}
+            {fill}
           </span>
         </span>
         <span className="h-1.5 overflow-hidden rounded-full bg-border">
@@ -284,17 +277,17 @@ function PeriodCard({ period, fixed, picked, active, onFocus, onRemove }: Period
               event.stopPropagation();
               onRemove(round);
             }}
-            aria-label={`Remove ${round.name}`}
+            aria-label={t.planner.remove(round.name)}
             className="pointer-events-auto relative z-10 -mr-0.5 shrink-0 opacity-70 hover:opacity-100"
           >
             <XIcon className="size-3.5" />
           </button>
         </span>
       ))}
-      {clashing && <span className="pointer-events-none text-xs font-medium text-grade-u">Two of these share lecture times</span>}
+      {clashing && <span className="pointer-events-none text-xs font-medium text-grade-u">{t.planner.shareLectures}</span>}
       {free > 0 && (
         <span className="pointer-events-none rounded-md border border-dashed px-1.5 py-0.5 text-left text-sm text-muted-foreground">
-          Room for {formatCredits(free)}
+          {t.planner.roomFor(free)}
         </span>
       )}
     </div>
@@ -303,7 +296,8 @@ function PeriodCard({ period, fixed, picked, active, onFocus, onRemove }: Period
 
 /** The study periods of a round that runs over several, so its other periods explain themselves. */
 function Span({ round }: { round: PlannerRound }) {
-  return <span className="ml-auto shrink-0 text-xs opacity-75">{round.periods.length > 1 && formatPeriods(round.periods)}</span>;
+  const t = useMessages();
+  return <span className="ml-auto shrink-0 text-xs opacity-75">{round.periods.length > 1 && t.periods(round.periods)}</span>;
 }
 
 /** Marks the compulsory electives, in the list and in the rule that explains them. */
@@ -311,25 +305,31 @@ function PickMarker() {
   return <span className="inline-block size-2 shrink-0 rounded-full bg-primary" aria-hidden />;
 }
 
-/** Chalmers' own words when they say more than a label, else a sentence from the numbers. */
-function pickText({ text, minCourses, minCredits }: PlanChoice) {
+/** Chalmers' own words when they say more than a label, else a sentence from the numbers, if there are any. */
+function pickText({ text, minCourses, minCredits }: PlanChoice, t: Messages) {
   if (text && !/^compulsory elective$/i.test(text)) return text;
-  const amount = minCourses ? `${formatCount(minCourses)} ${minCourses === 1 ? "course" : "courses"}` : formatCredits(minCredits ?? 0);
-  return `Pick at least ${amount} of the marked courses.`;
+  if (minCourses) return t.planner.pickAtLeast(t.courses(minCourses));
+  if (minCredits) return t.planner.pickAtLeast(t.credits(minCredits));
+  return t.planner.pickSome;
 }
+
+/** "3 of 2 courses" or "7.5 of 15 credits". */
+const progressText = ({ have, need, unit }: { have: number; need: number; unit: "courses" | "credits" }, t: Messages) =>
+  t.of(t.format.number(have), unit === "courses" ? t.format.count(need) : t.credits(need));
 
 /** A rule that asks for some of the marked courses, and how far the courses of every year go towards it. */
 function PickRule({ pick, progress }: { pick: PlanChoice; progress: ReturnType<typeof pickProgress> }) {
+  const t = useMessages();
   const { have, need, unit, done } = progress;
   return (
     <p className="flex items-baseline gap-2">
       <PickMarker />
       <span>
-        {pickText(pick)}{" "}
+        {pickText(pick, t)}{" "}
         {need !== null && (
           <span className={cn("whitespace-nowrap", done ? "font-medium text-grade-4" : "text-muted-foreground")}>
             {done && <CheckIcon className="mr-0.5 inline size-4 align-[-0.2em]" aria-hidden />}
-            {formatNumber(have)} of {unit === "courses" ? formatCount(need) : formatCredits(need)}
+            {progressText({ have, need, unit }, t)}
           </span>
         )}
       </span>
@@ -350,30 +350,31 @@ function ListMarker({ done }: { done: boolean }) {
 }
 
 /** What a degree requirement asks for, in short. A list of one course names it, and says so when no year of the plan has it. */
-function requirementText(requirement: PlanRequirement, offered: ReadonlySet<string>) {
-  if (requirement.kind === "theme") return "Theme credits for the degree";
+function requirementText(requirement: PlanRequirement, offered: ReadonlySet<string>, t: Messages) {
+  if (requirement.kind === "theme") return t.planner.themeCredits;
   const [code, ...others] = requirement.courses;
-  if (code && others.length === 0) return `${code} for the degree${offered.has(code) ? "" : ", not in this plan"}`;
-  return `${requirement.minCourses === 1 ? "One" : formatCount(requirement.minCourses)} of the marked courses for the degree`;
+  if (code && others.length === 0) return t.planner.courseForDegree(code, offered.has(code));
+  return t.planner.someOfMarked(requirement.minCourses);
 }
 
 /** A requirement of the whole degree, and how far the compulsory courses and the picks of every year go towards it. */
 function DegreeRule({ rule, offered }: { rule: DegreeRuleProgress; offered: ReadonlySet<string> }) {
+  const t = useMessages();
   const { requirement, have, need, unit, done } = rule;
   return (
     <p className="flex items-baseline gap-2">
       {requirement.kind === "theme" ? (
-        <Badge variant="outline" title={THEME_LABELS[requirement.theme].name} className={cn(done && "opacity-50")}>
-          {THEME_LABELS[requirement.theme].short}
+        <Badge variant="outline" title={t.planner.themes[requirement.theme].name} className={cn(done && "opacity-50")}>
+          {t.planner.themes[requirement.theme].short}
         </Badge>
       ) : (
         <ListMarker done={done} />
       )}
       <span>
-        {requirementText(requirement, offered)}{" "}
+        {requirementText(requirement, offered, t)}{" "}
         <span className={cn("whitespace-nowrap", done ? "font-medium text-grade-4" : "text-muted-foreground")}>
           {done && <CheckIcon className="mr-0.5 inline size-4 align-[-0.2em]" aria-hidden />}
-          {formatNumber(have)} of {unit === "courses" ? formatCount(need) : formatCredits(need)}
+          {progressText({ have, need, unit }, t)}
         </span>
       </span>
     </p>
@@ -382,18 +383,19 @@ function DegreeRule({ rule, offered }: { rule: DegreeRuleProgress; offered: Read
 
 /** What a course gives towards a degree requirement. Faded once the plan meets the requirement. */
 function DegreeMark({ mark }: { mark: DegreeRuleProgress & { amount: number } }) {
+  const t = useMessages();
   const { requirement, done, amount } = mark;
   if (requirement.kind === "courses") {
     return (
       <span className="inline-flex items-center">
         <ListMarker done={done} />
-        <span className="sr-only">One of the courses the degree needs</span>
+        <span className="sr-only">{t.planner.oneOfDegree}</span>
       </span>
     );
   }
   return (
-    <Badge variant="outline" title={THEME_LABELS[requirement.theme].name} className={cn(done && "opacity-50")}>
-      {THEME_LABELS[requirement.theme].short} {formatCredits(amount)}
+    <Badge variant="outline" title={t.planner.themes[requirement.theme].name} className={cn(done && "opacity-50")}>
+      {t.planner.themes[requirement.theme].short} {t.credits(amount)}
     </Badge>
   );
 }
@@ -431,6 +433,7 @@ function SortHeader({ sortKey, label, sort, dir, onSort, children }: SortHeaderP
 
 /** Links to the course page, or to the syllabus on chalmers.se for a course without results. A round of several courses has no one page. */
 function CourseLink({ round }: { round: PlannerRound }) {
+  const t = useMessages();
   const [code, ...others] = round.codes;
   if (!code || others.length > 0) return <>{round.name}</>;
   if (round.stats) {
@@ -441,7 +444,7 @@ function CourseLink({ round }: { round: PlannerRound }) {
     );
   }
   return (
-    <a href={syllabusUrl(code)} target="_blank" rel="noreferrer" className="hover:underline">
+    <a href={t.chalmers.syllabus(code)} target="_blank" rel="noreferrer" className="hover:underline">
       {round.name}
       <ArrowUpRightIcon className="ml-0.5 inline size-3.5 align-[-0.125em] text-muted-foreground" />
     </a>
@@ -464,19 +467,17 @@ interface CandidateProps {
 }
 
 function Candidate({ round, survey, period, picked, elsewhere, warnings, marks, onToggle }: CandidateProps) {
+  const t = useMessages();
   const { requirement, stats } = round;
   const inOtherYear = Boolean(elsewhere?.year);
   // A round over several study periods gives only part of its credits in the one listed.
   const here = round.periodCredits[round.periods.indexOf(period)] ?? 0;
-  const creditsText =
-    round.periods.length > 1
-      ? `${formatCredits(round.credits)}, ${formatNumber(here)} in ${formatPeriods([period])}`
-      : formatCredits(round.credits);
+  const creditsText = round.periods.length > 1 ? t.planner.creditsIn(round.credits, here, t.periods([period])) : t.credits(round.credits);
   const details = [
     round.codes.join(", "),
     creditsText,
-    round.block && `block ${round.block}`,
-    requirement.kind !== "elective" && requirement.kind !== "compulsoryElective" && requirement.label,
+    round.block && t.planner.block(round.block),
+    requirement.kind !== "elective" && requirement.kind !== "compulsoryElective" && t.requirement(requirement),
   ]
     .filter(Boolean)
     .join(" · ");
@@ -488,11 +489,11 @@ function Candidate({ round, survey, period, picked, elsewhere, warnings, marks, 
         disabled={inOtherYear}
         aria-pressed={picked}
         aria-label={
-          inOtherYear
-            ? `${round.name} is in year ${elsewhere?.year}`
+          elsewhere?.year
+            ? t.planner.inOtherYear(round.name, elsewhere.year)
             : picked
-              ? `Remove ${round.name} from your year`
-              : `Add ${round.name} to your year`
+              ? t.planner.removeFromYear(round.name)
+              : t.planner.addToYear(round.name)
         }
         className={cn(
           "grid size-8 place-items-center rounded-full border-2",
@@ -512,7 +513,7 @@ function Candidate({ round, survey, period, picked, elsewhere, warnings, marks, 
             )}
             <CourseLink round={round} />
           </span>
-          {round.periods.length > 1 && <Badge variant="outline">Runs {formatPeriods(round.periods)}</Badge>}
+          {round.periods.length > 1 && <Badge variant="outline">{t.planner.runs(t.periods(round.periods))}</Badge>}
           {marks.map((mark) => (
             <DegreeMark key={requirementKey(mark.requirement)} mark={mark} />
           ))}
@@ -526,8 +527,8 @@ function Candidate({ round, survey, period, picked, elsewhere, warnings, marks, 
         {elsewhere && (
           <span className="text-xs text-muted-foreground">
             {elsewhere.year
-              ? `In year ${elsewhere.year} in ${formatPeriods(elsewhere.periods)}.`
-              : `In your year in ${formatPeriods(elsewhere.periods)}. Adding it here moves it.`}
+              ? t.planner.elsewhereInYear(elsewhere.year, t.periods(elsewhere.periods))
+              : t.planner.elsewhereInThisYear(t.periods(elsewhere.periods))}
           </span>
         )}
       </div>
@@ -537,7 +538,7 @@ function Candidate({ round, survey, period, picked, elsewhere, warnings, marks, 
           <SurveyCell question={survey} answers={stats.surveyAnswers[survey]} muted={Boolean(elsewhere)} />
         </>
       ) : (
-        <span className="col-span-2 text-right text-xs text-muted-foreground">No results yet</span>
+        <span className="col-span-2 text-right text-xs text-muted-foreground">{t.noResultsYet}</span>
       )}
     </li>
   );
