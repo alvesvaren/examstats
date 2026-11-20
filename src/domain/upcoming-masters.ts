@@ -53,6 +53,9 @@ export const upcomingMastersFileSchema = z.object({
 });
 export type UpcomingMastersFile = z.infer<typeof upcomingMastersFileSchema>;
 
+/** A course code for a course only a course list names. Real codes have no dashes, so the two never meet, and it is safe in a URL. */
+const pendingCode = (name: string) => `new-${matchName(name).replaceAll(" ", "-")}`;
+
 /** One choice holds a master's programme's compulsory electives, since its course list says how many to choose of none of them. */
 const COMPULSORY_ELECTIVES: PlanChoice = {
   id: 1,
@@ -62,11 +65,18 @@ const COMPULSORY_ELECTIVES: PlanChoice = {
   minCredits: null,
 };
 const RULES = { compulsory: "O", compulsoryElective: "V", elective: "V" } as const;
+/** Chalmers' rule for a thesis, which the planner fixes when a year has one way to do it. */
+const THESIS_RULE = "X";
+const isThesis = (name: string) => /\bthesis\b/i.test(name);
 
-/** Course names as the lists and the catalogue spell them alike: British spelling, "and" for "&", "AI" in full, no punctuation. */
+/**
+ * Course names as the lists and the catalogue spell them alike: British spelling, "and" for "&", "AI" in full, no
+ * punctuation, and no hyphen or apostrophe inside a word, as in "non-equilibrium" and "master's".
+ */
 const matchName = (name: string) =>
   normalize(name)
     .replaceAll("&", " and ")
+    .replace(/(?<=[a-z])-(?=[a-z])|[’']/g, "")
     .replace(/(optimi|visuali|characteri)z/g, "$1s")
     .replaceAll("modeling", "modelling")
     .replaceAll("centered", "centred")
@@ -77,8 +87,8 @@ const matchName = (name: string) =>
 /**
  * The master's programmes of `file` with a plan each, as students would follow them: each course on a course list
  * that `current` plans, in every study period it runs in now, with the rule the list gives it. A name the
- * catalogue has for several courses picks the one master's programmes plan most. Courses no current plan gives, such
- * as new ones and the thesis, are `unplanned`.
+ * catalogue has for several courses picks the one master's programmes plan most. A course no current plan gives, such
+ * as a new one, is pending: it has only its name, and no code, study periods or credits.
  */
 export function upcomingMasters(
   file: UpcomingMastersFile,
@@ -111,7 +121,7 @@ export function upcomingMasters(
     if (!master.courses) {
       const plan = currentPlans.get(master.code);
       if (plan) plans.push(plan);
-      masters[master.code] = { courseList: null, unplanned: [] };
+      masters[master.code] = { courseList: null };
       continue;
     }
     const matched = master.courses.map((listed) => ({ listed, code: codeOf(listed.name) }));
@@ -125,27 +135,21 @@ export function upcomingMasters(
       prerequisites: [],
       years: years.map((year) => ({
         year,
-        courses: matched.flatMap(({ listed, code }): PlanCourse[] =>
-          listed.year === year && code
-            ? roundsOf(code).map((round) => ({
-                ...round,
-                rule: RULES[listed.requirement],
-                track: listed.track,
-                choices: listed.requirement === "compulsoryElective" ? [COMPULSORY_ELECTIVES.id] : [],
-              }))
-            : [],
-        ),
+        courses: matched.flatMap(({ listed, code }): PlanCourse[] => {
+          if (listed.year !== year) return [];
+          const placement = {
+            rule: isThesis(listed.name) ? THESIS_RULE : RULES[listed.requirement],
+            track: listed.track,
+            choices: listed.requirement === "compulsoryElective" ? [COMPULSORY_ELECTIVES.id] : [],
+            ...(listed.preliminary && { preliminary: true as const }),
+          };
+          if (code) return roundsOf(code).map((round) => ({ ...round, ...placement }));
+          const unknown = { credits: 0, periods: [], periodCredits: [], block: null, themes: [], examiners: [], modules: [] };
+          return [{ code: pendingCode(listed.name), name: listed.name, ...unknown, ...placement, pending: true }];
+        }),
       })),
     });
-    masters[master.code] = {
-      courseList: master.courseList,
-      unplanned: years.flatMap((year) => {
-        const names = matched
-          .filter(({ listed, code }) => listed.year === year && !code)
-          .map(({ listed }) => (listed.preliminary ? `${listed.name} (preliminary)` : listed.name));
-        return names.length ? [{ year, names: [...new Set(names)] }] : [];
-      }),
-    };
+    masters[master.code] = { courseList: master.courseList };
   }
 
   const accreditations = Map.groupBy(

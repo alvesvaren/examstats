@@ -69,7 +69,7 @@ interface MasterOptionProps {
 function MasterOption({ master, summary, otherName, accreditation, onChoose }: MasterOptionProps) {
   const { tracks, compulsory, compulsoryCredits, electives, passRate, rating } = summary;
   const facts = [
-    tracks.length > 0 && plural(tracks.length, "track"),
+    tracks.length > 0 && plural(tracks.length, "specialisation"),
     compulsoryCredits > 0 ? `${formatCredits(compulsoryCredits)} compulsory` : "Nothing compulsory for all",
     plural(electives, "elective"),
   ]
@@ -213,35 +213,12 @@ export function MastersNotPublished({ year, shown, upcoming }: MastersNotPublish
       Chalmers has not published the plans of the master's programmes of {academicYearOf(year)} yet. Until it does, these are the ones its
       accreditation matrix lists for {announced}
       {announced === academicYearOf(year) ? "" : ", the newest year it has announced"}. Their courses are the ones on each programme's
-      course list that run in {shown}, in the study periods they run in now. The programmes, their courses and when they run can change.{" "}
+      course list. Those that run in {shown} are in the study periods they run in now. The rest are new, and wait under Not scheduled until
+      Chalmers plans them. The programmes, their courses and when they run can change.{" "}
       <a href={upcoming.matrix} className={linkClass}>
         Accreditation matrix
       </a>{" "}
       · {mastersLink}
-    </Note>
-  );
-}
-
-interface UnplannedCoursesProps {
-  master: string;
-  /** Courses on the master's programme's course list for the year shown that no current plan gives. */
-  names: readonly string[];
-  /** The academic year of the current plans. */
-  shown: string;
-  courseList: string | null;
-}
-
-/** The courses of an upcoming master's programme's year that the planner cannot place, since none of this year's plans gives them. */
-export function UnplannedCourses({ master, names, shown, courseList }: UnplannedCoursesProps) {
-  return (
-    <Note>
-      The course list of {master} also names {names.join(", ")}. They are new or not given in {shown}, so the plan has no study periods for
-      them.{" "}
-      {courseList && (
-        <a href={courseList} target="_blank" rel="noreferrer" className={linkClass}>
-          Course list
-        </a>
-      )}
     </Note>
   );
 }

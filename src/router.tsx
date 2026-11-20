@@ -4,8 +4,8 @@ import { z } from "zod";
 import { AppLayout, ErrorState, NotFoundState, PageSkeleton } from "@/components/app-layout";
 import { courseQuery, plansQuery, queryClient, snapshotQuery } from "@/data/queries";
 import { SORT_KEYS, toCatalogCourse } from "@/domain/catalog";
-import { PLANNER_SORT_KEYS } from "@/domain/planner";
-import { cohortOf, STUDY_PERIODS } from "@/domain/programme-plans";
+import { LANES, PLANNER_SORT_KEYS } from "@/domain/planner";
+import { cohortOf } from "@/domain/programme-plans";
 import { getLanguage } from "@/hooks/use-language";
 import { CoursePage } from "@/features/course/course-page";
 import { CourseListPage } from "@/features/course-list/course-list-page";
@@ -63,8 +63,8 @@ const plannerSearchSchema = z.object({
   /** The master's programme after the programme, as its code. */
   master: z.string().optional().catch(undefined),
   track: z.string().optional().catch(undefined),
-  /** The study period whose courses are listed. */
-  period: z.enum(STUDY_PERIODS).optional().catch(undefined),
+  /** The study period whose courses are listed, or the courses without one. */
+  period: z.enum(LANES).optional().catch(undefined),
   sort: z.enum(PLANNER_SORT_KEYS).optional().catch(undefined),
   /** Round keys of the courses added to the year, such as "TDA357.LP2". */
   picked: z.array(z.string()).optional().catch(undefined),

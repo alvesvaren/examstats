@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowDownIcon, ArrowUpRightIcon, CheckIcon, LockIcon, PlusIcon, XIcon } from "lucide-react";
 import { cn } from "cn";
+import type { ReactNode } from "react";
 import { PassRateCell, RatingCell } from "@/components/course-cells";
 import { MetricInfo } from "@/components/metric-label";
 import { Badge } from "@/components/ui/badge";
@@ -11,15 +12,18 @@ import {
   creditsIn,
   exclusiveWith,
   findElsewhere,
-  firstOpenPeriod,
+  firstOpenLane,
+  inLane,
+  lanesOf,
   lectureClash,
   openRequirements,
   PERIOD_CREDITS,
-  periodsOf,
   pickProgress,
   plannerYear,
   requirementProgress,
   togglePick,
+  UNSCHEDULED,
+  type Lane,
   type PlanElsewhere,
   type PlannerRound,
   type PlannerSortKey,
@@ -32,7 +36,6 @@ import {
   type PlanChoice,
   type PlanRequirement,
   type ProgrammePlan,
-  type StudyPeriod,
   type StudyYear,
   type Theme,
 } from "@/domain/programme-plans";
@@ -53,8 +56,12 @@ const THEME_LABELS = {
   environment: { short: "Environment", name: "Environment and sustainable development" },
 } as const satisfies Record<Theme, { short: string; name: string }>;
 
+const laneLabel = (lane: Lane) => (lane === UNSCHEDULED ? "Not scheduled" : formatPeriods([lane]));
+/** An upcoming master's programme's year runs over the regular study periods, even before any of its courses is known to. */
+const REGULAR_PERIODS: Lane[] = ["LP1", "LP2", "LP3", "LP4"];
+
 interface YearSearch {
-  period?: StudyPeriod;
+  period?: Lane;
   sort?: PlannerSortKey;
   picked?: string[];
 }
@@ -68,13 +75,15 @@ interface YearPlannerProps {
   search: YearSearch;
   onChange: (changes: YearSearch) => void;
   catalog: Catalog;
+  /** The course list of the upcoming master's programme the year belongs to, which the courses only it names link to. */
+  courseList: string | null;
 }
 
 /**
  * A year of a programme to fill: the study periods with what every student takes already in them, and the courses
  * to choose between for one study period at a time.
  */
-export function YearPlanner({ programme, years, current, track, search, onChange, catalog }: YearPlannerProps) {
+export function YearPlanner({ programme, years, current, track, search, onChange, catalog, courseList }: YearPlannerProps) {
   // The programme whose plan holds this year: the master's programme in years 4 and 5.
   const { plan: yearProgramme, year } = current;
   const { rounds, picks } = planYear(yearProgramme, year, { track, ruleNames: catalog.plans.ruleNames });
@@ -86,13 +95,14 @@ export function YearPlanner({ programme, years, current, track, search, onChange
   const pickedKeys = search.picked ?? rememberedPicks(memory, yearProgramme.code, year) ?? [];
   const picked = candidates.filter((c) => pickedKeys.includes(c.key));
   const plan = [...fixed, ...picked];
-  const periods = periodsOf([...fixed, ...candidates]);
-  const period = periods.find((p) => p === search.period) ?? firstOpenPeriod(periods, plan);
+  const lanes = lanesOf([...fixed, ...candidates], courseList ? REGULAR_PERIODS : []);
+  const lane = lanes.find((l) => l === search.period) ?? firstOpenLane(lanes, plan, candidates);
   const sort = search.sort ?? DEFAULT_SORT;
-  if (!period) return <p className="text-muted-foreground">The plan has no courses for this year.</p>;
+  if (!lane) return <p className="text-muted-foreground">The plan has no courses for this year.</p>;
 
-  const listed = candidatesIn(candidates, period, sort);
+  const listed = candidatesIn(candidates, lane, sort);
   const planned = plan.reduce((sum, r) => sum + r.credits, 0);
+  const pending = plan.filter((r) => r.pending).length;
   // Degree requirements count the whole degree: the compulsory courses and the picks of every year of every plan.
   const plans = [...new Set(years.map((y) => y.plan))];
   const allPicks = [...other, ...picked.map((r) => ({ programme: yearProgramme.code, year, key: r.key }))];
@@ -107,7 +117,6 @@ export function YearPlanner({ programme, years, current, track, search, onChange
       const amount = Math.max(...round.codes.map((code) => amountTowards(rule.requirement, { code, themes: round.themes })));
       return amount > 0 ? { ...rule, amount } : [];
     });
-  const inPeriod = (round: PlannerRound) => round.periods.includes(period);
   const setPicks = (keys: string[], changes: YearSearch = {}) => {
     remember((m) => ({
       ...withPicks(m, yearProgramme.code, year, keys),
@@ -123,7 +132,7 @@ export function YearPlanner({ programme, years, current, track, search, onChange
         round,
         candidates,
       ),
-      { period },
+      { period: lane },
     );
   const warningsOf = (round: PlannerRound) => {
     const clash = lectureClash(round, plan);
@@ -138,14 +147,14 @@ export function YearPlanner({ programme, years, current, track, search, onChange
     <>
       <section aria-label="Your year" className="z-20 -mx-4 flex flex-col gap-3 border-b bg-background px-4 pt-1 pb-3 sm:sticky sm:top-0">
         <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-          {periods.map((p) => (
+          {lanes.map((l) => (
             <PeriodCard
-              key={p}
-              period={p}
-              fixed={fixed.filter((r) => r.periods.includes(p))}
-              picked={picked.filter((r) => r.periods.includes(p))}
-              active={p === period}
-              onFocus={() => onChange({ period: p })}
+              key={l}
+              lane={l}
+              fixed={fixed.filter((r) => inLane(r, l))}
+              picked={picked.filter((r) => inLane(r, l))}
+              active={l === lane}
+              onFocus={() => onChange({ period: l })}
               onRemove={toggle}
             />
           ))}
@@ -159,6 +168,7 @@ export function YearPlanner({ programme, years, current, track, search, onChange
           ))}
           <p className="flex items-center gap-3 text-muted-foreground">
             {formatCredits(planned)} in your year
+            {pending > 0 && `, and ${formatCount(pending)} ${pending === 1 ? "course" : "courses"} with credits not known yet`}
             {picked.length > 0 && (
               <button type="button" onClick={() => setPicks([])} className="underline underline-offset-2 hover:text-foreground">
                 Clear my picks
@@ -171,7 +181,7 @@ export function YearPlanner({ programme, years, current, track, search, onChange
       <section>
         <div className={cn(ROW, "items-end border-b pb-2")}>
           <h2 className="col-span-2 text-xl font-semibold">
-            {formatPeriods([period])}{" "}
+            {laneLabel(lane)}{" "}
             <span className="text-base font-normal text-muted-foreground">{formatCount(listed.length)} to choose from</span>
           </h2>
           {COLUMNS.map((column) => (
@@ -183,7 +193,8 @@ export function YearPlanner({ programme, years, current, track, search, onChange
             <Candidate
               key={round.key}
               round={round}
-              period={period}
+              lane={lane}
+              courseList={courseList}
               picked={picked.includes(round)}
               elsewhere={findElsewhere(round, picked, other)}
               warnings={warningsOf(round)}
@@ -194,7 +205,7 @@ export function YearPlanner({ programme, years, current, track, search, onChange
         </ul>
         {listed.length === 0 && (
           <p className="py-6 text-muted-foreground">
-            {plan.some(inPeriod)
+            {plan.some((r) => inLane(r, lane))
               ? "Every course in this study period is already in your year."
               : "The plan has no courses in this study period."}
           </p>
@@ -205,7 +216,7 @@ export function YearPlanner({ programme, years, current, track, search, onChange
 }
 
 interface PeriodCardProps {
-  period: StudyPeriod;
+  lane: Lane;
   /** Rounds in this study period that every student takes. */
   fixed: PlannerRound[];
   picked: PlannerRound[];
@@ -214,13 +225,20 @@ interface PeriodCardProps {
   onRemove: (round: PlannerRound) => void;
 }
 
-/** A study period of the year with what is in it, how full it is, and whether two of its courses meet. */
-function PeriodCard({ period, fixed, picked, active, onFocus, onRemove }: PeriodCardProps) {
+/**
+ * A study period of the year with what is in it, how full it is, and whether two of its courses meet. The courses
+ * without a study period get a card too, which counts courses, as their credits are not known either.
+ */
+function PeriodCard({ lane, fixed, picked, active, onFocus, onRemove }: PeriodCardProps) {
   const rounds = [...fixed, ...picked];
-  const credits = creditsIn(rounds, period);
-  const free = PERIOD_CREDITS - credits;
+  const scheduled = lane !== UNSCHEDULED;
+  const credits = scheduled ? creditsIn(rounds, lane) : 0;
+  const free = scheduled ? PERIOD_CREDITS - credits : 0;
   const pace = credits > PERIOD_CREDITS ? formatPercent(credits / PERIOD_CREDITS) : null;
   const clashing = rounds.some((round) => lectureClash(round, rounds));
+  const fill = scheduled
+    ? `${formatNumber(credits)} of ${formatCredits(PERIOD_CREDITS)}${pace ? ` (${pace})` : ""}`
+    : `${formatCount(rounds.length)} ${rounds.length === 1 ? "course" : "courses"}`;
   return (
     <div
       className={cn(
@@ -232,22 +250,25 @@ function PeriodCard({ period, fixed, picked, active, onFocus, onRemove }: Period
         type="button"
         onClick={onFocus}
         aria-pressed={active}
-        aria-label={`${formatPeriods([period])}, ${formatNumber(credits)} of ${formatCredits(PERIOD_CREDITS)}${pace ? ` (${pace})` : ""}`}
+        aria-label={`${laneLabel(lane)}, ${fill}`}
         className="flex flex-col gap-1 text-left outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-ring"
       >
         <span className="flex items-baseline justify-between gap-2">
-          <span className="text-lg leading-none font-semibold">{formatPeriods([period])}</span>
+          <span className="text-lg leading-none font-semibold">{laneLabel(lane)}</span>
           <span className={cn("text-right text-xs tabular-nums", free < 0 ? "font-semibold text-grade-u" : "text-muted-foreground")}>
-            {formatNumber(credits)} of {formatCredits(PERIOD_CREDITS)}
-            {pace && ` (${pace})`}
+            {fill}
           </span>
         </span>
-        <span className="h-1.5 overflow-hidden rounded-full bg-border">
-          <span
-            className={cn("block h-full rounded-full", free < 0 ? "bg-grade-u" : "bg-primary")}
-            style={{ width: `${Math.min(1, credits / PERIOD_CREDITS) * 100}%` }}
-          />
-        </span>
+        {scheduled ? (
+          <span className="h-1.5 overflow-hidden rounded-full bg-border">
+            <span
+              className={cn("block h-full rounded-full", free < 0 ? "bg-grade-u" : "bg-primary")}
+              style={{ width: `${Math.min(1, credits / PERIOD_CREDITS) * 100}%` }}
+            />
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground">New courses, without study periods or credits yet</span>
+        )}
       </button>
       {fixed.map((round) => (
         <span key={round.key} className="pointer-events-none flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -408,9 +429,24 @@ function SortHeader({ column, active, onSort }: SortHeaderProps) {
   );
 }
 
-/** Links to the course page, or to the syllabus on chalmers.se for a course without results. A round of several courses has no one page. */
-function CourseLink({ round }: { round: PlannerRound }) {
+/** Opens in a new tab, with an arrow that says so. */
+function ExternalLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noreferrer" className="hover:underline">
+      {children}
+      <ArrowUpRightIcon className="ml-0.5 inline size-3.5 align-[-0.125em] text-muted-foreground" />
+    </a>
+  );
+}
+
+/**
+ * Links to the course page, or to the syllabus on chalmers.se for a course without results. A course only an
+ * upcoming master's course list names has no syllabus yet, so it links to that list. A round of several courses has
+ * no one page.
+ */
+function CourseLink({ round, courseList }: { round: PlannerRound; courseList: string | null }) {
   const [code, ...others] = round.codes;
+  if (round.pending) return courseList ? <ExternalLink href={courseList}>{round.name}</ExternalLink> : <>{round.name}</>;
   if (!code || others.length > 0) return <>{round.name}</>;
   if (round.stats) {
     return (
@@ -419,18 +455,14 @@ function CourseLink({ round }: { round: PlannerRound }) {
       </Link>
     );
   }
-  return (
-    <a href={syllabusUrl(code)} target="_blank" rel="noreferrer" className="hover:underline">
-      {round.name}
-      <ArrowUpRightIcon className="ml-0.5 inline size-3.5 align-[-0.125em] text-muted-foreground" />
-    </a>
-  );
+  return <ExternalLink href={syllabusUrl(code)}>{round.name}</ExternalLink>;
 }
 
 interface CandidateProps {
   round: PlannerRound;
-  /** The study period the list shows. */
-  period: StudyPeriod;
+  /** The lane the list shows. */
+  lane: Lane;
+  courseList: string | null;
   picked: boolean;
   /** Where another round of the same course is in the plan. It greys this round out. */
   elsewhere: PlanElsewhere | undefined;
@@ -440,20 +472,22 @@ interface CandidateProps {
   onToggle: () => void;
 }
 
-function Candidate({ round, period, picked, elsewhere, warnings, marks, onToggle }: CandidateProps) {
+function Candidate({ round, lane, courseList, picked, elsewhere, warnings, marks, onToggle }: CandidateProps) {
   const { requirement, stats } = round;
   const inOtherYear = Boolean(elsewhere?.year);
   // A round over several study periods gives only part of its credits in the one listed.
-  const here = round.periodCredits[round.periods.indexOf(period)] ?? 0;
-  const creditsText =
-    round.periods.length > 1
-      ? `${formatCredits(round.credits)}, ${formatNumber(here)} in ${formatPeriods([period])}`
+  const here = lane === UNSCHEDULED ? 0 : (round.periodCredits[round.periods.indexOf(lane)] ?? 0);
+  const creditsText = round.pending
+    ? "Credits not known yet"
+    : round.periods.length > 1 && lane !== UNSCHEDULED
+      ? `${formatCredits(round.credits)}, ${formatNumber(here)} in ${formatPeriods([lane])}`
       : formatCredits(round.credits);
   const details = [
-    round.codes.join(", "),
+    !round.pending && round.codes.join(", "),
     creditsText,
     round.block && `block ${round.block}`,
     requirement.kind !== "elective" && requirement.kind !== "compulsoryElective" && requirement.label,
+    round.preliminary && "Preliminary",
   ]
     .filter(Boolean)
     .join(" · ");
@@ -487,7 +521,7 @@ function Candidate({ round, period, picked, elsewhere, warnings, marks, onToggle
                 <PickMarker />
               </span>
             )}
-            <CourseLink round={round} />
+            <CourseLink round={round} courseList={courseList} />
           </span>
           {round.periods.length > 1 && <Badge variant="outline">Runs {formatPeriods(round.periods)}</Badge>}
           {marks.map((mark) => (
@@ -514,7 +548,7 @@ function Candidate({ round, period, picked, elsewhere, warnings, marks, onToggle
           <RatingCell answers={stats.overallAnswers} muted={Boolean(elsewhere)} />
         </>
       ) : (
-        <span className="col-span-2 text-right text-xs text-muted-foreground">No results yet</span>
+        <span className="col-span-2 text-right text-xs text-muted-foreground">{round.pending ? "New course" : "No results yet"}</span>
       )}
     </li>
   );

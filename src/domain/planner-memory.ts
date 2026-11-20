@@ -2,8 +2,8 @@ import { z } from "zod";
 import type { StudyPick, StudyYear } from "./programme-plans.ts";
 
 /**
- * What the planner remembers on a device: the plan last worked on, the picks of every year planned, and the start
- * year of and master's programme after each programme.
+ * What the planner remembers on a device: the plan last worked on, the picks of every year planned, the start year of
+ * and master's programme after each programme, and the specialisation or concentration chosen in each plan.
  */
 const plannerMemorySchema = z.object({
   last: z
@@ -20,6 +20,8 @@ const plannerMemorySchema = z.object({
   masters: z.record(z.string(), z.string()).default({}),
   /** Start years by programme code. */
   starts: z.record(z.string(), z.number().int()).default({}),
+  /** The track chosen in each plan, by the plan's code. An empty string is a choice of none. */
+  tracks: z.record(z.string(), z.string()).default({}),
 });
 export type PlannerMemory = z.infer<typeof plannerMemorySchema>;
 
@@ -30,7 +32,7 @@ export function parsePlannerMemory(stored: string | null): PlannerMemory {
   try {
     return plannerMemorySchema.parse(JSON.parse(stored ?? ""));
   } catch {
-    return { picks: {}, masters: {}, starts: {} };
+    return { picks: {}, masters: {}, starts: {}, tracks: {} };
   }
 }
 
@@ -57,6 +59,12 @@ export function withMaster(memory: PlannerMemory, programme: string, master: str
   const { [programme]: _, ...others } = memory.masters;
   return { ...memory, masters: master ? { ...others, [programme]: master } : others };
 }
+
+/** The memory after the track chosen in `plan` changed. A master's programme keeps its track in both its years. */
+export const withTrack = (memory: PlannerMemory, plan: string, track: string): PlannerMemory => ({
+  ...memory,
+  tracks: { ...memory.tracks, [plan]: track },
+});
 
 /** The memory after the start year of `programme` changed. */
 export const withStart = (memory: PlannerMemory, programme: string, start: number): PlannerMemory => ({

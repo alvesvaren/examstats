@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { otherPicks, parsePlannerMemory, rememberedPicks, withMaster, withPicks, withStart } from "./planner-memory.ts";
+import { otherPicks, parsePlannerMemory, rememberedPicks, withMaster, withPicks, withStart, withTrack } from "./planner-memory.ts";
 import { studyYears, type ProgrammePlan } from "./programme-plans.ts";
 
 describe("parsePlannerMemory", () => {
@@ -9,24 +9,25 @@ describe("parsePlannerMemory", () => {
       picks: { "TKITE.3": ["TDA357.LP2"] },
       masters: { TKITE: "MPALG" },
       starts: { TKITE: 2024 },
+      tracks: {},
     };
     expect(parsePlannerMemory(JSON.stringify(memory))).toEqual(memory);
   });
 
-  it("keeps the picks of a memory stored before it held master's programmes and start years", () => {
+  it("keeps the picks of a memory stored before it held master's programmes, start years and tracks", () => {
     const stored = { last: { programme: "TKITE" }, picks: { "TKITE.3": ["TDA357.LP2"] } };
-    expect(parsePlannerMemory(JSON.stringify(stored))).toEqual({ ...stored, masters: {}, starts: {} });
+    expect(parsePlannerMemory(JSON.stringify(stored))).toEqual({ ...stored, masters: {}, starts: {}, tracks: {} });
   });
 
   it("starts empty when nothing is stored, or when what is stored is not a memory", () => {
-    expect(parsePlannerMemory(null)).toEqual({ picks: {}, masters: {}, starts: {} });
-    expect(parsePlannerMemory("not json")).toEqual({ picks: {}, masters: {}, starts: {} });
-    expect(parsePlannerMemory(JSON.stringify({ picks: ["TDA357.LP2"] }))).toEqual({ picks: {}, masters: {}, starts: {} });
+    expect(parsePlannerMemory(null)).toEqual({ picks: {}, masters: {}, starts: {}, tracks: {} });
+    expect(parsePlannerMemory("not json")).toEqual({ picks: {}, masters: {}, starts: {}, tracks: {} });
+    expect(parsePlannerMemory(JSON.stringify({ picks: ["TDA357.LP2"] }))).toEqual({ picks: {}, masters: {}, starts: {}, tracks: {} });
   });
 });
 
 describe("withPicks", () => {
-  const memory = { last: { programme: "TKITE" }, picks: { "TKITE.2": ["DAT026.LP1"] }, masters: {}, starts: {} };
+  const memory = { last: { programme: "TKITE" }, picks: { "TKITE.2": ["DAT026.LP1"] }, masters: {}, starts: {}, tracks: {} };
 
   it("remembers the picks of a year beside those of other years", () => {
     const next = withPicks(memory, "TKITE", 3, ["TDA357.LP2"]);
@@ -42,7 +43,7 @@ describe("withPicks", () => {
 });
 
 describe("withMaster", () => {
-  const memory = { picks: { "MPALG.1": ["DAT060.LP1"] }, masters: { TKDAT: "MPCSC" }, starts: {} };
+  const memory = { picks: { "MPALG.1": ["DAT060.LP1"] }, masters: { TKDAT: "MPCSC" }, starts: {}, tracks: {} };
 
   it("remembers the master's programme of each programme apart", () => {
     expect(withMaster(memory, "TKITE", "MPALG").masters).toEqual({ TKDAT: "MPCSC", TKITE: "MPALG" });
@@ -53,15 +54,27 @@ describe("withMaster", () => {
       picks: memory.picks,
       masters: {},
       starts: {},
+      tracks: {},
     });
   });
 });
 
 describe("withStart", () => {
   it("remembers the start year of each programme apart", () => {
-    const memory = { picks: {}, masters: {}, starts: { TKDAT: 2023 } };
+    const memory = { picks: {}, masters: {}, starts: { TKDAT: 2023 }, tracks: {} };
     expect(withStart(memory, "TKITE", 2024).starts).toEqual({ TKDAT: 2023, TKITE: 2024 });
     expect(withStart(memory, "TKDAT", 2025).starts).toEqual({ TKDAT: 2025 });
+  });
+});
+
+describe("withTrack", () => {
+  it("remembers the track of each plan apart, and a choice of none", () => {
+    const memory = { picks: {}, masters: {}, starts: {}, tracks: { MPAIN: "Machine Learning" } };
+    expect(withTrack(memory, "TKIEK", "Financial mathematics").tracks).toEqual({
+      MPAIN: "Machine Learning",
+      TKIEK: "Financial mathematics",
+    });
+    expect(withTrack(memory, "MPAIN", "").tracks).toEqual({ MPAIN: "" });
   });
 });
 
@@ -87,6 +100,7 @@ describe("otherPicks", () => {
     },
     masters: {},
     starts: {},
+    tracks: {},
   };
 
   it("returns the picks of the other years of the programme and of its master's programme, numbered as years of study", () => {

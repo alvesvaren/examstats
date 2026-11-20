@@ -3,20 +3,22 @@ import { toCatalogCourse } from "./catalog.ts";
 import { emptyCounts } from "./grades.ts";
 import {
   candidatesIn,
+  chosenTrack,
   creditsIn,
   exclusiveWith,
   findElsewhere,
-  firstOpenPeriod,
+  firstOpenLane,
   lectureClash,
   masterSummary,
   openRequirements,
-  periodsOf,
+  lanesOf,
   pickProgress,
   plannerYear,
   requirementProgress,
   searchProgrammes,
   otherNameOf,
   togglePick,
+  trackNoun,
 } from "./planner.ts";
 import {
   roundKey,
@@ -50,6 +52,8 @@ const round = (code: string, periods: StudyPeriod[], overrides: Partial<PlanRoun
     periodCredits: periods.map(() => credits / periods.length),
     block: null,
     themes: [],
+    pending: false,
+    preliminary: false,
     requirement: REQUIREMENTS.elective,
     choices: [],
     ...overrides,
@@ -99,6 +103,14 @@ describe("plannerYear", () => {
     ]);
   });
 
+  it("leaves the rounds of a compulsory course given twice to choose between", () => {
+    const again = round("EDA322", ["LP3"], { requirement: REQUIREMENTS.compulsory });
+    const { fixed, candidates } = plannerYear([compulsory, again, elective], new Map());
+
+    expect(keys(fixed)).toEqual([]);
+    expect(keys(candidates)).toEqual(["EDA322.LP1", "EDA322.LP3", "TDA357.LP2"]);
+  });
+
   it("keeps a single thesis course under its own name", () => {
     const { fixed } = plannerYear([thesis("DATX11", ["LP3", "LP4"], 15)], new Map());
     expect(fixed.map((r) => r.name)).toEqual(["DATX11 name"]);
@@ -128,16 +140,35 @@ describe("creditsIn", () => {
   });
 });
 
-describe("periodsOf and firstOpenPeriod", () => {
+describe("lanesOf and firstOpenLane", () => {
   const plan = [round("A", ["LP1"]), round("B", ["LP1"]), round("C", ["LP3", "LP4"])];
+  const pending = round("new-ai-project", [], { credits: 0, pending: true });
 
   it("lists the study periods some round runs in, in calendar order", () => {
-    expect(periodsOf(plan.toReversed())).toEqual(["LP1", "LP3", "LP4"]);
+    expect(lanesOf(plan.toReversed())).toEqual(["LP1", "LP3", "LP4"]);
   });
 
-  it("starts in the first study period with room, or the first of all in a full year", () => {
-    expect(firstOpenPeriod(["LP1", "LP2", "LP3"], plan)).toBe("LP2");
-    expect(firstOpenPeriod(["LP1"], plan)).toBe("LP1");
+  it("puts rounds without study periods in a lane of their own, last", () => {
+    expect(lanesOf([pending, ...plan])).toEqual(["LP1", "LP3", "LP4", "Unscheduled"]);
+  });
+
+  it("keeps the lanes asked for even without rounds in them", () => {
+    expect(lanesOf([pending], ["LP1", "LP2"])).toEqual(["LP1", "LP2", "Unscheduled"]);
+  });
+
+  it("starts in the first study period with room and courses to choose from", () => {
+    const candidates = [round("D", ["LP2"]), round("E", ["LP3"]), pending];
+    expect(firstOpenLane(["LP1", "LP2", "LP3"], plan, candidates)).toBe("LP2");
+    expect(firstOpenLane(["LP1", "LP2", "LP3", "Unscheduled"], [...plan, round("F", ["LP2"], { credits: 15 })], candidates)).toBe("LP3");
+  });
+
+  it("starts with the courses without study periods when no study period has courses to choose from", () => {
+    expect(firstOpenLane(["LP1", "LP2", "LP3", "LP4", "Unscheduled"], [], [pending])).toBe("Unscheduled");
+  });
+
+  it("starts in the first lane with courses to choose from in a full year, or the first lane of all without any", () => {
+    expect(firstOpenLane(["LP1", "LP3"], plan, [round("E", ["LP3"])])).toBe("LP3");
+    expect(firstOpenLane(["LP1", "Unscheduled"], plan, [])).toBe("LP1");
   });
 });
 
@@ -151,6 +182,11 @@ describe("candidatesIn", () => {
     expect(keys(candidatesIn(candidates, "LP3", "rating"))).toEqual(["LIKED.LP3", "EASY.LP3", "NEW.LP3-LP4"]);
     expect(keys(candidatesIn(candidates, "LP3", "passRate"))).toEqual(["EASY.LP3", "LIKED.LP3", "NEW.LP3-LP4"]);
     expect(keys(candidatesIn(candidates, "LP4", "rating"))).toEqual(["NEW.LP3-LP4"]);
+  });
+
+  it("lists the rounds without study periods in the unscheduled lane", () => {
+    const pending = { ...round("new-ai-project", [], { credits: 0, pending: true }), stats: undefined };
+    expect(keys(candidatesIn([...candidates, pending], "Unscheduled", "rating"))).toEqual(["new-ai-project."]);
   });
 });
 
@@ -407,5 +443,29 @@ describe("otherNameOf", () => {
 
   it("gives the name in the other language only when it differs", () => {
     expect(["TKDAT", "MPSOF", "MBATT"].map((code) => otherNameOf(names, code))).toEqual(["Datateknik", undefined, undefined]);
+  });
+});
+
+describe("chosenTrack", () => {
+  const tracks = ["Machine Learning", "Robotics"];
+
+  it("takes the first wanted track the year has, such as the link's before the remembered one", () => {
+    expect(chosenTrack(tracks, "Robotics", "Machine Learning")).toBe("Robotics");
+    expect(chosenTrack(tracks, undefined, "Machine Learning")).toBe("Machine Learning");
+  });
+
+  it("skips a track the year does not have, and keeps a choice of none", () => {
+    expect(chosenTrack(tracks, "Financial mathematics", "")).toBe("");
+  });
+
+  it("is undefined when nothing chosen fits, so the student has to choose", () => {
+    expect(chosenTrack(tracks, undefined, "Financial mathematics")).toBeUndefined();
+  });
+});
+
+describe("trackNoun", () => {
+  it("calls a master's programme's tracks specialisations, and the programme concentrations before it", () => {
+    expect(trackNoun("MPAIN")).toBe("specialisation");
+    expect(trackNoun("TKIEK")).toBe("concentration");
   });
 });

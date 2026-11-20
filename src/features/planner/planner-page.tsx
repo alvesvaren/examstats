@@ -5,28 +5,20 @@ import { Button } from "@/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { catalogQuery, plansQuery } from "@/data/queries";
-import { otherNameOf } from "@/domain/planner";
-import { rememberedPicks, withMaster, withStart } from "@/domain/planner-memory";
+import { chosenTrack, NO_TRACK, otherNameOf, trackNoun } from "@/domain/planner";
+import { rememberedPicks, withMaster, withStart, withTrack } from "@/domain/planner-memory";
 import { academicYearOf, cohortOf, MASTER_START_YEAR, studyYears, tracksOf, type StudyYear } from "@/domain/programme-plans";
 import { useLanguage } from "@/hooks/use-language";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import { PLANNER_HEADING } from "@/lib/page-meta";
-import {
-  ChalmersLink,
-  MasterPicker,
-  type Accreditation,
-  MastersNotPublished,
-  Prerequisites,
-  Specialisations,
-  UnplannedCourses,
-} from "./master-picker";
+import { ChalmersLink, MasterPicker, type Accreditation, MastersNotPublished, Prerequisites, Specialisations } from "./master-picker";
+import { StartChooser, TrackChooser } from "./choosers";
 import { ProgrammeSearch } from "./programme-search";
 import { YearPlanner } from "./year-planner";
 
 const route = getRouteApi("/planner");
 export type PlannerSearch = ReturnType<typeof route.useSearch>;
 
-const ALL_TRACKS = "";
 /** 16px text on phones, because iOS zooms into focused fields with smaller text. */
 const FIELD_SIZE = "[&_select]:h-10 [&_select]:text-base md:[&_select]:text-sm";
 
@@ -65,26 +57,39 @@ export function PlannerPage() {
   const choosingMaster = !master && masters.length > 0 && search.year === MASTER_START_YEAR;
   const current = years.find((y) => y.number === search.year) ?? years[0];
   const tracks = choosingMaster ? [] : tracksOf(current?.plan.years.find((y) => y.year === current.year)?.courses ?? []);
-  const track = tracks.find((t) => t === search.track);
+  // A track in the URL is a shared plan and wins. Without one, it is the one this device chose in the plan, which a
+  // master's programme keeps in both its years. Without either, the student chooses one, or none.
+  const trackChoice = current && chosenTrack(tracks, search.track, memory.tracks[current.plan.code]);
+  const track = trackChoice || undefined;
+  const choosingTrack = tracks.length > 0 && trackChoice === undefined;
+  const noun = trackNoun(current?.plan.code ?? programme.code);
+  // The plan depends on the start year, and the newest is easy to keep by mistake, so the student chooses it.
+  const choosingStart = cohort.admitted.length > 1 && (search.start ?? memory.starts[programme.code]) === undefined;
   const otherName = otherNameOf(catalog.programmes, programme.code);
 
   const picksIn = (shown: StudyYear | undefined) => shown && rememberedPicks(memory, shown.plan.code, shown.year);
   const start = cohort.start;
   // The header's link to the planner comes back to the start year, year and track last shown.
   const showYear = (next: number) => {
-    remember((m) => ({ ...m, last: { programme: programme.code, start, year: next } }));
+    const shown = years.find((y) => y.number === next);
+    const nextTrack = shown && memory.tracks[shown.plan.code];
+    remember((m) => ({ ...m, last: { programme: programme.code, start, year: next, track: nextTrack || undefined } }));
     void update({
       start,
       year: next,
       master: master?.code,
-      track: undefined,
+      track: nextTrack,
       period: undefined,
-      picked: picksIn(years.find((y) => y.number === next)),
+      picked: picksIn(shown),
     });
   };
-  const showTrack = (next: string | undefined) => {
-    remember((m) => ({ ...m, last: { programme: programme.code, start, year: current?.number, track: next } }));
-    void update({ track: next });
+  const showTrack = (next: string) => {
+    if (!current) return;
+    remember((m) => ({
+      ...withTrack(m, current.plan.code, next),
+      last: { programme: programme.code, start, year: current.number, track: next || undefined },
+    }));
+    void update({ track: next, period: undefined });
   };
   const chooseMaster = (code: string | undefined) => {
     const chosen = studyYears(
@@ -96,7 +101,7 @@ export function PlannerPage() {
       start,
       year: MASTER_START_YEAR,
       master: code,
-      track: undefined,
+      track: code ? memory.tracks[code] : undefined,
       period: undefined,
       picked: picksIn(chosen.find((y) => y.number === MASTER_START_YEAR)),
     });
@@ -107,8 +112,8 @@ export function PlannerPage() {
   };
   const showsMasters = Boolean(master) || choosingMaster;
   const masterAccreditation = master && accredited.get(master.code);
-  const unplanned =
-    master && current?.plan === master ? upcoming?.masters[master.code]?.unplanned.find((u) => u.year === current.year)?.names : undefined;
+  // Courses only an upcoming master's course list names link to that list.
+  const courseList = master && current?.plan === master ? (masterAccreditation?.courseList ?? null) : null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -138,96 +143,97 @@ export function PlannerPage() {
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        {cohort.admitted.length > 1 && (
-          <NativeSelect
-            aria-label="Year you started the programme"
-            className={FIELD_SIZE}
-            value={String(start)}
-            onChange={(event) => showStart(Number(event.target.value))}
-          >
-            {cohort.admitted.toReversed().map((year) => (
-              <NativeSelectOption key={year} value={String(year)}>
-                Started {academicYearOf(year)}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        )}
-        <div className="flex flex-wrap items-center gap-2">
-          <ToggleGroup
-            type="single"
-            variant="outline"
-            value={choosingMaster || !current ? "" : String(current.number)}
-            onValueChange={(value) => value && showYear(Number(value))}
-            aria-label="Year of study"
-          >
-            {years.map(({ number }) => (
-              <ToggleGroupItem key={number} value={String(number)}>
-                Year {number}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-          {masters.length > 0 &&
-            (master ? (
-              <Button variant="ghost" onClick={() => chooseMaster(undefined)}>
-                <RepeatIcon />
-                Change master
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                aria-pressed={choosingMaster}
-                onClick={() => showYear(MASTER_START_YEAR)}
-                className="border-dashed aria-pressed:border-primary aria-pressed:bg-muted dark:aria-pressed:border-primary"
-              >
-                <PlusIcon />
-                Add master
-              </Button>
-            ))}
-        </div>
-        {tracks.length > 0 && (
-          <NativeSelect
-            aria-label="Track"
-            className={FIELD_SIZE}
-            value={track ?? ALL_TRACKS}
-            onChange={(event) => showTrack(event.target.value || undefined)}
-          >
-            <NativeSelectOption value={ALL_TRACKS}>All tracks</NativeSelectOption>
-            {tracks.map((t) => (
-              <NativeSelectOption key={t} value={t}>
-                {t}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        )}
-      </div>
-
-      {showsMasters && !cohort.mastersPublished && (
-        <MastersNotPublished year={cohort.masterStart} shown={catalog.plans.academicYear} upcoming={upcoming} />
-      )}
-      {master && unplanned && (
-        <UnplannedCourses
-          master={master.code}
-          names={unplanned}
-          shown={catalog.plans.academicYear}
-          courseList={masterAccreditation?.courseList ?? null}
-        />
-      )}
-
-      {choosingMaster ? (
-        <MasterPicker programme={programme} masters={masters} accredited={accredited} catalog={catalog} onChoose={chooseMaster} />
-      ) : current === undefined ? (
-        <p className="text-muted-foreground">{PLANNER_HEADING} has no courses for this programme yet.</p>
+      {choosingStart ? (
+        <StartChooser admitted={cohort.admitted} onChoose={showStart} />
       ) : (
-        <YearPlanner
-          programme={programme}
-          years={years}
-          current={current}
-          track={track}
-          search={search}
-          onChange={update}
-          catalog={catalog}
-        />
+        <>
+          <div className="flex flex-wrap items-center gap-3">
+            {cohort.admitted.length > 1 && (
+              <NativeSelect
+                aria-label="Year you started the programme"
+                className={FIELD_SIZE}
+                value={String(start)}
+                onChange={(event) => showStart(Number(event.target.value))}
+              >
+                {cohort.admitted.toReversed().map((year) => (
+                  <NativeSelectOption key={year} value={String(year)}>
+                    Started {academicYearOf(year)}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                value={choosingMaster || !current ? "" : String(current.number)}
+                onValueChange={(value) => value && showYear(Number(value))}
+                aria-label="Year of study"
+              >
+                {years.map(({ number }) => (
+                  <ToggleGroupItem key={number} value={String(number)}>
+                    Year {number}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+              {masters.length > 0 &&
+                (master ? (
+                  <Button variant="ghost" onClick={() => chooseMaster(undefined)}>
+                    <RepeatIcon />
+                    Change master
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    aria-pressed={choosingMaster}
+                    onClick={() => showYear(MASTER_START_YEAR)}
+                    className="border-dashed aria-pressed:border-primary aria-pressed:bg-muted dark:aria-pressed:border-primary"
+                  >
+                    <PlusIcon />
+                    Add master
+                  </Button>
+                ))}
+            </div>
+            {tracks.length > 0 && !choosingTrack && (
+              <NativeSelect
+                aria-label={noun}
+                className={FIELD_SIZE}
+                value={trackChoice ?? NO_TRACK}
+                onChange={(event) => showTrack(event.target.value)}
+              >
+                <NativeSelectOption value={NO_TRACK}>No {noun}</NativeSelectOption>
+                {tracks.map((t) => (
+                  <NativeSelectOption key={t} value={t}>
+                    {t}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            )}
+          </div>
+
+          {showsMasters && !cohort.mastersPublished && (
+            <MastersNotPublished year={cohort.masterStart} shown={catalog.plans.academicYear} upcoming={upcoming} />
+          )}
+
+          {choosingMaster ? (
+            <MasterPicker programme={programme} masters={masters} accredited={accredited} catalog={catalog} onChoose={chooseMaster} />
+          ) : current === undefined ? (
+            <p className="text-muted-foreground">{PLANNER_HEADING} has no courses for this programme yet.</p>
+          ) : choosingTrack ? (
+            <TrackChooser noun={noun} planName={current.plan.name} tracks={tracks} onChoose={showTrack} />
+          ) : (
+            <YearPlanner
+              programme={programme}
+              years={years}
+              current={current}
+              track={track}
+              search={search}
+              onChange={update}
+              catalog={catalog}
+              courseList={courseList}
+            />
+          )}
+        </>
       )}
     </div>
   );

@@ -20,6 +20,22 @@ export type PlannerSortKey = (typeof PLANNER_SORT_KEYS)[number];
 /** Credits of full-time study in one study period. */
 export const PERIOD_CREDITS = 15;
 
+/** The choice of no track: the student follows none, and sees the courses of every track. */
+export const NO_TRACK = "";
+
+/** The first of `wanted` that is a choice for a year with `tracks`: one of them, or none. Undefined when none of them is. */
+export const chosenTrack = (tracks: readonly string[], ...wanted: (string | undefined)[]) =>
+  wanted.find((t) => t === NO_TRACK || (t !== undefined && tracks.includes(t)));
+
+/** What Chalmers calls a track: a specialisation in a master's programme, and a programme concentration before it. */
+export const trackNoun = (planCode: string) => (planCode.startsWith("MP") ? "specialisation" : "concentration");
+
+/** The lane of courses whose study periods are not known yet: those only an upcoming master's course list names. */
+export const UNSCHEDULED = "Unscheduled";
+/** What the planner lists courses by: a study period, or the courses without one. */
+export const LANES = [...STUDY_PERIODS, UNSCHEDULED] as const;
+export type Lane = (typeof LANES)[number];
+
 /** A round in the planner with its course's exam results and ratings. None for a new course or a round of several courses. */
 export type PlannerRound = PlanRound & { stats: CatalogCourse | undefined };
 
@@ -41,7 +57,8 @@ function thesisRounds(rounds: readonly PlanRound[]): PlanRound[] {
 
 /**
  * A year as the planner shows it: the rounds every student takes, and the ones to choose between. A year with one
- * way to do the thesis has it fixed. With several, such as a thesis of 30 or of 60 credits, the student chooses.
+ * way to do the thesis has it fixed. With several, such as a thesis of 30 or of 60 credits, the student chooses. So
+ * do they between the rounds of a compulsory course given more than once.
  */
 export function plannerYear(rounds: readonly PlanRound[], stats: ReadonlyMap<string, CatalogCourse>) {
   const withStats = (round: PlanRound): PlannerRound => ({
@@ -51,29 +68,46 @@ export function plannerYear(rounds: readonly PlanRound[], stats: ReadonlyMap<str
   const theses = thesisRounds(rounds);
   const fixedThesis = theses.length === 1;
   const compulsory = rounds.filter((r) => r.requirement.kind === "compulsory");
+  // A compulsory course given in several study periods is taken once, in the round the student chooses.
+  const roundCounts = Map.groupBy(compulsory, (r) => r.codes.join());
+  const givenOnce = (r: PlanRound) => roundCounts.get(r.codes.join())?.length === 1;
   const optional = rounds.filter((r) => r.requirement.kind !== "compulsory" && r.requirement.kind !== "thesis");
   return {
-    fixed: [...compulsory, ...(fixedThesis ? theses : [])].map(withStats),
-    candidates: [...optional, ...(fixedThesis ? [] : theses)].map(withStats),
+    fixed: [...compulsory.filter(givenOnce), ...(fixedThesis ? theses : [])].map(withStats),
+    candidates: [...compulsory.filter((r) => !givenOnce(r)), ...optional, ...(fixedThesis ? [] : theses)].map(withStats),
   };
 }
 
-/** Study periods that some round runs in, in calendar order. */
-export const periodsOf = (rounds: readonly PlanRound[]): StudyPeriod[] =>
-  STUDY_PERIODS.filter((p) => rounds.some((r) => r.periods.includes(p)));
+/** Whether a round runs in a study period, or has none when the lane is the unscheduled one. */
+export const inLane = (round: Pick<PlanRound, "periods">, lane: Lane) =>
+  lane === UNSCHEDULED ? round.periods.length === 0 : round.periods.includes(lane);
+
+/** The lanes that some round is in, and the lanes in `always`, in calendar order and the unscheduled one last. */
+export const lanesOf = (rounds: readonly PlanRound[], always: readonly Lane[] = []): Lane[] =>
+  LANES.filter((lane) => always.includes(lane) || rounds.some((r) => inLane(r, lane)));
 
 /** Credits the rounds give in a study period. A round over several periods counts what it gives in this one. */
 export const creditsIn = (rounds: readonly PlanRound[], period: StudyPeriod) =>
   tenths(rounds.reduce((sum, r) => sum + (r.periodCredits[r.periods.indexOf(period)] ?? 0), 0));
 
-/** The first study period that `plan` does not fill, or the first of all when it fills every one. */
-export const firstOpenPeriod = (periods: readonly StudyPeriod[], plan: readonly PlanRound[]) =>
-  periods.find((p) => creditsIn(plan, p) < PERIOD_CREDITS) ?? periods[0];
+/**
+ * The lane the planner opens on: the first study period that `plan` does not fill and that has courses to choose
+ * from, else the first lane with courses to choose from, else the first lane. A year of an upcoming master's
+ * programme can have no known course in any study period, and then opens on the courses without one.
+ */
+export function firstOpenLane(lanes: readonly Lane[], plan: readonly PlanRound[], candidates: readonly PlanRound[]) {
+  const choosable = (lane: Lane) => candidates.some((r) => inLane(r, lane));
+  return (
+    lanes.find((lane) => lane !== UNSCHEDULED && creditsIn(plan, lane) < PERIOD_CREDITS && choosable(lane)) ??
+    lanes.find(choosable) ??
+    lanes[0]
+  );
+}
 
-/** The rounds that run in `period`, the best first by `sort`. Rounds without the value go last, ties by name. */
-export function candidatesIn(candidates: readonly PlannerRound[], period: StudyPeriod, sort: PlannerSortKey): PlannerRound[] {
+/** The rounds in `lane`, the best first by `sort`. Rounds without the value go last, ties by name. */
+export function candidatesIn(candidates: readonly PlannerRound[], lane: Lane, sort: PlannerSortKey): PlannerRound[] {
   return candidates
-    .filter((r) => r.periods.includes(period))
+    .filter((r) => inLane(r, lane))
     .toSorted((a, b) => compareSortValues(a.stats?.[sort] ?? null, b.stats?.[sort] ?? null, "desc") || a.name.localeCompare(b.name, "sv"));
 }
 
