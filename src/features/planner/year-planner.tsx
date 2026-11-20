@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowDownIcon, ArrowUpRightIcon, CheckIcon, LockIcon, PlusIcon, XIcon } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, ArrowUpRightIcon, CheckIcon, LockIcon, PlusIcon, XIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "cn";
-import { PassRateCell, RatingCell } from "@/components/course-cells";
+import { PassRateCell, SurveyCell } from "@/components/course-cells";
 import { MetricInfo } from "@/components/metric-label";
+import { SurveyColumnPicker } from "@/components/survey-column";
 import { Badge } from "@/components/ui/badge";
-import type { Catalog } from "@/domain/catalog";
+import { defaultSortDir, surveyColumn, surveySortKey, type Catalog, type SortDir } from "@/domain/catalog";
 import {
   amountTowards,
   candidatesIn,
@@ -36,17 +38,16 @@ import {
   type StudyYear,
   type Theme,
 } from "@/domain/programme-plans";
+import type { OtherQuestion, Question } from "@/domain/evaluation";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import { formatCount, formatCredits, formatNumber, formatPercent, formatPeriods } from "@/lib/format";
+import { QUESTION_LABELS } from "@/lib/survey-questions";
 
 const DEFAULT_SORT: PlannerSortKey = "rating";
-/** The add button, the course, its pass rate and its rating. Phones get narrower numbers, so the name keeps its room. */
-const ROW = "grid grid-cols-[2rem_minmax(0,1fr)_4rem_3rem] items-center gap-x-2 sm:grid-cols-[2rem_minmax(0,1fr)_5.5rem_4.5rem] sm:gap-x-3";
+/** The add button, the course, its pass rate and a course survey question. Phones get narrower numbers, so the name keeps its room. */
+const ROW = "grid grid-cols-[2rem_minmax(0,1fr)_4rem_6rem] items-center gap-x-2 sm:grid-cols-[2rem_minmax(0,1fr)_5.5rem_6.5rem] sm:gap-x-3";
 
-const COLUMNS = [
-  { key: "passRate", label: "Pass rate" },
-  { key: "rating", label: "Rating" },
-] as const satisfies readonly { key: PlannerSortKey; label: string }[];
+const flip = (dir: SortDir): SortDir => (dir === "asc" ? "desc" : "asc");
 
 const THEME_LABELS = {
   mts: { short: "MTS", name: "Human, technology and society" },
@@ -56,6 +57,8 @@ const THEME_LABELS = {
 interface YearSearch {
   period?: StudyPeriod;
   sort?: PlannerSortKey;
+  dir?: SortDir;
+  survey?: OtherQuestion;
   picked?: string[];
 }
 
@@ -91,7 +94,13 @@ export function YearPlanner({ programme, years, current, track, search, onChange
   const sort = search.sort ?? DEFAULT_SORT;
   if (!period) return <p className="text-muted-foreground">The plan has no courses for this year.</p>;
 
-  const listed = candidatesIn(candidates, period, sort);
+  const dir = search.dir ?? defaultSortDir(sort);
+  const listed = candidatesIn(candidates, period, sort, dir);
+  const survey = surveyColumn(sort, search.survey);
+  // The active column flips its order. Another column starts in its own default order.
+  const sortBy = (key: PlannerSortKey) => onChange({ sort: key, dir: key === sort ? flip(dir) : undefined });
+  const pickSurvey = (question: Question) =>
+    onChange({ sort: surveySortKey(question), dir: undefined, survey: question === "overall" ? undefined : question });
   const planned = plan.reduce((sum, r) => sum + r.credits, 0);
   // Degree requirements count the whole degree: the compulsory courses and the picks of every year of every plan.
   const plans = [...new Set(years.map((y) => y.plan))];
@@ -174,15 +183,21 @@ export function YearPlanner({ programme, years, current, track, search, onChange
             {formatPeriods([period])}{" "}
             <span className="text-base font-normal text-muted-foreground">{formatCount(listed.length)} to choose from</span>
           </h2>
-          {COLUMNS.map((column) => (
-            <SortHeader key={column.key} column={column} active={column.key === sort} onSort={(key) => onChange({ sort: key })} />
-          ))}
+          <SortHeader sortKey="passRate" label="Pass rate" sort={sort} dir={dir} onSort={sortBy}>
+            <span className="hidden sm:inline-flex">
+              <MetricInfo metric="passRate" name="pass rate" />
+            </span>
+          </SortHeader>
+          <SortHeader sortKey={surveySortKey(survey)} label={QUESTION_LABELS[survey].short} sort={sort} dir={dir} onSort={sortBy}>
+            <SurveyColumnPicker question={survey} onPick={pickSurvey} />
+          </SortHeader>
         </div>
         <ul>
           {listed.map((round) => (
             <Candidate
               key={round.key}
               round={round}
+              survey={survey}
               period={period}
               picked={picked.includes(round)}
               elsewhere={findElsewhere(round, picked, other)}
@@ -384,26 +399,32 @@ function DegreeMark({ mark }: { mark: DegreeRuleProgress & { amount: number } })
 }
 
 interface SortHeaderProps {
-  column: (typeof COLUMNS)[number];
-  active: boolean;
+  sortKey: PlannerSortKey;
+  label: string;
+  sort: PlannerSortKey;
+  dir: SortDir;
   onSort: (key: PlannerSortKey) => void;
+  /** Controls after the label, such as an explanation or the survey question picker. */
+  children: ReactNode;
 }
 
-function SortHeader({ column, active, onSort }: SortHeaderProps) {
+function SortHeader({ sortKey, label, sort, dir, onSort, children }: SortHeaderProps) {
+  const active = sortKey === sort;
+  const Arrow = dir === "asc" ? ArrowUpIcon : ArrowDownIcon;
   return (
-    <div className="flex items-center justify-end gap-1 text-xs whitespace-nowrap text-muted-foreground">
+    <div
+      className="flex items-center justify-end gap-1 text-xs text-muted-foreground"
+      aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : undefined}
+    >
       <button
         type="button"
-        onClick={() => onSort(column.key)}
-        aria-pressed={active}
-        className={cn("inline-flex items-center gap-0.5 font-medium hover:text-foreground", active && "text-foreground")}
+        onClick={() => onSort(sortKey)}
+        className={cn("inline-flex items-center gap-0.5 font-medium whitespace-nowrap hover:text-foreground", active && "text-foreground")}
       >
-        {column.label}
-        {active && <ArrowDownIcon className="size-3" aria-hidden />}
+        {label}
+        {active && <Arrow className="size-3" aria-hidden />}
       </button>
-      <span className="hidden sm:inline-flex">
-        <MetricInfo metric={column.key} name={column.label.toLowerCase()} />
-      </span>
+      {children}
     </div>
   );
 }
@@ -429,6 +450,8 @@ function CourseLink({ round }: { round: PlannerRound }) {
 
 interface CandidateProps {
   round: PlannerRound;
+  /** The course survey question the list shows. */
+  survey: Question;
   /** The study period the list shows. */
   period: StudyPeriod;
   picked: boolean;
@@ -440,7 +463,7 @@ interface CandidateProps {
   onToggle: () => void;
 }
 
-function Candidate({ round, period, picked, elsewhere, warnings, marks, onToggle }: CandidateProps) {
+function Candidate({ round, survey, period, picked, elsewhere, warnings, marks, onToggle }: CandidateProps) {
   const { requirement, stats } = round;
   const inOtherYear = Boolean(elsewhere?.year);
   // A round over several study periods gives only part of its credits in the one listed.
@@ -511,7 +534,7 @@ function Candidate({ round, period, picked, elsewhere, warnings, marks, onToggle
       {stats ? (
         <>
           <PassRateCell grades={stats.recentGrades} muted={Boolean(elsewhere)} />
-          <RatingCell answers={stats.overallAnswers} muted={Boolean(elsewhere)} />
+          <SurveyCell question={survey} answers={stats.surveyAnswers[survey]} muted={Boolean(elsewhere)} />
         </>
       ) : (
         <span className="col-span-2 text-right text-xs text-muted-foreground">No results yet</span>

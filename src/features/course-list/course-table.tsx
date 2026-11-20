@@ -1,28 +1,31 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowDownIcon, ArrowUpIcon, ChevronDownIcon } from "lucide-react";
-import { memo, type CSSProperties } from "react";
+import { memo, type CSSProperties, type ReactNode } from "react";
 import { cn } from "cn";
-import { AverageGradeCell, PassRateCell, RatingCell, StackedCell } from "@/components/course-cells";
+import { AverageGradeCell, PassRateCell, StackedCell, SurveyCell } from "@/components/course-cells";
 import { SizeBar, Sparkline } from "@/components/marks";
 import { MetricInfo, type Metric } from "@/components/metric-label";
+import { SurveyColumnPicker } from "@/components/survey-column";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { defaultSortDir, type CatalogCourse, type SortDir, type SortKey } from "@/domain/catalog";
+import { defaultSortDir, examinerNamed, surveySortKey, type CatalogCourse, type SortDir, type SortKey } from "@/domain/catalog";
+import type { Question } from "@/domain/evaluation";
 import type { InLanguage } from "@/domain/names";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useScrollLeftSync } from "@/hooks/use-scroll-left-sync";
 import { useWindowVirtualList } from "@/hooks/use-window-virtual-list";
 import { formatCount, formatMonth } from "@/lib/format";
+import { QUESTION_LABELS } from "@/lib/survey-questions";
 
 /**
  * Below `lg` the table scrolls sideways and the course column narrows to the course code, so the numbers get the screen.
  * The minimum width is the fixed columns, the gaps, the padding and that narrow course column.
  */
-const TABLE_WIDTH = "min-w-[45.25rem]";
+const TABLE_WIDTH = "min-w-[47.75rem]";
 const GRID = cn(
   "grid items-center gap-x-4",
   TABLE_WIDTH,
-  "grid-cols-[minmax(5rem,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_4rem_5rem] lg:grid-cols-[minmax(0,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_4rem_5rem]",
+  "grid-cols-[minmax(5rem,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_6.5rem_5rem] lg:grid-cols-[minmax(0,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_6.5rem_5rem]",
 );
 /** Stays in view while the table scrolls sideways, covering what scrolls under it, with an edge once something has. */
 const PINNED =
@@ -38,16 +41,23 @@ interface Column {
   label: string;
   metric?: Metric;
   align?: "center" | "end";
+  /** The column of a course survey question, which the reader picks. */
+  survey?: boolean;
 }
 
-const COLUMNS: Column[] = [
+const columnsOf = (survey: Question): Column[] => [
+  ...BASE_COLUMNS.slice(0, -1),
+  { key: surveySortKey(survey), label: QUESTION_LABELS[survey].short, align: "end", survey: true },
+  ...BASE_COLUMNS.slice(-1),
+];
+
+const BASE_COLUMNS: Column[] = [
   { key: "name", label: "Course" },
   { key: "programme", label: "Programme", align: "center" },
   { key: "attemptsPerYear", label: "Attempts", metric: "attemptsPerYear", align: "end" },
   { key: "passRate", label: "Pass rate", metric: "passRate", align: "end" },
   { key: "averageGrade", label: "Grade", metric: "averageGrade", align: "end" },
   { key: "trend", label: "Trend", metric: "trend", align: "end" },
-  { key: "rating", label: "Rating", metric: "rating", align: "end" },
   { key: "lastResult", label: "Last exam", align: "end" },
 ];
 
@@ -63,6 +73,11 @@ interface CourseTableProps {
   sort: SortKey;
   dir: SortDir;
   onSortChange: (sort: SortKey, dir: SortDir) => void;
+  /** The course survey question the survey column shows. */
+  survey: Question;
+  onPickSurvey: (question: Question) => void;
+  /** The search, to show which examiner a course matched by. */
+  query: string;
   programmes: Record<string, InLanguage>;
   maxAttempts: number;
   /** Pixels between the top of the viewport and the sticky header, for what sticks above it. */
@@ -77,6 +92,9 @@ export function CourseTable({
   sort,
   dir,
   onSortChange,
+  survey,
+  onPickSurvey,
+  query,
   programmes,
   maxAttempts,
   stickyTop,
@@ -97,14 +115,18 @@ export function CourseTable({
     <div>
       <div ref={headerRef} className="group/table sticky z-30 overflow-hidden border-b bg-background" style={{ top: stickyTop }}>
         <div className={cn(GRID, "px-2 py-2 text-xs text-muted-foreground")}>
-          {COLUMNS.map((column) => (
-            <SortHeader key={column.key} column={column} sort={sort} dir={dir} onSort={sortBy} />
+          {columnsOf(survey).map((column) => (
+            <SortHeader key={column.key} column={column} sort={sort} dir={dir} onSort={sortBy}>
+              {column.survey && <SurveyColumnPicker question={survey} onPick={onPickSurvey} />}
+            </SortHeader>
           ))}
         </div>
       </div>
       <div ref={bodyRef} onScroll={onScroll} className="group/table overflow-x-auto overscroll-x-none">
         <VirtualRows
           items={items}
+          survey={survey}
+          query={query}
           canHover={canHover}
           showEnded={showEnded}
           onToggleEnded={onToggleEnded}
@@ -118,10 +140,12 @@ export function CourseTable({
 
 interface VirtualRowsProps extends Pick<CourseTableProps, "showEnded" | "onToggleEnded" | "programmes" | "maxAttempts"> {
   items: Item[];
+  survey: Question;
+  query: string;
   canHover: boolean;
 }
 
-function VirtualRows({ items, canHover, showEnded, onToggleEnded, programmes, maxAttempts }: VirtualRowsProps) {
+function VirtualRows({ items, survey, query, canHover, showEnded, onToggleEnded, programmes, maxAttempts }: VirtualRowsProps) {
   const { listRef, virtualizer } = useWindowVirtualList({
     count: items.length,
     rowHeight: (index) => (items[index]?.kind === "ended" ? TOGGLE_ROW_HEIGHT : ROW_HEIGHT),
@@ -148,6 +172,8 @@ function VirtualRows({ items, canHover, showEnded, onToggleEnded, programmes, ma
             {item.kind === "course" ? (
               <CourseRow
                 course={item.course}
+                survey={survey}
+                examiner={query ? examinerNamed(item.course, query) : undefined}
                 canHover={canHover}
                 programmeName={item.course.programme ? programmes[item.course.programme]?.name : undefined}
                 maxAttempts={maxAttempts}
@@ -172,7 +198,16 @@ function VirtualRows({ items, canHover, showEnded, onToggleEnded, programmes, ma
   );
 }
 
-function SortHeader({ column, sort, dir, onSort }: { column: Column; sort: SortKey; dir: SortDir; onSort: (key: SortKey) => void }) {
+interface SortHeaderProps {
+  column: Column;
+  sort: SortKey;
+  dir: SortDir;
+  onSort: (key: SortKey) => void;
+  /** Controls after the label, such as the survey question picker. */
+  children?: ReactNode;
+}
+
+function SortHeader({ column, sort, dir, onSort, children }: SortHeaderProps) {
   const isActive = sort === column.key;
   const Arrow = dir === "asc" ? ArrowUpIcon : ArrowDownIcon;
   return (
@@ -188,18 +223,25 @@ function SortHeader({ column, sort, dir, onSort }: { column: Column; sort: SortK
       <button
         type="button"
         onClick={() => onSort(column.key)}
-        className={cn("inline-flex items-center gap-0.5 font-medium hover:text-foreground", isActive && "text-foreground")}
+        className={cn(
+          "inline-flex items-center gap-0.5 font-medium whitespace-nowrap hover:text-foreground",
+          isActive && "text-foreground",
+        )}
       >
         {column.label}
         {isActive && <Arrow className="size-3" aria-hidden />}
       </button>
       {column.metric && <MetricInfo metric={column.metric} name={column.label.toLowerCase()} />}
+      {children}
     </div>
   );
 }
 
 interface CourseRowProps {
   course: CatalogCourse;
+  survey: Question;
+  /** The examiner the search matched the course by, if any. */
+  examiner: string | undefined;
   /** False on touch screens, where tooltips would swallow taps on the row link. */
   canHover: boolean;
   programmeName?: string;
@@ -210,7 +252,7 @@ interface CourseRowProps {
  * The whole row links to the course. Controls inside it sit above the link with `relative z-10`.
  * Memoized because the virtualizer re-renders on every scroll frame and rows carry several tooltips.
  */
-const CourseRow = memo(function CourseRow({ course, canHover, programmeName, maxAttempts }: CourseRowProps) {
+const CourseRow = memo(function CourseRow({ course, survey, examiner, canHover, programmeName, maxAttempts }: CourseRowProps) {
   const muted = course.ended && "opacity-50";
   return (
     <div className={cn("group relative h-[61px] border-b bg-background px-2 hover:bg-row-hover", course.ended && "text-muted-foreground")}>
@@ -222,9 +264,13 @@ const CourseRow = memo(function CourseRow({ course, canHover, programmeName, max
           className={cn(PINNED, "pointer-events-none flex min-w-0 flex-col justify-center group-hover:bg-row-hover lg:flex-col-reverse")}
         >
           <span
-            className={cn("tabular-nums lg:text-xs lg:font-normal lg:text-muted-foreground", course.ended ? "font-normal" : "font-medium")}
+            className={cn(
+              "truncate tabular-nums lg:text-xs lg:font-normal lg:text-muted-foreground",
+              course.ended ? "font-normal" : "font-medium",
+            )}
           >
             {course.code}
+            {examiner && <span className="text-xs font-normal text-muted-foreground"> · {examiner}</span>}
           </span>
           <span
             className={cn(
@@ -264,7 +310,7 @@ const CourseRow = memo(function CourseRow({ course, canHover, programmeName, max
           <Sparkline trend={course.trend} interactive={canHover} className={cn(muted)} />
         </div>
         <div className="flex justify-end">
-          <RatingCell answers={course.overallAnswers} muted={course.ended} interactive={canHover} />
+          <SurveyCell question={survey} answers={course.surveyAnswers[survey]} muted={course.ended} interactive={canHover} />
         </div>
         <div className="text-right tabular-nums">{formatMonth(course.lastResult)}</div>
       </div>

@@ -1,4 +1,5 @@
-import { compareSortValues, normalize, type CatalogCourse } from "./catalog.ts";
+import { compareSortValues, defaultSortDir, normalize, sortValueOf, type CatalogCourse, type SortDir } from "./catalog.ts";
+import { OTHER_QUESTIONS } from "./evaluation.ts";
 import type { InLanguage } from "./names.ts";
 import {
   isElective,
@@ -14,7 +15,7 @@ import {
   type StudyPick,
 } from "./programme-plans.ts";
 
-export const PLANNER_SORT_KEYS = ["rating", "passRate"] as const;
+export const PLANNER_SORT_KEYS = ["rating", "passRate", ...OTHER_QUESTIONS] as const;
 export type PlannerSortKey = (typeof PLANNER_SORT_KEYS)[number];
 
 /** Credits of full-time study in one study period. */
@@ -70,11 +71,20 @@ export const creditsIn = (rounds: readonly PlanRound[], period: StudyPeriod) =>
 export const firstOpenPeriod = (periods: readonly StudyPeriod[], plan: readonly PlanRound[]) =>
   periods.find((p) => creditsIn(plan, p) < PERIOD_CREDITS) ?? periods[0];
 
-/** The rounds that run in `period`, the best first by `sort`. Rounds without the value go last, ties by name. */
-export function candidatesIn(candidates: readonly PlannerRound[], period: StudyPeriod, sort: PlannerSortKey): PlannerRound[] {
+/**
+ * The rounds that run in `period`, ordered by `sort` in `dir`, by default as the course list starts it: the best first,
+ * and the lightest workload first. Rounds without the value go last, ties by name.
+ */
+export function candidatesIn(
+  candidates: readonly PlannerRound[],
+  period: StudyPeriod,
+  sort: PlannerSortKey,
+  dir: SortDir = defaultSortDir(sort),
+): PlannerRound[] {
+  const value = (round: PlannerRound) => (round.stats ? sortValueOf(round.stats, sort) : null);
   return candidates
     .filter((r) => r.periods.includes(period))
-    .toSorted((a, b) => compareSortValues(a.stats?.[sort] ?? null, b.stats?.[sort] ?? null, "desc") || a.name.localeCompare(b.name, "sv"));
+    .toSorted((a, b) => compareSortValues(value(a), value(b), dir) || a.name.localeCompare(b.name, "sv"));
 }
 
 /** The picks after adding `round`, or after removing it when it is one. A course has one round in a plan, so adding another round of it moves it. */

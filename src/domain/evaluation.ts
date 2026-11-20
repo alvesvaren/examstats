@@ -1,9 +1,8 @@
 import { z } from "zod";
 import { spreadOf, type Frequencies } from "./spread.ts";
 
-/** Standard questions in Chalmers course surveys. All use the answer scale below. */
-export const QUESTIONS = [
-  "overall",
+/** The standard questions besides the overall impression, which is the rating. */
+export const OTHER_QUESTIONS = [
   "teaching",
   "structure",
   "literature",
@@ -13,6 +12,11 @@ export const QUESTIONS = [
   "prerequisites",
   "workload",
 ] as const;
+/** Standard questions in Chalmers course surveys. All use the answer scale below. */
+export const QUESTIONS = ["overall", ...OTHER_QUESTIONS] as const;
+export type OtherQuestion = (typeof OTHER_QUESTIONS)[number];
+export const isOtherQuestion = (value: string): value is OtherQuestion => (OTHER_QUESTIONS as readonly string[]).includes(value);
+export const isQuestion = (value: string): value is Question => (QUESTIONS as readonly string[]).includes(value);
 export type Question = (typeof QUESTIONS)[number];
 
 export const ANSWER_SCALE = { min: 1, max: 5 } as const;
@@ -51,6 +55,10 @@ export const evaluationFileSchema = z.object({
   rounds: z.array(evaluationRoundSchema.extend({ code: z.string() })),
 });
 
+/** How many gave each answer to the questions with enough answers to score. */
+export const surveyAnswersSchema = z.partialRecord(z.enum(QUESTIONS), answerCountsSchema);
+
+export type SurveyAnswers = z.infer<typeof surveyAnswersSchema>;
 export type EvaluationRound = z.infer<typeof evaluationRoundSchema>;
 export type EvaluationFile = z.infer<typeof evaluationFileSchema>;
 
@@ -73,6 +81,16 @@ export function pooledAnswerCounts(rounds: readonly EvaluationRound[], question:
   const shown = rounds.map((r) => r.answerCounts[question]).filter((counts) => counts !== undefined);
   if (!shown.length) return null;
   return Array.from({ length: ANSWER_OPTIONS }, (_, i) => shown.reduce((sum, counts) => sum + counts[i]!, 0));
+}
+
+/** How many gave each answer to each question over all rounds, leaving out questions too few answered to score. */
+export function surveyAnswersOf(rounds: readonly EvaluationRound[]): SurveyAnswers {
+  const scored = QUESTIONS.flatMap((question) => {
+    const counts = pooledAnswerCounts(rounds, question);
+    const answers = counts?.reduce((sum, count) => sum + count, 0) ?? 0;
+    return counts && answers >= MIN_SCORE_ANSWERS ? [[question, counts] as const] : [];
+  });
+  return Object.fromEntries(scored);
 }
 
 /** The overall impression question over all rounds that show its answers, or null when too few answered. */

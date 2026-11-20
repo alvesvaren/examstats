@@ -15,6 +15,9 @@ const EMPTY = "–";
 
 export const formatPercent = (value: number | null) => (value === null ? EMPTY : percent.format(value));
 export const formatCount = (value: number) => count.format(value);
+const plural = new Intl.PluralRules(LOCALE);
+/** "1 course", "12 courses". */
+export const formatCourses = (value: number) => `${formatCount(value)} ${plural.select(value) === "one" ? "course" : "courses"}`;
 export const formatGrade = (value: number | null) => (value === null ? EMPTY : grade.format(value));
 export const formatScore = (value: number | null) => (value === null ? EMPTY : score.format(value));
 export const formatNumber = (value: number) => number.format(value);
@@ -49,3 +52,5 @@ export const formatCredits = (value: number) => `${credits.format(value)} credit
 const list = new Intl.ListFormat(LOCALE, { style: "long", type: "conjunction" });
 /** "Ana Bove and Moa Johansson". */
 export const formatList = (items: readonly string[]) => list.format(items);
+/** The items and the words between them, such as ", " and " and ", to render the items as links. */
+export const listParts = (items: readonly string[]) => list.formatToParts(items);

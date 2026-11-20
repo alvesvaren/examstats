@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { matchProgrammes, partLabel, queryCourses, toCatalogCourse, trendDelta } from "./catalog.ts";
+import {
+  defaultSortDir,
+  examinerNamed,
+  matchExaminers,
+  matchProgrammes,
+  partLabel,
+  queryCourses,
+  surveyColumn,
+  toCatalog,
+  toCatalogCourse,
+  trendDelta,
+} from "./catalog.ts";
 import { emptyCounts } from "./grades.ts";
 import type { CourseSummary, TrendPoint } from "./snapshot.ts";
 
@@ -14,12 +25,20 @@ const row = (code: string, name: string, extra: Partial<CourseSummary> = {}) =>
     lastResult: null,
     ended: false,
     trend: [],
-    overallAnswers: null,
+    surveyAnswers: {},
+    periods: [],
+    examiners: [],
     ...extra,
   });
 
 const courses = [
-  row("TMV165", "Linjär algebra", { programme: "TKMAS", attemptsPerYear: 50, recentGrades: { ...emptyCounts(), U: 1, "3": 1 } }),
+  row("TMV165", "Linjär algebra", {
+    programme: "TKMAS",
+    attemptsPerYear: 50,
+    recentGrades: { ...emptyCounts(), U: 1, "3": 1 },
+    periods: ["LP1"],
+    examiners: ["Åsa Lindqvist"],
+  }),
   row("TMA970", "Inledande matematisk analys", {
     programme: "TKTFY",
     attemptsPerYear: 350,
@@ -29,7 +48,9 @@ const courses = [
     swedishName: "Databaser",
     programme: "TKITE",
     attemptsPerYear: 380,
-    overallAnswers: [0, 5, 10, 30, 45],
+    surveyAnswers: { overall: [0, 5, 10, 30, 45], workload: [0, 0, 5, 30, 10] },
+    periods: ["LP3", "LP4"],
+    examiners: ["Ada Lovelace", "Åsa Lindqvist"],
   }),
   row("TDA545", "Objektorienterad programvaruutveckling", { programme: "TKITE", attemptsPerYear: 0, ended: true }),
 ];
@@ -72,7 +93,7 @@ describe("queryCourses", () => {
     const rated = [
       ...courses,
       row("TMA976", "Matematisk analys, fortsättning", {
-        overallAnswers: [5, 8, 12, 10, 5],
+        surveyAnswers: { overall: [5, 8, 12, 10, 5], workload: [0, 10, 20, 5, 0] },
       }),
     ];
     expect(
@@ -87,6 +108,12 @@ describe("queryCourses", () => {
     ).toEqual(["TMA976", "TDA357"]);
   });
 
+  it("sorts by another survey question, starting with the lightest workload", () => {
+    const rated = [...courses, row("TMA976", "Matematisk analys, fortsättning", { surveyAnswers: { workload: [0, 10, 20, 5, 0] } })];
+    const sorted = queryCourses(rated, { sort: "workload", dir: defaultSortDir("workload") }).active.map((c) => c.code);
+    expect(sorted.slice(0, 2)).toEqual(["TMA976", "TDA357"]);
+  });
+
   it("matches any of several searches separated by semicolons", () => {
     expect(queryCourses(courses, { q: "databaser; tmv165" }).active.map((c) => c.code)).toEqual(["TMV165", "TDA357"]);
   });
@@ -97,6 +124,65 @@ describe("queryCourses", () => {
 
   it("puts an exact course code first whatever the sort", () => {
     expect(queryCourses(courses, { q: "tda357", sort: "attemptsPerYear", dir: "asc" }).active[0]?.code).toBe("TDA357");
+  });
+});
+
+const codes = (query: Parameters<typeof queryCourses>[1]) => queryCourses(courses, query).active.map((c) => c.code);
+
+describe("queryCourses filters", () => {
+  it("matches a course by its examiner's name", () => {
+    expect(codes({ q: "lovelace" })).toEqual(["TDA357"]);
+    expect(codes({ q: "asa lindqvist", sort: "name", dir: "asc" })).toEqual(["TDA357", "TMV165"]);
+  });
+
+  it("scopes to an examiner's courses", () => {
+    expect(codes({ examiner: "Ada Lovelace" })).toEqual(["TDA357"]);
+  });
+
+  it("keeps courses that run this year in any of the study periods", () => {
+    expect(codes({ periods: ["LP4"] })).toEqual(["TDA357"]);
+    expect(codes({ periods: ["LP1", "LP3"], sort: "name", dir: "asc" })).toEqual(["TDA357", "TMV165"]);
+    expect(codes({ periods: ["LP2"] })).toEqual([]);
+  });
+});
+
+describe("examiners", () => {
+  const catalog = toCatalog(
+    {
+      generatedAt: "",
+      evaluationsFetchedAt: "",
+      plans: { academicYear: "", ruleNames: {}, starts: {}, upcomingMasters: null },
+      programmes: {},
+      courses,
+    },
+    "en",
+  );
+
+  it("counts each examiner's courses", () => {
+    expect(catalog.examiners).toEqual([
+      { name: "Ada Lovelace", courses: 1 },
+      { name: "Åsa Lindqvist", courses: 2 },
+    ]);
+  });
+
+  it("suggests examiners whose name has every word of a part, from three letters", () => {
+    expect(matchExaminers(catalog.examiners, "lind asa").map((e) => e.name)).toEqual(["Åsa Lindqvist"]);
+    expect(matchExaminers(catalog.examiners, "databaser; love").map((e) => e.name)).toEqual(["Ada Lovelace"]);
+    expect(matchExaminers(catalog.examiners, "ad")).toEqual([]);
+  });
+
+  it("names the examiner a search matched a course by", () => {
+    const databases = courses.find((c) => c.code === "TDA357")!;
+    expect([examinerNamed(databases, "lindqvist"), examinerNamed(databases, "databases")]).toEqual(["Åsa Lindqvist", undefined]);
+  });
+});
+
+describe("surveyColumn", () => {
+  it("shows the question sorted by, else the one picked, else the overall impression", () => {
+    expect(surveyColumn("workload", "teaching")).toBe("workload");
+    expect(surveyColumn("passRate", "teaching")).toBe("teaching");
+    expect(surveyColumn("rating", "teaching")).toBe("overall");
+    expect(surveyColumn("passRate", undefined)).toBe("overall");
   });
 });
 

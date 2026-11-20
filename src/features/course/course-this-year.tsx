@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { InLanguage } from "@/domain/names";
 import { courseYearSummary, type CoursePlacement, type PlanInfo } from "@/domain/programme-plans";
-import { formatList, formatPeriods } from "@/lib/format";
+import { formatList, formatPeriods, listParts } from "@/lib/format";
 
 /** Years as short ranges, such as "1–2" or "1, 3". */
 function formatYears(years: readonly number[]) {
@@ -13,6 +13,19 @@ function formatYears(years: readonly number[]) {
     else ranges.push([year]);
   }
   return ranges.map((r) => (r.length > 1 ? `${r[0]}–${r.at(-1)}` : String(r[0]))).join(", ");
+}
+
+/** Each examiner links to the list of the courses they examine. */
+function ExaminerLinks({ names }: { names: readonly string[] }) {
+  return listParts(names).map((part, i) =>
+    part.type === "element" ? (
+      <Link key={i} to="/" search={{ examiner: part.value }} className="text-foreground underline-offset-4 hover:underline">
+        {part.value}
+      </Link>
+    ) : (
+      part.value
+    ),
+  );
 }
 
 interface CourseThisYearProps {
@@ -34,7 +47,12 @@ export function CourseThisYear({ placements, plans, programmes: names }: CourseT
         {rounds.map(({ periods, examiners }) => (
           <li key={periods.join("-")}>
             <span className="font-medium">{formatPeriods(periods)}</span>
-            {examiners.length > 0 && <span className="text-muted-foreground"> · {formatList(examiners)}</span>}
+            {examiners.length > 0 && (
+              <span className="text-muted-foreground">
+                {" · "}
+                <ExaminerLinks names={examiners} />
+              </span>
+            )}
           </li>
         ))}
       </ul>

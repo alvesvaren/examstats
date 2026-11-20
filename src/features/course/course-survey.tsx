@@ -5,30 +5,22 @@ import { DistributionMark } from "@/components/marks";
 import { MetricLabel } from "@/components/metric-label";
 import {
   ANSWER_SCALE,
-  BALANCED_WORKLOAD,
   EVALUATION_YEARS,
+  OTHER_QUESTIONS,
   answerFrequencies,
   pooledAnswerCounts,
   questionMean,
   summarizeEvaluations,
   type EvaluationRound,
-  type Question,
 } from "@/domain/evaluation";
+import { QUESTION_LABELS, WORKLOAD_SCALE } from "@/lib/survey-questions";
 import { formatAcademicYear, formatCount, formatDay, formatNumber, formatScore } from "@/lib/format";
 import { SectionTitle } from "./course-sections";
 
 const SURVEYS_URL = "https://www.chalmers.se/en/education/your-studies/plan-and-conduct-your-studies/course-evaluation/";
 
-/** The rest of the standard questions, in the order the breakdown lists them. The rating is the overall question. */
-const BREAKDOWN: readonly { question: Exclude<Question, "overall">; label: string }[] = [
-  { question: "teaching", label: "Teaching" },
-  { question: "structure", label: "Course structure" },
-  { question: "literature", label: "Course material" },
-  { question: "assessment", label: "Assessment" },
-  { question: "administration", label: "Administration" },
-  { question: "learningOutcomes", label: "Clear learning outcomes" },
-  { question: "prerequisites", label: "Enough prior knowledge" },
-];
+/** The questions the breakdown lists. Workload follows on its own, since its middle is best. */
+const BREAKDOWN = OTHER_QUESTIONS.filter((question) => question !== "workload");
 
 const QUESTION_GRID = "grid grid-cols-[minmax(0,1fr)_2rem_5rem] items-center gap-x-3";
 
@@ -101,9 +93,9 @@ function SurveySummary({ rounds }: { rounds: readonly EvaluationRound[] }) {
     : `all ${formatCount(rounds.length)} rounds`;
   const workload = questionMean(rounds, "workload");
   const workloadCounts = pooledAnswerCounts(rounds, "workload");
-  const breakdown = BREAKDOWN.flatMap(({ question, label }) => {
+  const breakdown = BREAKDOWN.flatMap((question) => {
     const mean = questionMean(rounds, question);
-    return mean === null ? [] : [{ question, label, mean, counts: pooledAnswerCounts(rounds, question) }];
+    return mean === null ? [] : [{ question, label: QUESTION_LABELS[question].label, mean, counts: pooledAnswerCounts(rounds, question) }];
   });
 
   return (
@@ -150,10 +142,8 @@ function SurveySummary({ rounds }: { rounds: readonly EvaluationRound[] }) {
         {workload !== null && (
           <li className={cn(QUESTION_GRID, "mt-1 border-t pt-2")}>
             <span className="flex flex-col">
-              Workload
-              <span className="text-xs text-muted-foreground">
-                {ANSWER_SCALE.min} too low, {BALANCED_WORKLOAD} balanced, {ANSWER_SCALE.max} too high
-              </span>
+              {QUESTION_LABELS.workload.label}
+              <span className="text-xs text-muted-foreground">{WORKLOAD_SCALE}</span>
             </span>
             <span className="text-right tabular-nums">{formatScore(workload)}</span>
             {workloadCounts && <DistributionMark frequencies={answerFrequencies(workloadCounts)} {...ANSWER_SCALE} className="w-full" />}

@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { answerCountsSchema, evaluationRoundSchema } from "./evaluation.ts";
+import { evaluationRoundSchema, surveyAnswersSchema } from "./evaluation.ts";
 import { gradeCountsSchema } from "./grades.ts";
-import { coursePlacementSchema, publishedPlanInfoSchema } from "./programme-plans.ts";
+import { coursePlacementSchema, publishedPlanInfoSchema, STUDY_PERIODS } from "./programme-plans.ts";
 
 const isoDate = z.iso.date();
 
@@ -58,8 +58,12 @@ export const courseSummarySchema = namedSchema.extend({
   ended: z.boolean(),
   /** Pass rate on the main part per academic year, oldest first, as `[academicYear, passRate]`. */
   trend: z.array(trendPointSchema),
-  /** Answers to the overall impression question over all survey rounds, or null when too few to rate. */
-  overallAnswers: answerCountsSchema.nullable(),
+  /** Answers to each survey question over all rounds. A question with too few answers to score is missing. */
+  surveyAnswers: surveyAnswersSchema,
+  /** Study periods the course runs in this academic year, from the programme plans. Empty when no plan has it. */
+  periods: z.array(z.enum(STUDY_PERIODS)),
+  /** Examiners of the course's rounds this academic year. Empty when no plan has it. */
+  examiners: z.array(z.string()),
 });
 
 export const snapshotSchema = z.object({
