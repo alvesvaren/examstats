@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { InLanguage } from "@/domain/names";
 import { courseYearSummary, type CoursePlacement, type PlanInfo } from "@/domain/programme-plans";
-import { formatList, formatPeriods, listParts } from "@/lib/format";
+import { useMessages } from "@/hooks/use-messages";
 
 /** Years as short ranges, such as "1–2" or "1, 3". */
 function formatYears(years: readonly number[]) {
@@ -17,15 +17,17 @@ function formatYears(years: readonly number[]) {
 
 /** Each examiner links to the list of the courses they examine. */
 function ExaminerLinks({ names }: { names: readonly string[] }) {
-  return listParts(names).map((part, i) =>
-    part.type === "element" ? (
-      <Link key={i} to="/" search={{ examiner: part.value }} className="text-foreground underline-offset-4 hover:underline">
-        {part.value}
-      </Link>
-    ) : (
-      part.value
-    ),
-  );
+  return useMessages()
+    .format.listParts(names)
+    .map((part, i) =>
+      part.type === "element" ? (
+        <Link key={i} to="/" search={{ examiner: part.value }} className="text-foreground underline-offset-4 hover:underline">
+          {part.value}
+        </Link>
+      ) : (
+        part.value
+      ),
+    );
 }
 
 interface CourseThisYearProps {
@@ -37,16 +39,17 @@ interface CourseThisYearProps {
 
 /** When the course runs this academic year, who examines it, and what the programmes that plan it ask. */
 export function CourseThisYear({ placements, plans, programmes: names }: CourseThisYearProps) {
-  const { rounds, requirements } = courseYearSummary(placements, plans.ruleNames);
+  const t = useMessages();
+  const { rounds, requirements } = courseYearSummary(placements, t.ruleNames(plans.ruleNames));
   return (
     <section className="flex flex-col gap-1.5 text-sm">
       <h2 className="text-muted-foreground">
-        {rounds.some((r) => r.examiners.length > 0) ? `Examiners ${plans.academicYear}` : plans.academicYear}
+        {rounds.some((r) => r.examiners.length > 0) ? t.course.examiners(plans.academicYear) : plans.academicYear}
       </h2>
       <ul className="flex flex-col gap-0.5">
         {rounds.map(({ periods, examiners }) => (
           <li key={periods.join("-")}>
-            <span className="font-medium">{formatPeriods(periods)}</span>
+            <span className="font-medium">{t.periods(periods)}</span>
             {examiners.length > 0 && (
               <span className="text-muted-foreground">
                 {" · "}
@@ -59,7 +62,7 @@ export function CourseThisYear({ placements, plans, programmes: names }: CourseT
       <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
         {requirements.map(({ requirement, programmes }) => (
           <div key={requirement.label} className="contents">
-            <dt className="text-muted-foreground">{requirement.label}</dt>
+            <dt className="text-muted-foreground">{t.requirement(requirement)}</dt>
             <dd className="flex flex-wrap gap-x-3 gap-y-0.5">
               {programmes.map(({ code, name, years }) => (
                 <Tooltip key={code}>
@@ -69,9 +72,7 @@ export function CourseThisYear({ placements, plans, programmes: names }: CourseT
                       <span className="ml-1 text-muted-foreground tabular-nums">{formatYears(years)}</span>
                     </Link>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    {names[code]?.name ?? name}, {years.length > 1 ? "years" : "year"} {formatList(years.map(String))}
-                  </TooltipContent>
+                  <TooltipContent>{t.course.programmeYears(names[code]?.name ?? name, years)}</TooltipContent>
                 </Tooltip>
               ))}
             </dd>

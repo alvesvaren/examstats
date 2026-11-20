@@ -4,9 +4,9 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import type { InLanguage } from "@/domain/names";
 import { otherNameOf, searchProgrammes } from "@/domain/planner";
+import { useMessages } from "@/hooks/use-messages";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import type { ProgrammePlan } from "@/domain/programme-plans";
-import { PLANNER_HEADING } from "@/lib/page-meta";
 
 interface ProgrammeSearchProps {
   programmes: readonly ProgrammePlan[];
@@ -16,6 +16,7 @@ interface ProgrammeSearchProps {
 
 /** The planner before a programme is picked: a search over every programme, by code or by name in either language. */
 export function ProgrammeSearch({ programmes, names }: ProgrammeSearchProps) {
+  const t = useMessages();
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
   const { remember } = usePlannerMemory();
@@ -26,8 +27,8 @@ export function ProgrammeSearch({ programmes, names }: ProgrammeSearchProps) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-semibold tracking-tight">{PLANNER_HEADING}</h1>
-        <p className="text-muted-foreground">Find your programme to plan a year of courses.</p>
+        <h1 className="text-3xl font-semibold tracking-tight">{t.layout.plannerHeading}</h1>
+        <p className="text-muted-foreground">{t.planner.findProgramme}</p>
       </div>
       <form
         className="relative"
@@ -43,14 +44,14 @@ export function ProgrammeSearch({ programmes, names }: ProgrammeSearchProps) {
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Programme, such as Datateknik or TKDAT"
-          aria-label="Search programmes"
+          placeholder={t.planner.searchPlaceholder}
+          aria-label={t.planner.searchProgrammes}
           autoComplete="off"
           spellCheck={false}
           className="h-10 pl-9 text-base"
         />
       </form>
-      {matches.length === 0 && <p className="py-6 text-center text-muted-foreground">No programme matches.</p>}
+      {matches.length === 0 && <p className="py-6 text-center text-muted-foreground">{t.planner.noProgrammeMatches}</p>}
       <ul className="grid gap-1 sm:grid-cols-2">
         {matches.map((programme) => (
           <li key={programme.code}>

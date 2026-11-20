@@ -3,11 +3,11 @@ import { cn } from "cn";
 import { AverageGradeCell, PassRateCell } from "@/components/course-cells";
 import { GradeBar, GradeChip } from "@/components/grade";
 import { GRADE_STYLE } from "@/components/grade-style";
-import { partLabel, type CatalogCourse } from "@/domain/catalog";
+import type { CatalogCourse } from "@/domain/catalog";
 import { GRADES, attemptsOf, passRateOf, sumCounts } from "@/domain/grades";
 import type { InLanguage } from "@/domain/names";
 import type { Part } from "@/domain/snapshot";
-import { formatCount, formatMonth, formatPercent } from "@/lib/format";
+import { useMessages } from "@/hooks/use-messages";
 
 const MAX_LISTED = 8;
 
@@ -16,12 +16,13 @@ export function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 export function GradeBreakdown({ part }: { part: Part }) {
+  const t = useMessages();
   const counts = sumCounts(part.sittings.map((s) => s.grades));
   const total = attemptsOf(counts);
   const grades = GRADES.filter((grade) => counts[grade] > 0);
   return (
     <section>
-      <SectionTitle>Grades, all {formatCount(total)} attempts</SectionTitle>
+      <SectionTitle>{t.course.allGrades(total)}</SectionTitle>
       <div className="flex h-6 gap-px overflow-hidden rounded-md">
         {grades.map((grade) => (
           <span key={grade} className={GRADE_STYLE[grade].bg} style={{ flexGrow: counts[grade] }} />
@@ -31,8 +32,8 @@ export function GradeBreakdown({ part }: { part: Part }) {
         {grades.map((grade) => (
           <li key={grade} className="flex items-center gap-2">
             <GradeChip grade={grade} />
-            {formatCount(counts[grade])}
-            <span className="ml-auto text-muted-foreground">{formatPercent(counts[grade] / total)}</span>
+            {t.format.count(counts[grade])}
+            <span className="ml-auto text-muted-foreground">{t.format.percent(counts[grade] / total)}</span>
           </li>
         ))}
       </ul>
@@ -41,11 +42,12 @@ export function GradeBreakdown({ part }: { part: Part }) {
 }
 
 export function OtherParts({ parts, selected }: { parts: Part[]; selected: number }) {
+  const t = useMessages();
   const others = parts.map((part, index) => ({ part, index })).filter(({ index }) => index !== selected);
   if (!others.length) return null;
   return (
     <section>
-      <SectionTitle>Other parts</SectionTitle>
+      <SectionTitle>{t.course.otherParts}</SectionTitle>
       <ul className="flex flex-col text-sm">
         {others.slice(0, MAX_LISTED).map(({ part, index }) => {
           const counts = sumCounts(part.sittings.map((s) => s.grades));
@@ -56,9 +58,9 @@ export function OtherParts({ parts, selected }: { parts: Part[]; selected: numbe
                 search={(prev) => ({ ...prev, part: index })}
                 className="flex items-center gap-3 py-2 hover:underline"
               >
-                <span className="min-w-0 flex-1 truncate">{partLabel(part.type)}</span>
-                <span className="text-muted-foreground tabular-nums">{formatPercent(passRateOf(counts))}</span>
-                <GradeBar grades={counts} label={partLabel(part.type)} />
+                <span className="min-w-0 flex-1 truncate">{t.part(part.type)}</span>
+                <span className="text-muted-foreground tabular-nums">{t.format.percent(passRateOf(counts))}</span>
+                <GradeBar grades={counts} label={t.part(part.type)} />
               </Link>
             </li>
           );
@@ -71,15 +73,16 @@ export function OtherParts({ parts, selected }: { parts: Part[]; selected: numbe
 const INSTANCE_GRID = "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 sm:grid-cols-[minmax(0,1fr)_8.5rem_4.5rem_5.5rem]";
 
 export function OtherInstances({ courses, programmes }: { courses: CatalogCourse[]; programmes: Record<string, InLanguage> }) {
+  const t = useMessages();
   if (!courses.length) return null;
   return (
     <section>
-      <SectionTitle>Other instances</SectionTitle>
+      <SectionTitle>{t.course.otherInstances}</SectionTitle>
       <div className={cn(INSTANCE_GRID, "border-b pb-2 text-xs text-muted-foreground")}>
-        <span>Course</span>
-        <span className="text-right">Pass rate</span>
-        <span className="hidden text-right sm:block">Grade</span>
-        <span className="hidden text-right sm:block">Last exam</span>
+        <span>{t.list.columns.name}</span>
+        <span className="text-right">{t.list.columns.passRate}</span>
+        <span className="hidden text-right sm:block">{t.list.columns.averageGrade}</span>
+        <span className="hidden text-right sm:block">{t.list.columns.lastResult}</span>
       </div>
       <ul className="flex flex-col text-sm">
         {courses.slice(0, MAX_LISTED).map((course) => (
@@ -99,7 +102,7 @@ export function OtherInstances({ courses, programmes }: { courses: CatalogCourse
             <span className="hidden sm:block">
               <AverageGradeCell grades={course.recentGrades} />
             </span>
-            <span className="hidden text-right tabular-nums sm:block">{formatMonth(course.lastResult)}</span>
+            <span className="hidden text-right tabular-nums sm:block">{t.format.month(course.lastResult)}</span>
           </li>
         ))}
       </ul>

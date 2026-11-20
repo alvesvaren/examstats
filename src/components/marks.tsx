@@ -3,7 +3,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import type { TrendPoint } from "@/domain/snapshot";
 import type { Frequencies } from "@/domain/spread";
 import { distributionMark } from "@/lib/distribution-mark";
-import { formatAcademicYear, formatPercent } from "@/lib/format";
+import { useMessages } from "@/hooks/use-messages";
 
 /**
  * A fixed-width track filled up to `value`, so bars compare at a glance. The fill grows with the square root of
@@ -31,6 +31,7 @@ interface SparklineProps {
 
 /** Pass rate per academic year on a fixed 0 to 100% scale, so rows compare. */
 export function Sparkline({ trend, interactive = true, className }: SparklineProps) {
+  const t = useMessages();
   const first = trend[0];
   const last = trend.at(-1);
   if (!first || !last || trend.length < 2) return <span className={cn("w-22", className)} />;
@@ -46,7 +47,7 @@ export function Sparkline({ trend, interactive = true, className }: SparklinePro
       height={SPARK_HEIGHT}
       viewBox={`0 0 ${SPARK_WIDTH} ${SPARK_HEIGHT}`}
       className={cn("text-muted-foreground", interactive && "relative z-10", className)}
-      aria-label={`Pass rate ${formatPercent(firstRate)} in ${formatAcademicYear(firstYear)}, ${formatPercent(lastRate)} in ${formatAcademicYear(lastYear)}`}
+      aria-label={t.metrics.trend(first, last)}
     >
       <path d={path} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round" />
       <circle cx={x(trend.length - 1)} cy={y(lastRate)} r={2.5} className="fill-foreground" />
@@ -58,7 +59,7 @@ export function Sparkline({ trend, interactive = true, className }: SparklinePro
     <Tooltip>
       <TooltipTrigger asChild>{svg}</TooltipTrigger>
       <TooltipContent className="tabular-nums">
-        {formatAcademicYear(firstYear)}: {formatPercent(firstRate)} → {formatAcademicYear(lastYear)}: {formatPercent(lastRate)}
+        {t.format.academicYear(firstYear)}: {t.format.percent(firstRate)} → {t.format.academicYear(lastYear)}: {t.format.percent(lastRate)}
       </TooltipContent>
     </Tooltip>
   );

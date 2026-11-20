@@ -57,7 +57,7 @@ export type UpcomingMastersFile = z.infer<typeof upcomingMastersFileSchema>;
 const COMPULSORY_ELECTIVES: PlanChoice = {
   id: 1,
   kind: "pick",
-  text: "Choose some of the marked courses. The programme's course list does not say how many.",
+  text: null,
   minCourses: null,
   minCredits: null,
 };
