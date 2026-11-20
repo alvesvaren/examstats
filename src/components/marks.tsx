@@ -1,5 +1,6 @@
 import { cn } from "cn";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ANSWER_SCALE } from "@/domain/evaluation";
 import type { TrendPoint } from "@/domain/snapshot";
 import type { Frequencies } from "@/domain/spread";
 import { distributionMark } from "@/lib/distribution-mark";
@@ -29,18 +30,19 @@ interface SparklineProps {
   className?: string;
 }
 
-/** Pass rate per academic year on a fixed 0 to 100% scale, so rows compare. */
+/** Rating per academic year on the fixed scale of the survey answers, so rows compare. */
 export function Sparkline({ trend, interactive = true, className }: SparklineProps) {
   const t = useMessages();
   const first = trend[0];
   const last = trend.at(-1);
   if (!first || !last || trend.length < 2) return <span className={cn("w-22", className)} />;
-  const [firstYear, firstRate] = first;
-  const [lastYear, lastRate] = last;
+  const [firstYear, firstRating] = first;
+  const [lastYear, lastRating] = last;
 
   const x = (i: number) => SPARK_PAD + ((SPARK_WIDTH - 2 * SPARK_PAD) * i) / (trend.length - 1);
-  const y = (rate: number) => SPARK_PAD + (SPARK_HEIGHT - 2 * SPARK_PAD) * (1 - rate);
-  const path = trend.map(([, rate], i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(rate).toFixed(1)}`).join("");
+  const y = (rating: number) =>
+    SPARK_PAD + (SPARK_HEIGHT - 2 * SPARK_PAD) * ((ANSWER_SCALE.max - rating) / (ANSWER_SCALE.max - ANSWER_SCALE.min));
+  const path = trend.map(([, rating], i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(rating).toFixed(1)}`).join("");
   const svg = (
     <svg
       width={SPARK_WIDTH}
@@ -50,7 +52,7 @@ export function Sparkline({ trend, interactive = true, className }: SparklinePro
       aria-label={t.metrics.trend(first, last)}
     >
       <path d={path} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round" />
-      <circle cx={x(trend.length - 1)} cy={y(lastRate)} r={2.5} className="fill-foreground" />
+      <circle cx={x(trend.length - 1)} cy={y(lastRating)} r={2.5} className="fill-foreground" />
     </svg>
   );
   if (!interactive) return svg;
@@ -59,7 +61,7 @@ export function Sparkline({ trend, interactive = true, className }: SparklinePro
     <Tooltip>
       <TooltipTrigger asChild>{svg}</TooltipTrigger>
       <TooltipContent className="tabular-nums">
-        {t.format.academicYear(firstYear)}: {t.format.percent(firstRate)} → {t.format.academicYear(lastYear)}: {t.format.percent(lastRate)}
+        {t.format.academicYear(firstYear)}: {t.format.score(firstRating)} → {t.format.academicYear(lastYear)}: {t.format.score(lastRating)}
       </TooltipContent>
     </Tooltip>
   );

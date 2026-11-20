@@ -8,7 +8,14 @@ import path from "node:path";
 import { z } from "zod";
 import { summarizeCourse } from "../src/domain/course-stats.ts";
 import { nameOf, namesFileSchema } from "../src/domain/names.ts";
-import { compareRounds, evaluationFileSchema, surveyAnswersOf, type EvaluationRound } from "../src/domain/evaluation.ts";
+import {
+  compareRounds,
+  evaluationFileSchema,
+  ratedRounds,
+  ratingTrend,
+  surveyAnswersOf,
+  type EvaluationRound,
+} from "../src/domain/evaluation.ts";
 import { resultsFileSchema, type CourseDetail, type Snapshot } from "../src/domain/snapshot.ts";
 import {
   cohortPlans,
@@ -59,6 +66,7 @@ async function main() {
   const upcoming = upcomingFile.academicYear > planInfo.academicYear ? upcomingMasters(upcomingFile, currentPlans, names.courses) : null;
   const starts = [...new Set(programmePlans.map((p) => startYearOf(p.academicYear)))].toSorted((a, b) => a - b);
   const roundsByCode = Map.groupBy(evaluations.rounds, (r) => r.code);
+  const latestSurveyYear = Math.max(...evaluations.rounds.map((r) => r.academicYear));
   /** Survey rounds of a course, newest first. */
   const roundsOf = (code: string): EvaluationRound[] =>
     (roundsByCode.get(code) ?? []).map(({ code: _, ...round }) => round).toSorted(compareRounds);
@@ -70,7 +78,8 @@ async function main() {
 
   const courses: Snapshot["courses"] = [];
   for (const { parts, name, ...course } of results.courses) {
-    const rounds = roundsOf(course.code);
+    const allRounds = roundsOf(course.code);
+    const rounds = ratedRounds(allRounds, latestSurveyYear);
     const coursePlacements = placements.get(course.code) ?? [];
     const detail: CourseDetail = {
       code: course.code,
@@ -82,6 +91,7 @@ async function main() {
     courses.push({
       ...summarizeCourse({ ...course, ...nameOf(courseNames.get(course.code), name) }, parts, today),
       surveyAnswers: surveyAnswersOf(rounds),
+      trend: ratingTrend(allRounds),
       ...courseThisYear(coursePlacements),
     });
   }

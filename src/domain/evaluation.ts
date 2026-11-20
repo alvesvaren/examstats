@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { TrendPoint } from "./snapshot.ts";
 import { spreadOf, type Frequencies } from "./spread.ts";
 
 /** The standard questions besides the overall impression, which is the rating. */
@@ -25,8 +26,11 @@ const ANSWER_OPTIONS = ANSWER_SCALE.max - ANSWER_SCALE.min + 1;
 /** Workload runs from too low to too high, so the middle is best and it stays out of the score. */
 export const BALANCED_WORKLOAD = (ANSWER_SCALE.min + ANSWER_SCALE.max) / 2;
 
-/** Academic years of course surveys that `pnpm evaluations` fetches. */
-export const EVALUATION_YEARS = 3;
+/** Academic years of course surveys that `pnpm evaluations` fetches. The trend shows them all. */
+export const EVALUATION_YEARS = 5;
+
+/** The newest academic years of course surveys that ratings and the course page use. Courses change, so older rounds stay out. */
+export const RATING_YEARS = 3;
 
 /** Fewer answers than this over all rounds give no rating. */
 export const MIN_SCORE_ANSWERS = 5;
@@ -101,6 +105,22 @@ export function summarizeEvaluations(rounds: readonly EvaluationRound[]) {
   const { count, ...stats } = spread;
   const scored = rounds.filter((r) => r.answerCounts.overall?.some(Boolean)).length;
   return { ...stats, answers: count, rounds: scored, overallAnswers };
+}
+
+/** The rounds of the last {@link RATING_YEARS} academic years up to `latestYear`, the newest year with surveys. */
+export const ratedRounds = (rounds: readonly EvaluationRound[], latestYear: number) =>
+  rounds.filter((r) => r.academicYear > latestYear - RATING_YEARS);
+
+/** Mean overall impression per academic year, oldest first. Years with too few answers to score are left out. */
+export function ratingTrend(rounds: readonly EvaluationRound[]): TrendPoint[] {
+  return [...Map.groupBy(rounds, (r) => r.academicYear)]
+    .flatMap(([year, yearRounds]): TrendPoint[] => {
+      const counts = pooledAnswerCounts(yearRounds, "overall") ?? [];
+      const answers = counts.reduce((sum, count) => sum + count, 0);
+      const rating = meanAnswer(counts);
+      return rating !== null && answers >= MIN_SCORE_ANSWERS ? [[year, rating]] : [];
+    })
+    .toSorted(([a], [b]) => a - b);
 }
 
 /** Newest round first, then by study period. */
