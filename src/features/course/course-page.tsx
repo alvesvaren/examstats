@@ -10,6 +10,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { catalogQuery, courseQuery } from "@/data/queries";
 import { normalize, type CatalogCourse } from "@/domain/catalog";
 import { latestExam } from "@/domain/course-stats";
+import { roundsThisYear } from "@/domain/programme-plans";
 import { gradeSpreadOf } from "@/domain/grades";
 import { useLanguage } from "@/hooks/use-language";
 import { useMessages } from "@/hooks/use-messages";
@@ -41,6 +42,9 @@ export function CoursePage() {
   const latest = latestExam(mainPart?.sittings ?? []);
   const credits = detail.placements[0]?.credits;
   const moduleCredits = new Map(detail.placements.flatMap((p) => p.modules).map((m) => [m.code, m.credits]));
+  const seatsText = t.course.seatsIn(
+    roundsThisYear(detail.placements).flatMap(({ periods, seats }) => (seats ? { seats, periods: t.periods(periods) } : [])),
+  );
   const otherInstances = snapshot.courses
     .filter((c) => c.code !== code && normalize(c.swedishName) === normalize(course.swedishName))
     .toSorted((a, b) => (b.lastResult ?? "").localeCompare(a.lastResult ?? ""));
@@ -84,7 +88,7 @@ export function CoursePage() {
         <CourseThisYear placements={detail.placements} plans={snapshot.plans} programmes={snapshot.programmes} />
       )}
 
-      <StatStrip course={course} latest={latest} />
+      <StatStrip course={course} latest={latest} seats={seatsText} />
 
       {part ? (
         <section className="flex flex-col gap-3">
@@ -124,7 +128,14 @@ export function CoursePage() {
   );
 }
 
-function StatStrip({ course, latest }: { course: CatalogCourse; latest: ReturnType<typeof latestExam> }) {
+interface StatStripProps {
+  course: CatalogCourse;
+  latest: ReturnType<typeof latestExam>;
+  /** The seats of this year's rounds that limit them, in words. Empty when none does. */
+  seats: string;
+}
+
+function StatStrip({ course, latest, seats }: StatStripProps) {
   const t = useMessages();
   const gradeSpread = gradeSpreadOf(course.recentGrades);
   return (
@@ -142,6 +153,7 @@ function StatStrip({ course, latest }: { course: CatalogCourse; latest: ReturnTy
       <Stat
         label={<MetricLabel metric="attemptsPerYear">{t.course.attemptsPerYear}</MetricLabel>}
         value={t.format.count(course.attemptsPerYear)}
+        detail={seats}
       />
       <Stat
         label={t.course.latestExam}

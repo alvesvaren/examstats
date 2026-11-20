@@ -142,6 +142,7 @@ export const sv: Messages = {
     passRate: "Andel godkända",
     averageGrade: "Medelbetyg",
     attemptsPerYear: "Försök per år",
+    seatsIn: (rounds) => f.list(rounds.map(({ seats, periods }) => `${counted(seats, "plats", "platser")} i ${periods}`)),
     latestExam: "Senaste tentan",
     allGrades: (attemptCount) => `Betyg, alla ${f.count(attemptCount)} försök`,
     otherParts: "Andra delar",

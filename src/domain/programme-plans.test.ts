@@ -150,7 +150,7 @@ describe("roundOf", () => {
 });
 
 describe("courseYearSummary", () => {
-  it("sums up rounds with examiners and programmes by requirement, each programme once", () => {
+  it("sums up rounds with examiners and seats, and programmes by requirement, each programme once", () => {
     const tidal: ProgrammePlan = {
       code: "TIDAL",
       name: "Computer Engineering",
@@ -158,7 +158,7 @@ describe("courseYearSummary", () => {
       requirements: [],
       masters: [],
       prerequisites: [],
-      years: [{ year: 2, courses: [course("TDA357", { periods: ["LP2"], rule: "O", examiners: ["Jonas"] })] }],
+      years: [{ year: 2, courses: [course("TDA357", { periods: ["LP2"], rule: "O", examiners: ["Jonas"], seats: 185 })] }],
     };
     const withExaminers: ProgrammePlan = {
       ...tkdat,
@@ -170,7 +170,7 @@ describe("courseYearSummary", () => {
         {
           year: 3,
           courses: [
-            course("TDA357", { periods: ["LP2"], examiners: ["Jonas"], choices: [1] }),
+            course("TDA357", { periods: ["LP2"], examiners: ["Jonas"], seats: 185, choices: [1] }),
             course("TDA357", { periods: ["LP3"], examiners: ["Ana"], choices: [1] }),
           ],
         },
@@ -180,8 +180,8 @@ describe("courseYearSummary", () => {
 
     expect(courseYearSummary(placements, RULE_NAMES)).toEqual({
       rounds: [
-        { periods: ["LP2"], examiners: ["Jonas"] },
-        { periods: ["LP3"], examiners: ["Ana"] },
+        { periods: ["LP2"], examiners: ["Jonas"], seats: 185 },
+        { periods: ["LP3"], examiners: ["Ana"], seats: null },
       ],
       requirements: [
         {

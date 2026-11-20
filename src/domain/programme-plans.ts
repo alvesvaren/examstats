@@ -334,14 +334,22 @@ export function plannedCourses(plans: readonly ProgrammePlan[], picks: readonly 
   return [...new Map(held.map((c) => [c.code, c])).values()];
 }
 
+/** A course's rounds this academic year, the earliest first, with their examiners and seats. */
+export const roundsThisYear = (placements: readonly CoursePlacement[]) =>
+  [...Map.groupBy(placements, (p) => p.periods.join("-")).values()]
+    .map((group) => ({
+      periods: group[0]!.periods,
+      examiners: [...new Set(group.flatMap((p) => p.examiners))],
+      seats: group[0]!.seats,
+    }))
+    .toSorted((a, b) => comparePeriods(a.periods, b.periods));
+
 /**
- * A course's academic year in short: its rounds with their examiners, and the programmes that plan it, grouped by
- * how much they require it, the most first. A programme lists each year of study it plans the course in once.
+ * A course's academic year in short: its rounds, and the programmes that plan it, grouped by how much they require
+ * it, the most first. A programme lists each year of study it plans the course in once.
  */
 export function courseYearSummary(placements: readonly CoursePlacement[], ruleNames: Readonly<Record<string, string>>) {
-  const rounds = [...Map.groupBy(placements, (p) => p.periods.join("-")).values()]
-    .map((group) => ({ periods: group[0]!.periods, examiners: [...new Set(group.flatMap((p) => p.examiners))] }))
-    .toSorted((a, b) => comparePeriods(a.periods, b.periods));
+  const rounds = roundsThisYear(placements);
   const withRequirement = placements.map((p) => ({ ...p, requirement: requirementOf(p.rule, p.choices, ruleNames) }));
   const requirements = [...Map.groupBy(withRequirement, (p) => p.requirement.label).values()]
     .map((group) => ({

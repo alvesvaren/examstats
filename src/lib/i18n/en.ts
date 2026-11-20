@@ -150,6 +150,9 @@ export const en = {
     passRate: "Pass rate",
     averageGrade: "Average grade",
     attemptsPerYear: "Attempts per year",
+    /** "185 seats in LP2 and 165 seats in LP3", or nothing without rounds. */
+    seatsIn: (rounds: readonly { seats: number; periods: string }[]) =>
+      f.list(rounds.map(({ seats, periods }) => `${counted(seats, "seat", "seats")} in ${periods}`)),
     latestExam: "Latest exam",
     allGrades: (attemptCount: number) => `Grades, all ${f.count(attemptCount)} attempts`,
     otherParts: "Other parts",
