@@ -26,7 +26,7 @@ const ANSWER_OPTIONS = ANSWER_SCALE.max - ANSWER_SCALE.min + 1;
 export const BALANCED_WORKLOAD = (ANSWER_SCALE.min + ANSWER_SCALE.max) / 2;
 
 /** Academic years of course surveys that `pnpm evaluations` fetches. */
-export const EVALUATION_YEARS = 5;
+export const EVALUATION_YEARS = 3;
 
 /** Fewer answers than this over all rounds give no rating. */
 export const MIN_SCORE_ANSWERS = 5;
