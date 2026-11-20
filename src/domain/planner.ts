@@ -36,7 +36,8 @@ function thesisRounds(rounds: readonly PlanRound[]): PlanRound[] {
   const theses = rounds.filter((r) => r.requirement.kind === "thesis");
   return [...Map.groupBy(theses, (r) => `${r.periods.join()}:${r.periodCredits.join()}`).values()].map((group) => {
     const first = group[0]!;
-    return group.length === 1 ? first : { ...first, codes: group.flatMap((r) => r.codes), name: first.requirement.label };
+    // A round of several courses has no one number of seats.
+    return group.length === 1 ? first : { ...first, codes: group.flatMap((r) => r.codes), name: first.requirement.label, seats: null };
   });
 }
 

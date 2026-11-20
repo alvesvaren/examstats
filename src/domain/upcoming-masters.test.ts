@@ -15,6 +15,7 @@ const course = (code: string, name: string, overrides: Partial<PlanCourse> = {})
   themes: [],
   examiners: ["Ada Lovelace"],
   modules: [{ code: "0101", credits: 7.5 }],
+  seats: 80,
   ...overrides,
 });
 
@@ -91,7 +92,7 @@ describe("upcomingMasters", () => {
       ["DAT400", ["LP3"], "O", null],
       ["TMA947", ["LP2"], "V", "Algorithms"],
     ]);
-    expect(yearOf(1)[0]).toMatchObject({ block: "A", examiners: ["Ada Lovelace"], credits: 7.5 });
+    expect(yearOf(1)[0]).toMatchObject({ block: "A", examiners: ["Ada Lovelace"], seats: 80, credits: 7.5 });
   });
 
   it("marks the compulsory electives with one choice that names no number", () => {

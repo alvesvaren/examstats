@@ -150,6 +150,9 @@ export const en = {
     passRate: "Pass rate",
     averageGrade: "Average grade",
     attemptsPerYear: "Attempts per year",
+    /** "185 seats in LP2 and 165 seats in LP3", or nothing without rounds. */
+    seatsIn: (rounds: readonly { seats: number; periods: string }[]) =>
+      f.list(rounds.map(({ seats, periods }) => `${counted(seats, "seat", "seats")} in ${periods}`)),
     latestExam: "Latest exam",
     allGrades: (attemptCount: number) => `Grades, all ${f.count(attemptCount)} attempts`,
     otherParts: "Other parts",
@@ -219,6 +222,7 @@ export const en = {
     oneOfDegree: "One of the courses the degree needs",
     creditsIn: (total: number, here: number, period: string) => `${credits(total)}, ${f.number(here)} in ${period}`,
     block: (block: string) => `block ${block}`,
+    seats: (value: number) => counted(value, "seat", "seats"),
     inOtherYear: (name: string, year: number) => `${name} is in year ${year}`,
     removeFromYear: (name: string) => `Remove ${name} from your year`,
     addToYear: (name: string) => `Add ${name} to your year`,

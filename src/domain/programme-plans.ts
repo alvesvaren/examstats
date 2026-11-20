@@ -32,6 +32,8 @@ export const planCourseSchema = z.object({
   examiners: z.array(z.string()),
   /** Credits of each module of the course round, by the module code that results also use. Empty when the round is unknown. */
   modules: z.array(z.object({ code: z.string(), credits: z.number().nonnegative() })),
+  /** Places on the course round when it limits them. Null when it takes everyone who qualifies, or the round is unknown. */
+  seats: z.number().int().positive().nullable(),
 });
 
 /**
@@ -274,9 +276,9 @@ export function planYear(
   );
   const rounds = [...Map.groupBy(entries, (c) => roundKey(c.code, c.periods))]
     .map(([key, group]) => {
-      const { code, name, credits, periods, periodCredits, block, themes } = group[0]!;
+      const { code, name, credits, periods, periodCredits, block, seats, themes } = group[0]!;
       /** `codes` holds one course. The planner joins thesis courses that fill the year alike into one round. */
-      return { key, codes: [code], name, credits, periods, periodCredits, block, themes, ...courses.get(code)! };
+      return { key, codes: [code], name, credits, periods, periodCredits, block, seats, themes, ...courses.get(code)! };
     })
     .toSorted((a, b) => comparePeriods(a.periods, b.periods) || byName(a, b));
   return {
@@ -332,14 +334,22 @@ export function plannedCourses(plans: readonly ProgrammePlan[], picks: readonly 
   return [...new Map(held.map((c) => [c.code, c])).values()];
 }
 
+/** A course's rounds this academic year, the earliest first, with their examiners and seats. */
+export const roundsThisYear = (placements: readonly CoursePlacement[]) =>
+  [...Map.groupBy(placements, (p) => p.periods.join("-")).values()]
+    .map((group) => ({
+      periods: group[0]!.periods,
+      examiners: [...new Set(group.flatMap((p) => p.examiners))],
+      seats: group[0]!.seats,
+    }))
+    .toSorted((a, b) => comparePeriods(a.periods, b.periods));
+
 /**
- * A course's academic year in short: its rounds with their examiners, and the programmes that plan it, grouped by
- * how much they require it, the most first. A programme lists each year of study it plans the course in once.
+ * A course's academic year in short: its rounds, and the programmes that plan it, grouped by how much they require
+ * it, the most first. A programme lists each year of study it plans the course in once.
  */
 export function courseYearSummary(placements: readonly CoursePlacement[], ruleNames: Readonly<Record<string, string>>) {
-  const rounds = [...Map.groupBy(placements, (p) => p.periods.join("-")).values()]
-    .map((group) => ({ periods: group[0]!.periods, examiners: [...new Set(group.flatMap((p) => p.examiners))] }))
-    .toSorted((a, b) => comparePeriods(a.periods, b.periods));
+  const rounds = roundsThisYear(placements);
   const withRequirement = placements.map((p) => ({ ...p, requirement: requirementOf(p.rule, p.choices, ruleNames) }));
   const requirements = [...Map.groupBy(withRequirement, (p) => p.requirement.label).values()]
     .map((group) => ({

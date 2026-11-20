@@ -2,8 +2,8 @@
  * Fetches every Chalmers programme plan of each academic year from 2021/2022 to the current one from the JSON API behind
  * chalmers.se and writes `data/programme-plans.json`: per academic year, programme and year of study, the courses with
  * their study periods and rules. Students follow the plan of the year they take a year of study in, so the planner
- * builds each start year's degree from them. The plans name no examiners, so it also fetches the syllabus of each
- * course in the current plans for the examiners of its rounds. The degree requirements of a programme, and the
+ * builds each start year's degree from them. The plans name no examiners or seats, so it also fetches the syllabus of
+ * each course in the current plans for the examiners and seats of its rounds. The degree requirements of a programme, and the
  * prerequisites of a master's programme, come from its programme syllabus of each year.
  * It also writes `data/names.json`, the English and Swedish names of every course and programme since 2021/2022.
  * A weekly GitHub Action runs it and commits the files when they change. The only code that knows that API.
@@ -160,6 +160,8 @@ const courseSchema = z.object({
           z.object({
             cancelled: z.number(),
             blockSchedule: z.string().nullable(),
+            /** Places on the round, or -1 when it takes everyone who qualifies. */
+            maxAmount: z.number().int(),
             moments: z.array(
               z.object({
                 mCode: z.string(),
@@ -217,7 +219,7 @@ function toChoices(moments: readonly Moment[]): PlanChoice[] {
 }
 
 /** One course per plan entry. A plan lists each module of a course as its own row, once per study period it has credits in. */
-function toCourses(moments: readonly Moment[]): Omit<PlanCourse, "examiners" | "modules">[] {
+function toCourses(moments: readonly Moment[]): Omit<PlanCourse, "examiners" | "modules" | "seats">[] {
   const groups = Map.groupBy(
     moments.filter((m) => !m.cancelled),
     (m) => m.ppId,
@@ -296,7 +298,7 @@ async function syllabusOf(code: string, academicYear: string): Promise<Pick<Prog
   return { requirements: [], masters: [], prerequisites: [] };
 }
 
-type SyllabusRound = CourseRound & Pick<PlanCourse, "modules">;
+type SyllabusRound = CourseRound & Pick<PlanCourse, "modules" | "seats">;
 
 /** The rounds of a course this academic year, from its syllabus. Empty when it has none. */
 async function roundsOf(code: string): Promise<SyllabusRound[]> {
@@ -312,6 +314,7 @@ async function roundsOf(code: string): Promise<SyllabusRound[]> {
         block: round.blockSchedule?.trim() || null,
         examiners: round.examiners.map((e) => `${e.fName} ${e.lName}`.trim()),
         modules: round.moments.map((m) => ({ code: m.mCode, credits: m.credit ?? 0 })),
+        seats: round.maxAmount > 0 ? round.maxAmount : null,
       };
     });
 }
@@ -394,7 +397,7 @@ async function main() {
 
   const current = plans.filter((p) => p.academicYear === env.ACADEMIC_YEAR);
   const codes = [...new Set(current.flatMap((p) => p.years.flatMap((y) => y.courses.map((c) => c.code))))].toSorted();
-  console.log(`Fetching ${codes.length} course syllabi for their examiners`);
+  console.log(`Fetching ${codes.length} course syllabi for their examiners and seats`);
   let failed = 0;
   const rounds = new Map(
     await mapConcurrent(codes, env.CONCURRENCY, async (code): Promise<[string, SyllabusRound[]]> => {
@@ -417,9 +420,14 @@ async function main() {
       years: plan.years.map(({ year, courses }) => ({
         year,
         courses: courses.map((course) => {
-          // Only the current year's rounds are fetched. Earlier rounds keep no examiners.
+          // Only the current year's rounds are fetched. Earlier rounds keep no examiners or seats.
           const round = plan.academicYear === env.ACADEMIC_YEAR ? roundOf(course, rounds.get(course.code) ?? []) : null;
-          return { ...course, examiners: [...(round?.examiners ?? [])], modules: [...(round?.modules ?? [])] };
+          return {
+            ...course,
+            examiners: [...(round?.examiners ?? [])],
+            modules: [...(round?.modules ?? [])],
+            seats: round?.seats ?? null,
+          };
         }),
       })),
     })),
