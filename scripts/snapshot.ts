@@ -1,7 +1,8 @@
 /**
  * Builds the static data the app reads, `public/data/index.json`, one `public/data/plans/<start year>.json` per year
  * that programmes admitted students in, and one per year of upcoming master's programmes, and one
- * `public/data/courses/<code>.json` per course, from the committed files in `data/`. It reads no network, so builds never depend on the sources being up.
+ * `public/data/courses/<code>.json` per course, and the prerequisite graph `public/data/prerequisites.json`, from the
+ * committed files in `data/`. It reads no network, so builds never depend on the sources being up.
  */
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -9,6 +10,7 @@ import { z } from "zod";
 import { summarizeCourse } from "../src/domain/course-stats.ts";
 import { nameOf, namesFileSchema } from "../src/domain/names.ts";
 import { compareRounds, evaluationFileSchema, summarizeEvaluations, type EvaluationRound } from "../src/domain/evaluation.ts";
+import { prerequisiteFixesSchema, prerequisiteSnapshot, syllabiFileSchema } from "../src/domain/prerequisites.ts";
 import { resultsFileSchema, type CourseDetail, type Snapshot } from "../src/domain/snapshot.ts";
 import {
   cohortPlans,
@@ -28,6 +30,8 @@ const env = z
     PLANS_FILE: z.string().default("data/programme-plans.json"),
     NAMES_FILE: z.string().default("data/names.json"),
     UPCOMING_MASTERS_FILE: z.string().default("data/upcoming-masters.json"),
+    SYLLABI_FILE: z.string().default("data/syllabi.json"),
+    PREREQUISITE_FIXES_FILE: z.string().default("data/prerequisite-fixes.json"),
   })
   .parse(process.env);
 
@@ -41,12 +45,14 @@ const readJson = async <T>(file: string, schema: z.ZodType<T>) => schema.parse(J
 
 async function main() {
   const today = new Date();
-  const [results, evaluations, plans, names, upcomingFile] = await Promise.all([
+  const [results, evaluations, plans, names, upcomingFile, syllabi, fixes] = await Promise.all([
     readJson(env.RESULTS_FILE, resultsFileSchema),
     readJson(env.EVALUATIONS_FILE, evaluationFileSchema),
     readJson(env.PLANS_FILE, programmePlansFileSchema),
     readJson(env.NAMES_FILE, namesFileSchema),
     readJson(env.UPCOMING_MASTERS_FILE, upcomingMastersFileSchema),
+    readJson(env.SYLLABI_FILE, syllabiFileSchema),
+    readJson(env.PREREQUISITE_FIXES_FILE, prerequisiteFixesSchema),
   ]);
   const courseNames = new Map(names.courses.map(({ code, ...n }) => [code, n]));
   // A programme can have results under a code Chalmers no longer names, or a plan but no results yet.
@@ -119,6 +125,12 @@ async function main() {
     await writeFile(path.join(plansDir, `${start}.json`), JSON.stringify(upcoming.plans.map(publish)));
   }
   console.log(`Wrote ${courses.length} courses and ${Object.keys(snapshot.programmes).length} programmes to ${env.OUT_DIR}`);
+
+  const prerequisites = prerequisiteSnapshot({ syllabi, names, programmes: currentPlans, fixes });
+  await writeFile(path.join(env.OUT_DIR, "prerequisites.json"), JSON.stringify(prerequisites));
+  console.log(
+    `Wrote the prerequisites of ${prerequisites.courses.length} courses and ${prerequisites.programmes.length} master's programmes, with ${fixes.length} fixes`,
+  );
 }
 
 await main();

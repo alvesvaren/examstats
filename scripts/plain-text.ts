@@ -10,12 +10,19 @@ const WINDOWS_1252: Record<string, string> = {
 };
 const WINDOWS_1252_CHARS = new RegExp(`[${Object.keys(WINDOWS_1252).join("")}]`, "g");
 
-/** The paragraphs of a text that may hold HTML, one per line or block, with tags dropped and spaces collapsed. */
+/**
+ * The paragraphs of a text that may hold HTML, one per line or block, with tags and comments dropped and spaces
+ * collapsed. Some texts pasted from Word carry its settings in a comment.
+ */
 export function paragraphsOf(text: string): string[] {
   return text
+    .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<br\s*\/?>|<\/(?:div|p|li)>/gi, "\n")
     .replace(/<[^>]*>/g, "")
-    .replace(/&(\w+|#\d+);/g, (entity, name: string) => ENTITIES[name] ?? entity)
+    .replace(
+      /&(\w+|#\d+);/g,
+      (entity, name: string) => ENTITIES[name] ?? (name.startsWith("#") ? String.fromCodePoint(Number(name.slice(1))) : entity),
+    )
     .replace(WINDOWS_1252_CHARS, (char) => WINDOWS_1252[char] ?? char)
     .split("\n")
     .map((line) => line.replace(/\s+/g, " ").trim())

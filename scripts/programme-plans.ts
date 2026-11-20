@@ -5,7 +5,8 @@
  * builds each start year's degree from them. The plans name no examiners, so it also fetches the syllabus of each
  * course in the current plans for the examiners of its rounds. The degree requirements of a programme, and the
  * prerequisites of a master's programme, come from its programme syllabus of each year.
- * It also writes `data/names.json`, the English and Swedish names of every course and programme since 2021/2022.
+ * It also writes `data/names.json`, the English and Swedish names of every course and programme since 2021/2022, and
+ * `data/syllabi.json`, the prerequisites of every course in the current plans and of every course those name by code.
  * A weekly GitHub Action runs it and commits the files when they change. The only code that knows that API.
  */
 import { mkdir, writeFile } from "node:fs/promises";
@@ -27,6 +28,7 @@ import {
   type Theme,
 } from "../src/domain/programme-plans.ts";
 import type { NamesFile } from "../src/domain/names.ts";
+import { courseCodesIn, type CourseSyllabus, type SyllabiFile } from "../src/domain/prerequisites.ts";
 import { toJsonLines } from "./json-lines.ts";
 import { mapConcurrent } from "./map-concurrent.ts";
 import { paragraphsOf } from "./plain-text.ts";
@@ -46,6 +48,7 @@ const env = z
     API_URL: z.url().default("https://www.chalmers.se/api"),
     OUT_FILE: z.string().default("data/programme-plans.json"),
     NAMES_FILE: z.string().default("data/names.json"),
+    SYLLABI_FILE: z.string().default("data/syllabi.json"),
     ACADEMIC_YEAR: z
       .string()
       .regex(/^\d{4}\/\d{4}$/)
@@ -156,6 +159,12 @@ const courseSchema = z.object({
     results: z.array(
       z.object({
         courseCode: z.string(),
+        name: z.string(),
+        eduLevelName: z.string().nullable(),
+        creditNumeric: z.number().nullable(),
+        replaces: z.array(z.object({ code: z.string() })).nullable(),
+        /** The course's prerequisites, as text that may hold HTML. */
+        prerequisites: z.string().nullable(),
         courseRounds: z.array(
           z.object({
             cancelled: z.number(),
@@ -298,12 +307,21 @@ async function syllabusOf(code: string, academicYear: string): Promise<Pick<Prog
 
 type SyllabusRound = CourseRound & Pick<PlanCourse, "modules">;
 
-/** The rounds of a course this academic year, from its syllabus. Empty when it has none. */
-async function roundsOf(code: string): Promise<SyllabusRound[]> {
+/** A course's syllabus this academic year, and its rounds. No syllabus and no rounds when it is not given this year. */
+async function courseOf(code: string): Promise<{ syllabus: CourseSyllabus | null; rounds: SyllabusRound[] }> {
   const filter = { acYear: { _eq: env.ACADEMIC_YEAR }, courseCode: { _eq: code } };
   const { search } = await get("PewCourses", { language: "en", filter }, courseSchema);
   const course = search.results.find((c) => c.courseCode === code);
-  return (course?.courseRounds ?? [])
+  if (!course) return { syllabus: null, rounds: [] };
+  const syllabus = {
+    code,
+    name: course.name.trim(),
+    level: course.eduLevelName ?? "",
+    credits: course.creditNumeric ?? 0,
+    replaces: (course.replaces ?? []).map((r) => r.code),
+    prerequisites: paragraphsOf(course.prerequisites ?? "").join("\n"),
+  };
+  const rounds = course.courseRounds
     .filter((r) => !r.cancelled)
     .map((round) => {
       const periods = new Set(round.moments.flatMap((m) => m.distribution.filter((d) => d.credit).map((d) => periodOf(d.code))));
@@ -314,6 +332,7 @@ async function roundsOf(code: string): Promise<SyllabusRound[]> {
         modules: round.moments.map((m) => ({ code: m.mCode, credits: m.credit ?? 0 })),
       };
     });
+  return { syllabus, rounds };
 }
 
 /** Every row of a list index, over all academic years the API holds, a page at a time. */
@@ -394,20 +413,26 @@ async function main() {
 
   const current = plans.filter((p) => p.academicYear === env.ACADEMIC_YEAR);
   const codes = [...new Set(current.flatMap((p) => p.years.flatMap((y) => y.courses.map((c) => c.code))))].toSorted();
-  console.log(`Fetching ${codes.length} course syllabi for their examiners`);
   let failed = 0;
-  const rounds = new Map(
-    await mapConcurrent(codes, env.CONCURRENCY, async (code): Promise<[string, SyllabusRound[]]> => {
+  const fetched = new Map<string, Awaited<ReturnType<typeof courseOf>>>();
+  // The planned courses first, then the courses their prerequisites name, and the ones those name, until none are new.
+  for (let pending = codes; pending.length;) {
+    console.log(`Fetching ${pending.length} course syllabi`);
+    const batch = await mapConcurrent(pending, env.CONCURRENCY, async (code) => {
       try {
-        return [code, await roundsOf(code)];
+        return await courseOf(code);
       } catch (error) {
         failed++;
         console.warn(`${code}: ${error instanceof Error ? error.message : String(error)}`);
-        return [code, []];
+        return { syllabus: null, rounds: [] };
       }
-    }),
-  );
-  if (failed > codes.length * MAX_FAILED_SHARE) throw new Error(`${failed} of ${codes.length} syllabi failed`);
+    });
+    for (const [index, code] of pending.entries()) fetched.set(code, batch[index]!);
+    const named = batch.flatMap(({ syllabus }) => (syllabus ? courseCodesIn(syllabus.prerequisites) : []));
+    pending = [...new Set(named)].filter((code) => !fetched.has(code)).toSorted();
+  }
+  if (failed > fetched.size * MAX_FAILED_SHARE) throw new Error(`${failed} of ${fetched.size} syllabi failed`);
+  const rounds = new Map([...fetched].map(([code, course]) => [code, course.rounds]));
 
   const file: ProgrammePlansFile = {
     academicYear: env.ACADEMIC_YEAR,
@@ -428,6 +453,13 @@ async function main() {
   const { programmes: lines, ...head } = file;
   await writeFile(env.OUT_FILE, toJsonLines(head, "programmes", lines));
   console.log(`Wrote ${file.programmes.length} programme plans to ${env.OUT_FILE}`);
+
+  const syllabi: SyllabiFile = {
+    academicYear: env.ACADEMIC_YEAR,
+    courses: [...fetched.values()].flatMap(({ syllabus }) => syllabus ?? []).toSorted((a, b) => a.code.localeCompare(b.code)),
+  };
+  await writeFile(env.SYLLABI_FILE, toJsonLines({ academicYear: syllabi.academicYear }, "courses", syllabi.courses));
+  console.log(`Wrote the syllabi of ${syllabi.courses.length} courses to ${env.SYLLABI_FILE}`);
 
   const { courses, ...namesHead } = await names;
   await mkdir(path.dirname(env.NAMES_FILE), { recursive: true });

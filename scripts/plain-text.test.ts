@@ -19,6 +19,16 @@ describe("paragraphsOf", () => {
     expect(paragraphsOf("Bachelor\u0092s degree, Stress \u0096 Strain")).toEqual(["Bachelor’s degree, Stress – Strain"]);
   });
 
+  it("drops the Word settings that some texts carry in an HTML comment", () => {
+    const html =
+      "<p>Only students admitted to the programme.</p><!--[if gte mso 9]><xml><w:WordDocument><w:View>Normal</w:View><w:Zoom>0</w:Zoom></w:WordDocument></xml><![endif]-->";
+    expect(paragraphsOf(html)).toEqual(["Only students admitted to the programme."]);
+  });
+
+  it("decodes numeric entities", () => {
+    expect(paragraphsOf("logic&#46; Programming&#8217;s")).toEqual(["logic. Programming’s"]);
+  });
+
   it("has no paragraphs for an empty text", () => {
     expect(paragraphsOf("")).toEqual([]);
   });
