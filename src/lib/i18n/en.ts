@@ -163,7 +163,7 @@ export const en = {
 
   planner: {
     findProgramme: "Find your programme to plan a year of courses.",
-    searchPlaceholder: "Programme, such as Datateknik or TKDAT",
+    searchPlaceholder: "Programme, such as Software Engineering or TKITE",
     searchProgrammes: "Search programmes",
     noProgrammeMatches: "No programme matches.",
     noCourses: "The course planner has no courses for this programme yet.",

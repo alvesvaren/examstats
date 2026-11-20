@@ -154,7 +154,7 @@ export const sv: Messages = {
 
   planner: {
     findProgramme: "Hitta ditt program för att planera ett år med kurser.",
-    searchPlaceholder: "Program, till exempel Datateknik eller TKDAT",
+    searchPlaceholder: "Program, till exempel Informationsteknik eller TKITE",
     searchProgrammes: "Sök program",
     noProgrammeMatches: "Inget program matchar.",
     noCourses: "Kursplaneraren har inga kurser för det här programmet än.",
