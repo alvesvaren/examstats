@@ -69,16 +69,6 @@ describe("summarizeCourse", () => {
     expect(summary.attemptsPerYear).toBe(101);
   });
 
-  it("builds a trend per academic year before the current one", () => {
-    const summary = summarizeCourse(course, [exam], TODAY);
-    expect(summary.trend).toEqual([
-      [2021, 0.1],
-      [2023, 0.5],
-      [2024, 0.6],
-      [2025, 71 / 103],
-    ]);
-  });
-
   it("marks a course as ended after 18 months without results", () => {
     const old: Part = { type: "Tentamen", code: "0101", sittings: [sitting("2018-06-01", { U: 5, "3": 5 })] };
     const summary = summarizeCourse(course, [old], TODAY);
@@ -98,7 +88,6 @@ describe("summarizeCourse", () => {
       attemptsPerYear: 0,
       lastResult: null,
       ended: true,
-      trend: [],
     });
   });
 });

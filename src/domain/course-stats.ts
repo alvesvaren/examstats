@@ -1,11 +1,10 @@
 import { attemptsOf, passRateOf, sumCounts } from "./grades.ts";
 import type { GradeCounts } from "./grades.ts";
-import type { CourseSummary, Part, Sitting, TrendPoint } from "./snapshot.ts";
+import type { CourseSummary, Part, Sitting } from "./snapshot.ts";
 
 /** Academic years start in September, so an August retake belongs to the year before. */
 const ACADEMIC_YEAR_START_MONTH = 9;
 export const RECENT_YEARS = 3;
-const TREND_YEARS = 10;
 const ENDED_AFTER_DAYS = 548;
 const DAY_MS = 86_400_000;
 /** A sitting smaller than this share of the median sitting is a straggler, not "the latest exam". */
@@ -58,17 +57,6 @@ export function latestExam(sittings: readonly Sitting[]) {
   return { date: sitting.date, passRate: passRateOf(sitting.grades) ?? 0, attempts: attemptsOf(sitting.grades) };
 }
 
-function trendOf(sittings: readonly Sitting[], currentYear: number): TrendPoint[] {
-  const byYear = Map.groupBy(
-    sittings.filter((s) => academicYear(s.date) < currentYear),
-    (s) => academicYear(s.date),
-  );
-  return [...byYear]
-    .map(([year, group]): TrendPoint => [year, passRateOf(sumCounts(group.map((s) => s.grades))) ?? 0])
-    .toSorted(([a], [b]) => a - b)
-    .slice(-TREND_YEARS);
-}
-
 /**
  * Builds the exam results of a course's list row from its parts.
  * Recent grades and size cover the main part's last {@link RECENT_YEARS} finished academic years with results.
@@ -77,7 +65,7 @@ export function summarizeCourse(
   course: Pick<CourseSummary, "code" | "name" | "swedishName" | "programme">,
   parts: readonly Part[],
   today: Date,
-): Omit<CourseSummary, "surveyAnswers" | "periods" | "examiners"> {
+): Omit<CourseSummary, "surveyAnswers" | "trend" | "periods" | "examiners"> {
   const [main] = orderParts(parts);
   const dates = parts.flatMap((p) => p.sittings.map((s) => s.date)).toSorted();
   const lastResult = dates.at(-1) ?? null;
@@ -101,6 +89,5 @@ export function summarizeCourse(
     attemptsPerYear: recentYears ? Math.round(attemptsOf(recentCounts) / recentYears) : 0,
     lastResult,
     ended,
-    trend: trendOf(sittings, currentYear),
   };
 }

@@ -4,7 +4,7 @@
  */
 import { partLabel } from "../../domain/catalog.ts";
 import { RECENT_YEARS } from "../../domain/course-stats.ts";
-import { ANSWER_SCALE, BALANCED_WORKLOAD, EVALUATION_YEARS, type Question } from "../../domain/evaluation.ts";
+import { ANSWER_SCALE, BALANCED_WORKLOAD, EVALUATION_YEARS, RATING_YEARS, type Question } from "../../domain/evaluation.ts";
 import type { Requirement, Theme } from "../../domain/programme-plans.ts";
 import type { TrendPoint } from "../../domain/snapshot.ts";
 import type { Spread } from "../../domain/spread.ts";
@@ -17,7 +17,7 @@ const counted = (value: number, one: string, many: string) => `${f.count(value)}
 const courses = (value: number) => counted(value, "course", "courses");
 
 const RECENT = `the main exam over the last ${RECENT_YEARS} academic years with results`;
-const SURVEY_SOURCE = `in Chalmers course surveys, from ${ANSWER_SCALE.min} to ${ANSWER_SCALE.max}, over the last ${EVALUATION_YEARS} academic years`;
+const SURVEY_SOURCE = `in Chalmers course surveys, from ${ANSWER_SCALE.min} to ${ANSWER_SCALE.max}, over the last ${RATING_YEARS} academic years`;
 const SPREAD_HELP = "In the mark, the darker a value, the larger its share of answers. The tick is the median.";
 
 const QUESTIONS = {
@@ -93,24 +93,24 @@ export const en = {
       passRate: `Share of attempts that passed ${RECENT}. A retake counts as a new attempt.`,
       averageGrade: `Mean of grades 3, 4 and 5 on ${RECENT}. Fails are left out.`,
       attemptsPerYear: `Attempts per year on ${RECENT}.`,
-      trend: "Pass rate per academic year on the main exam.",
+      trend: `Students' overall impression of the course per academic year in Chalmers course surveys, from ${ANSWER_SCALE.min} to ${ANSWER_SCALE.max}, over the last ${EVALUATION_YEARS} academic years. Sorting compares the last year with the years before it.`,
       rating: `Students' overall impression of the course ${SURVEY_SOURCE}, counting every answer. ${SPREAD_HELP}`,
     },
     recent: `Main exam, last ${RECENT_YEARS} years`,
-    trend: ([firstYear, firstRate]: TrendPoint, [lastYear, lastRate]: TrendPoint) =>
-      `Pass rate ${f.percent(firstRate)} in ${f.academicYear(firstYear)}, ${f.percent(lastRate)} in ${f.academicYear(lastYear)}`,
+    trend: ([firstYear, firstRating]: TrendPoint, [lastYear, lastRating]: TrendPoint) =>
+      `Rating ${f.score(firstRating)} in ${f.academicYear(firstYear)}, ${f.score(lastRating)} in ${f.academicYear(lastYear)}`,
   },
 
   survey: {
     title: "Course survey",
     questions: QUESTIONS,
     /** The question and the years its answers are pooled over, shown above them on hover. */
-    window: (question: Question) => `${QUESTIONS[question].label}, last ${EVALUATION_YEARS} years`,
+    window: (question: Question) => `${QUESTIONS[question].label}, last ${RATING_YEARS} years`,
     choose: "Choose the course survey question",
     meanAnswer: `Mean answer ${SURVEY_SOURCE}. ${SPREAD_HELP}`,
     hints: HINTS,
     workloadScale: `${ANSWER_SCALE.min} too low, ${BALANCED_WORKLOAD} balanced, ${ANSWER_SCALE.max} too high`,
-    none: `No course surveys in the last ${EVALUATION_YEARS} academic years.`,
+    none: `No course surveys in the last ${RATING_YEARS} academic years.`,
     source: { before: "From ", link: "Chalmers course surveys", after: (day: string) => `, fetched ${day}.` },
     rounds: (count: number) => `all ${f.count(count)} rounds`,
     answered: (answers: number, respondents: number) => `${f.count(answers)} of ${f.count(respondents)} answered`,

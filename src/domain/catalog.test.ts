@@ -213,12 +213,12 @@ describe("matchProgrammes", () => {
 
 describe("trendDelta", () => {
   it("compares the last year with the mean of the three before it", () => {
-    const trend = [0.9, 0.5, 0.6, 0.7, 0.4].map((passRate, i): TrendPoint => [2020 + i, passRate]);
+    const trend = [4.5, 3.5, 3.6, 3.7, 3.4].map((rating, i): TrendPoint => [2020 + i, rating]);
     expect(trendDelta(trend)).toBeCloseTo(-0.2);
   });
 
   it("is null without history", () => {
-    expect(trendDelta([[2025, 0.5]])).toBeNull();
+    expect(trendDelta([[2025, 3.5]])).toBeNull();
   });
 });
 
