@@ -50,6 +50,7 @@ const round = (code: string, periods: StudyPeriod[], overrides: Partial<PlanRoun
     periods,
     periodCredits: periods.map(() => credits / periods.length),
     block: null,
+    seats: null,
     themes: [],
     requirement: REQUIREMENTS.elective,
     choices: [],
@@ -78,8 +79,8 @@ const keys = (rounds: readonly PlanRound[]) => rounds.map((r) => r.key);
 describe("plannerYear", () => {
   const compulsory = round("EDA322", ["LP1"], { requirement: REQUIREMENTS.compulsory });
   const elective = round("TDA357", ["LP2"]);
-  const thesis = (code: string, periods: StudyPeriod[], credits: number) =>
-    round(code, periods, { credits, requirement: REQUIREMENTS.thesis });
+  const thesis = (code: string, periods: StudyPeriod[], credits: number, seats: number | null = null) =>
+    round(code, periods, { credits, seats, requirement: REQUIREMENTS.thesis });
 
   it("fixes the compulsory rounds and leaves the rest to choose between, each with its course's results", () => {
     const results = new Map([["TDA357", stats("TDA357", 9, 1)]]);
@@ -89,22 +90,22 @@ describe("plannerYear", () => {
     expect(candidates.map((r) => [r.key, r.stats?.passRate])).toEqual([["TDA357.LP2", 0.9]]);
   });
 
-  it("fixes the thesis when every thesis course fills the year alike, as one round under the rule's name", () => {
+  it("fixes the thesis when every thesis course fills the year alike, as one round under the rule's name with no seats", () => {
     const { fixed, candidates } = plannerYear(
-      [compulsory, elective, thesis("DATX11", ["LP3", "LP4"], 15), thesis("EENX16", ["LP3", "LP4"], 15)],
+      [compulsory, elective, thesis("DATX11", ["LP3", "LP4"], 15, 60), thesis("EENX16", ["LP3", "LP4"], 15)],
       new Map([["DATX11", stats("DATX11", 9, 1)]]),
     );
 
     expect(keys(candidates)).toEqual(["TDA357.LP2"]);
-    expect(fixed.map((r) => [r.key, r.name, r.codes, r.stats])).toEqual([
-      ["EDA322.LP1", "EDA322 name", ["EDA322"], undefined],
-      ["DATX11.LP3-LP4", "Diploma thesis", ["DATX11", "EENX16"], undefined],
+    expect(fixed.map((r) => [r.key, r.name, r.codes, r.stats, r.seats])).toEqual([
+      ["EDA322.LP1", "EDA322 name", ["EDA322"], undefined, null],
+      ["DATX11.LP3-LP4", "Diploma thesis", ["DATX11", "EENX16"], undefined, null],
     ]);
   });
 
-  it("keeps a single thesis course under its own name", () => {
-    const { fixed } = plannerYear([thesis("DATX11", ["LP3", "LP4"], 15)], new Map());
-    expect(fixed.map((r) => r.name)).toEqual(["DATX11 name"]);
+  it("keeps a single thesis course under its own name, with its seats", () => {
+    const { fixed } = plannerYear([thesis("DATX11", ["LP3", "LP4"], 15, 60)], new Map());
+    expect(fixed.map((r) => [r.name, r.seats])).toEqual([["DATX11 name", 60]]);
   });
 
   it("leaves the thesis to choose when it can be done in several ways", () => {
@@ -249,6 +250,7 @@ const planCourse = (code: string, rule: string, themes: PlanCourse["themes"] = [
   themes,
   examiners: [],
   modules: [],
+  seats: null,
 });
 
 describe("degree requirements", () => {

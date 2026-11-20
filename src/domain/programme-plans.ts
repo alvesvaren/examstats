@@ -32,6 +32,8 @@ export const planCourseSchema = z.object({
   examiners: z.array(z.string()),
   /** Credits of each module of the course round, by the module code that results also use. Empty when the round is unknown. */
   modules: z.array(z.object({ code: z.string(), credits: z.number().nonnegative() })),
+  /** Places on the course round when it limits them. Null when it takes everyone who qualifies, or the round is unknown. */
+  seats: z.number().int().positive().nullable(),
 });
 
 /**
@@ -274,9 +276,9 @@ export function planYear(
   );
   const rounds = [...Map.groupBy(entries, (c) => roundKey(c.code, c.periods))]
     .map(([key, group]) => {
-      const { code, name, credits, periods, periodCredits, block, themes } = group[0]!;
+      const { code, name, credits, periods, periodCredits, block, seats, themes } = group[0]!;
       /** `codes` holds one course. The planner joins thesis courses that fill the year alike into one round. */
-      return { key, codes: [code], name, credits, periods, periodCredits, block, themes, ...courses.get(code)! };
+      return { key, codes: [code], name, credits, periods, periodCredits, block, seats, themes, ...courses.get(code)! };
     })
     .toSorted((a, b) => comparePeriods(a.periods, b.periods) || byName(a, b));
   return {

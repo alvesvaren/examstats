@@ -477,6 +477,7 @@ function Candidate({ round, survey, period, picked, elsewhere, warnings, marks, 
     round.codes.join(", "),
     creditsText,
     round.block && t.planner.block(round.block),
+    round.seats && t.planner.seats(round.seats),
     requirement.kind !== "elective" && requirement.kind !== "compulsoryElective" && t.requirement(requirement),
   ]
     .filter(Boolean)

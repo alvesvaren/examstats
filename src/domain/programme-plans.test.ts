@@ -31,6 +31,7 @@ const course = (code: string, overrides: Partial<PlanCourse> = {}): PlanCourse =
     themes: [],
     examiners: [],
     modules: [],
+    seats: null,
     ...overrides,
   };
   return { periodCredits: entry.periods.map(() => entry.credits / entry.periods.length), ...entry };

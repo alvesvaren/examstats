@@ -210,6 +210,7 @@ export const sv: Messages = {
     oneOfDegree: "En av kurserna som examen kräver",
     creditsIn: (total, here, period) => `${credits(total)}, ${f.number(here)} i ${period}`,
     block: (block) => `block ${block}`,
+    seats: (value) => counted(value, "plats", "platser"),
     inOtherYear: (name, year) => `${name} finns i år ${year}`,
     removeFromYear: (name) => `Ta bort ${name} från ditt år`,
     addToYear: (name) => `Lägg till ${name} i ditt år`,

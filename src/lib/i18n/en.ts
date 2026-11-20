@@ -219,6 +219,7 @@ export const en = {
     oneOfDegree: "One of the courses the degree needs",
     creditsIn: (total: number, here: number, period: string) => `${credits(total)}, ${f.number(here)} in ${period}`,
     block: (block: string) => `block ${block}`,
+    seats: (value: number) => counted(value, "seat", "seats"),
     inOtherYear: (name: string, year: number) => `${name} is in year ${year}`,
     removeFromYear: (name: string) => `Remove ${name} from your year`,
     addToYear: (name: string) => `Add ${name} to your year`,
