@@ -139,6 +139,10 @@ export function exclusiveWith<R extends PlanRound>(round: PlanRound, plan: reado
   return plan.find((other) => !sameCourse(other, round) && other.choices.some((c) => ids.includes(c.id)));
 }
 
+/** An id of a degree requirement within a plan, for lists. */
+export const requirementKey = (requirement: PlanRequirement) =>
+  requirement.kind === "theme" ? requirement.theme : requirement.courses.join();
+
 /** A degree requirement the student has to choose courses for, with how far the whole plan goes towards it. */
 export interface DegreeRuleProgress extends ReturnType<typeof requirementProgress> {
   requirement: PlanRequirement;
