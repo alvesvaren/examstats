@@ -372,14 +372,6 @@ export function courseThisYear(placements: readonly CoursePlacement[]) {
   };
 }
 
-/** The English course syllabus page on chalmers.se. */
-export const syllabusUrl = (code: string) =>
-  `https://www.chalmers.se/en/education/your-studies/find-course-and-programme-syllabi/course-syllabus/${encodeURIComponent(code)}/`;
-
-/** The programme's overview on chalmers.se: its syllabus and plan of this year. */
-export const programmeUrl = (code: string) =>
-  `https://www.chalmers.se/en/education/your-studies/find-course-and-programme-syllabi/programme-overview/${encodeURIComponent(code)}/`;
-
 /** An academic year by its first calendar year, such as 2026 for "2026/2027". */
 export const startYearOf = (academicYear: string) => Number(academicYear.slice(0, 4));
 export const academicYearOf = (start: number) => `${start}/${start + 1}`;
