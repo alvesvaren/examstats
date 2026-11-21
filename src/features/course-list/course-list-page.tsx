@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { ArrowLeftIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { useDeferredValue, useMemo, type ReactNode } from "react";
 import { SearchField } from "@/components/search-field";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -46,11 +46,17 @@ export function CourseListPage() {
   const { ref: filtersRef, height: filtersHeight } = useElementSize<HTMLDivElement>();
   const { ref: resultsRef, scrollBack } = useScrollBack<HTMLDivElement>();
 
-  const { sort = DEFAULT_SORT, dir = "desc", programme, examiner, periods = [], q = "" } = search;
-  const { active, ended } = queryCourses(snapshot.courses, { q, programme, examiner, periods, sort, dir });
+  const { sort = DEFAULT_SORT, dir = "desc", programme, examiner, periods, q = "" } = search;
+  // A new list can take long to render on a slow device, so it renders in the background and typing stays quick. The
+  // render that the URL starts keeps the old query, and the memo spares it filtering again.
+  const query = useDeferredValue(q);
+  const { active, ended } = useMemo(
+    () => queryCourses(snapshot.courses, { q: query, programme, examiner, periods, sort, dir }),
+    [snapshot.courses, query, programme, examiner, periods, sort, dir],
+  );
   const scoped = Boolean(programme ?? examiner);
-  const programmeMatches = scoped ? [] : matchProgrammes(snapshot.listedProgrammes, q);
-  const examinerMatches = scoped ? [] : matchExaminers(snapshot.examiners, q, EXAMINER_SUGGESTIONS);
+  const programmeMatches = scoped ? [] : matchProgrammes(snapshot.listedProgrammes, query);
+  const examinerMatches = scoped ? [] : matchExaminers(snapshot.examiners, query, EXAMINER_SUGGESTIONS);
   const survey = surveyColumn(sort, search.survey);
   // The heading counts the whole scope, whatever the other filters keep.
   const scopeTotal = snapshot.courses.filter((c) => inScope(c, { programme, examiner })).length;
@@ -101,7 +107,7 @@ export function CourseListPage() {
             aria-label={t.list.search}
             className="min-w-60 flex-1"
           />
-          <PeriodFilter periods={periods} academicYear={snapshot.plans.academicYear} onChange={setPeriods} />
+          <PeriodFilter periods={periods ?? []} academicYear={snapshot.plans.academicYear} onChange={setPeriods} />
         </div>
 
         {programmeMatches.length + examinerMatches.length > 0 && (
@@ -129,7 +135,7 @@ export function CourseListPage() {
           onSortChange={setSort}
           survey={survey}
           onPickSurvey={pickSurvey}
-          query={q}
+          query={query}
           programmes={snapshot.programmes}
           maxAttempts={maxAttempts}
           stickyTop={filtersHeight}
