@@ -60,8 +60,7 @@ export function YearPlanner({ state, current, catalog, dispatch }: YearPlannerPr
   const t = useMessages();
   const { plan: yearProgramme, year } = current;
   const { rounds, picks } = planYear(yearProgramme, year, { track, ruleNames: t.ruleNames(catalog.plans.ruleNames) });
-  const stats = new Map(catalog.courses.map((c) => [c.code, c]));
-  const { fixed, candidates } = plannerYear(rounds, stats);
+  const { fixed, candidates } = plannerYear(rounds, catalog.byCode);
   const picked = candidates.filter((c) => pickedKeys.includes(c.key));
   const plan = [...fixed, ...picked];
   const periods = periodsOf([...fixed, ...candidates]);

@@ -146,7 +146,7 @@ describe("queryCourses filters", () => {
   });
 });
 
-describe("examiners", () => {
+describe("toCatalog", () => {
   const catalog = toCatalog(
     {
       generatedAt: "",
@@ -157,6 +157,11 @@ describe("examiners", () => {
     },
     "en",
   );
+
+  it("looks a course up by its code", () => {
+    expect([...catalog.byCode.keys()]).toEqual(catalog.courses.map((c) => c.code));
+    expect(catalog.byCode.get("TDA357")).toBe(catalog.courses.find((c) => c.code === "TDA357"));
+  });
 
   it("counts each examiner's courses", () => {
     expect(catalog.examiners).toEqual([

@@ -20,12 +20,11 @@ interface MasterPickerProps {
 /** The master's programmes a programme leads on to, each in short, to choose the fourth and fifth year from. */
 export function MasterPicker({ programme, masters, accredited, catalog, onChoose }: MasterPickerProps) {
   const t = useMessages();
-  const stats = new Map(catalog.courses.map((c) => [c.code, c]));
   const options = masters
     .toSorted((a, b) => a.name.localeCompare(b.name, "sv"))
     .map((master) => ({
       master,
-      summary: masterSummary(master, stats),
+      summary: masterSummary(master, catalog.byCode),
       otherName: otherNameOf(catalog.programmes, master.code),
       accreditation: accredited.get(master.code) ?? { specialisations: [], courseList: null },
     }));

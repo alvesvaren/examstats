@@ -95,9 +95,11 @@ export type CatalogCourse = ReturnType<typeof toCatalogCourse>;
 export function toCatalog(snapshot: Snapshot, language: Language) {
   const withResults = new Set(snapshot.courses.map((c) => c.programme));
   const programmes = Object.entries(snapshot.programmes).map(([code, named]) => [code, inLanguage(named, language)] as const);
+  const courses = snapshot.courses.map((course) => toCatalogCourse(course, language));
   return {
     ...snapshot,
-    courses: snapshot.courses.map((course) => toCatalogCourse(course, language)),
+    courses,
+    byCode: new Map(courses.map((course) => [course.code, course])),
     programmes: Object.fromEntries(programmes),
     /** Programmes with courses with results, which the course list can show. */
     listedProgrammes: Object.fromEntries(programmes.filter(([code]) => withResults.has(code))),
