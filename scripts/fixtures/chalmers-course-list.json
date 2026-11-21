@@ -1,0 +1,98 @@
+{
+  "info": {
+    "count": 13
+  },
+  "results": [
+    {
+      "courseCode": "ACE550",
+      "name": "Community architecture and urban design",
+      "nameAlt": "Arkitektur och stadsbyggnad för gemenskap",
+      "acYear": "2025/2026",
+      "discont": "0"
+    },
+    {
+      "courseCode": "MVE660",
+      "name": "Multivariable calculus",
+      "nameAlt": "Flervariabelanalys",
+      "acYear": "2026/2027",
+      "discont": "1"
+    },
+    {
+      "courseCode": "ACE550",
+      "name": "Community architecture and urban design",
+      "nameAlt": "Arkitektur och stadsbyggnad för gemenskap",
+      "acYear": "2026/2027",
+      "discont": "0"
+    },
+    {
+      "courseCode": "MVE660",
+      "name": "Multivariable calculus",
+      "nameAlt": "Flervariabelanalys",
+      "acYear": "2022/2023",
+      "discont": "0"
+    },
+    {
+      "courseCode": "TRA340",
+      "name": "Design of sustainable infrastructure and urban transformation",
+      "nameAlt": "Design av hållbar infrastruktur och stadsomvandling",
+      "acYear": "2023/2024",
+      "discont": "1"
+    },
+    {
+      "courseCode": "MVE660",
+      "name": "Multivariable calculus",
+      "nameAlt": "Flervariabelanalys",
+      "acYear": "2021/2022",
+      "discont": "0"
+    },
+    {
+      "courseCode": "DAT405",
+      "name": "Introduction to data science and AI",
+      "nameAlt": "Introduktion till data science och AI",
+      "acYear": "2021/2022",
+      "discont": "0"
+    },
+    {
+      "courseCode": "MVE660",
+      "name": "Multivariable calculus",
+      "nameAlt": "Flervariabelanalys",
+      "acYear": "2025/2026",
+      "discont": "0"
+    },
+    {
+      "courseCode": "DAT405",
+      "name": "Introduction to data science and AI",
+      "nameAlt": "Introduktion till data science och AI",
+      "acYear": "2022/2023",
+      "discont": "0"
+    },
+    {
+      "courseCode": "MVE660",
+      "name": "Multivariable calculus",
+      "nameAlt": "Flervariabelanalys",
+      "acYear": "2024/2025",
+      "discont": "0"
+    },
+    {
+      "courseCode": "ACE550",
+      "name": "Community architecture and urban design",
+      "nameAlt": "Arkitektur och stadsbyggnad för gemenskap",
+      "acYear": "2024/2025",
+      "discont": "0"
+    },
+    {
+      "courseCode": "MVE660",
+      "name": "Multivariable calculus",
+      "nameAlt": "Flervariabelanalys",
+      "acYear": "2023/2024",
+      "discont": "0"
+    },
+    {
+      "courseCode": "ACE550",
+      "name": "Design and planning for social inclusion",
+      "nameAlt": "Gestaltning och planering för social integration",
+      "acYear": "2023/2024",
+      "discont": "0"
+    }
+  ]
+}

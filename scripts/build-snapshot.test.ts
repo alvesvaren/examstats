@@ -22,6 +22,13 @@ const results: ResultsFile = {
     { code: "TDA357", name: "Databaser", programme: "TKITE", parts: [exam("2026-03-20", { U: 10, "3": 20, "4": 10, "5": 5 })] },
     { code: "ABC123", name: "Gammal kurs", programme: null, parts: [exam("2022-01-10", { U: 1, "3": 2, "4": 3, "5": 4 })] },
     { code: "NEW001", name: "Ny kurs", programme: null, parts: [] },
+    // Its last round was in 2022/2023, and a re-exam since gave a result.
+    {
+      code: "DAT405",
+      name: "Introduktion till data science och AI",
+      programme: null,
+      parts: [exam("2025-09-16", { U: 1, "3": 0, "4": 0, "5": 0 })],
+    },
   ],
 };
 
@@ -32,9 +39,10 @@ const names: NamesFile = {
     NEWMP: { en: "", sv: "" },
   },
   courses: [
-    { code: "TDA357", en: "Databases", sv: "Databaser" },
+    { code: "TDA357", en: "Databases", sv: "Databaser", lastOffered: "2026/2027" },
     // A name Chalmers has in one language only has the other one empty.
-    { code: "NEW001", en: "New course", sv: "" },
+    { code: "NEW001", en: "New course", sv: "", lastOffered: "2026/2027" },
+    { code: "DAT405", en: "Introduction to data science and AI", sv: "Introduktion till data science och AI", lastOffered: "2022/2023" },
   ],
 };
 
@@ -152,8 +160,8 @@ describe("buildSnapshot", () => {
     const { index, courses } = build();
     expect(index.generatedAt).toBe("2026-11-21T12:00:00.000Z");
     expect(index.evaluationsFetchedAt).toBe(FETCHED_AT);
-    expect(index.courses.map((c) => c.code)).toEqual(["TDA357", "ABC123", "NEW001"]);
-    expect(courses.map((c) => c.code)).toEqual(["TDA357", "ABC123", "NEW001"]);
+    expect(index.courses.map((c) => c.code)).toEqual(["TDA357", "ABC123", "NEW001", "DAT405"]);
+    expect(courses.map((c) => c.code)).toEqual(["TDA357", "ABC123", "NEW001", "DAT405"]);
   });
 
   describe("course names", () => {
@@ -221,9 +229,16 @@ describe("buildSnapshot", () => {
   });
 
   describe("results", () => {
-    it("marks a course ended when its last result is over 548 days old, or it has none", () => {
+    it("ends a course that chalmers.se no longer offers, however recent its re-exams", () => {
+      expect(summaryOf("DAT405")).toMatchObject({ lastResult: "2025-09-16", ended: true });
+    });
+
+    it("keeps a course that a plan has this year, however old its last result", () => {
       expect(summaryOf("TDA357")).toMatchObject({ lastResult: "2026-03-20", ended: false });
-      expect(summaryOf("ABC123")).toMatchObject({ lastResult: "2022-01-10", ended: true });
+      expect(summaryOf("ABC123")).toMatchObject({ lastResult: "2022-01-10", ended: false });
+    });
+
+    it("ends a course that no plan has this year once it has had no results for 548 days", () => {
       expect(summaryOf("NEW001")).toMatchObject({ lastResult: null, ended: true });
     });
 

@@ -29,7 +29,7 @@
 
 - Pass rate: passed attempts divided by all attempts on the main exam, over the last three academic years with results.
 - Size: attempts per year on the main exam, over the same three years.
-- Ended: no new results for 18 months.
+- Ended: no plan has the course this year, and either chalmers.se no longer offers it or it has had no results for 18 months. chalmers.se offers a course in an academic year when it has a syllabus of the course for that year that does not discontinue it. Re-exams give results for years after a course's last round, so results alone do not keep a course running. A course that chalmers.se has not listed since 2021/2022 goes by its results.
 - Main exam: the exam part with the most attempts. Courses without an exam use their largest part.
 - Rating: the mean answer to "What is your overall impression of the course?" in Chalmers course surveys, 1 to 5, over every answer in the last three academic years with surveys. Courses change, so older rounds stay out, also of the course page. Courses with fewer than five answers have no rating. The survey reports only show how many gave each answer as a bar chart per question, so `pnpm evaluations` reads the bar lengths of every standard question and checks them against the reported mean.
 - Trend: the rating per academic year over the last five years with surveys, on the fixed 1 to 5 scale, so rows compare. A year with fewer than five answers is left out. Sorting by trend compares the last year with the mean of up to three years before it.

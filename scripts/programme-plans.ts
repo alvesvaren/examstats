@@ -5,7 +5,8 @@
  * builds each start year's degree from them. The plans name no examiners or seats, so it also fetches the syllabus of
  * each course in the current plans for the examiners and seats of its rounds. The degree requirements of a programme, and the
  * prerequisites of a master's programme, come from its programme syllabus of each year.
- * It also writes `data/names.json`, the English and Swedish names of every course and programme since 2021/2022.
+ * It also writes `data/names.json`, the English and Swedish names of every course and programme since 2021/2022, and the
+ * newest academic year chalmers.se offers each course in.
  * A weekly GitHub Action runs it and commits the files when they change. The only code that knows that API.
  */
 import { mkdir, writeFile } from "node:fs/promises";
@@ -90,9 +91,15 @@ const listSchema = z.object({
 
 /** A list row in English names the course or programme in English, and `nameAlt` in Swedish. */
 const nameRowSchema = z.object({ name: z.string(), nameAlt: z.string().nullable(), acYear: z.string() });
-const courseNameRowSchema = nameRowSchema.extend({ courseCode: z.string() });
+/** One row per course and academic year it has a syllabus for. */
+const courseNameRowSchema = nameRowSchema.extend({
+  courseCode: z.string(),
+  /** That year's syllabus marks the course as discontinued. */
+  discont: z.enum(["0", "1"]).transform((flag) => flag === "1"),
+});
 const programmeNameRowSchema = nameRowSchema.extend({ programCode: z.string() });
 const pageSchema = <T>(row: z.ZodType<T>) => z.object({ info: z.object({ count: z.number().int() }), results: z.array(row) });
+export const courseListSchema = pageSchema(courseNameRowSchema);
 
 const momentSchema = z.object({
   courseCode: z.string(),
@@ -344,12 +351,31 @@ async function listAll<T>(apiUrl: string, index: string, row: z.ZodType<T>) {
   }
 }
 
+const byAcademicYear = (a: { acYear: string }, b: { acYear: string }) => a.acYear.localeCompare(b.acYear);
+
 /** The English and Swedish names of each code, from the newest academic year that has it, by code. */
 function newestNames(rows: readonly (z.infer<typeof nameRowSchema> & { code: string })[]) {
-  const newest = new Map(rows.toSorted((a, b) => a.acYear.localeCompare(b.acYear)).map((row) => [row.code, row]));
+  const newest = new Map(rows.toSorted(byAcademicYear).map((row) => [row.code, row]));
   return [...newest.values()]
     .map(({ code, name, nameAlt }) => ({ code, en: name.trim(), sv: nameAlt?.trim() || name.trim() }))
     .toSorted((a, b) => a.code.localeCompare(b.code));
+}
+
+/**
+ * The names of each course in the course list, and the newest academic year whose syllabus offers the course
+ * without discontinuing it. That year is null when every syllabus discontinues it.
+ */
+export function toCourseNames(rows: readonly z.infer<typeof courseNameRowSchema>[]): NamesFile["courses"] {
+  const lastOffered = new Map(
+    rows
+      .filter((row) => !row.discont)
+      .toSorted(byAcademicYear)
+      .map((row) => [row.courseCode, row.acYear]),
+  );
+  return newestNames(rows.map((row) => ({ ...row, code: row.courseCode }))).map((course) => ({
+    ...course,
+    lastOffered: lastOffered.get(course.code) ?? null,
+  }));
 }
 
 async function fetchNames(apiUrl: string): Promise<NamesFile> {
@@ -359,7 +385,7 @@ async function fetchNames(apiUrl: string): Promise<NamesFile> {
   ]);
   const names: NamesFile = {
     programmes: Object.fromEntries(newestNames(programmes.map((p) => ({ ...p, code: p.programCode }))).map(({ code, ...n }) => [code, n])),
-    courses: newestNames(courses.map((c) => ({ ...c, code: c.courseCode }))),
+    courses: toCourseNames(courses),
   };
   if (names.courses.length < MIN_COURSE_NAMES) throw new Error(`Only ${names.courses.length} course names`);
   return names;
