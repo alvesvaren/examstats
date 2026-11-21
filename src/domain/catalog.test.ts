@@ -4,7 +4,6 @@ import {
   examinerNamed,
   matchExaminers,
   matchProgrammes,
-  partLabel,
   queryCourses,
   surveyColumn,
   toCatalog,
@@ -220,16 +219,5 @@ describe("trendDelta", () => {
 
   it("is null without history", () => {
     expect(trendDelta([[2025, 3.5]])).toBeNull();
-  });
-});
-
-describe("partLabel", () => {
-  it("translates the part type and keeps the part letter", () => {
-    expect(["Tentamen", "Laboration, del A", "Muntlig tentamen", "Okänd typ"].map(partLabel)).toEqual([
-      "Exam",
-      "Lab, part A",
-      "Oral exam",
-      "Okänd typ",
-    ]);
   });
 });

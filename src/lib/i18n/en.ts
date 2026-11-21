@@ -2,13 +2,13 @@
  * Every word the site shows in English. The Swedish messages have the same shape. The build imports this file for page
  * titles and link previews, so imports use relative paths.
  */
-import { partLabel } from "../../domain/catalog.ts";
 import { RECENT_YEARS } from "../../domain/course-stats.ts";
 import { ANSWER_SCALE, BALANCED_WORKLOAD, EVALUATION_YEARS, RATING_YEARS, type Question } from "../../domain/evaluation.ts";
 import type { Requirement, Theme } from "../../domain/programme-plans.ts";
 import type { TrendPoint } from "../../domain/evaluation.ts";
 import type { Spread } from "../../domain/spread.ts";
 import { FORMATS, periodsWith } from "../format.ts";
+import { partLabel } from "./part-label.ts";
 
 const f = FORMATS.en;
 
