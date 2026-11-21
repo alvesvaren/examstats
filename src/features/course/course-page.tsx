@@ -71,7 +71,7 @@ export function CoursePage() {
           )}
           {credits !== undefined && <span className="tabular-nums">{t.credits(credits)}</span>}
           {course.ended && <Badge variant="secondary">{t.course.ended}</Badge>}
-          {detail.placements.length > 0 && (
+          {detail.hasSyllabus && (
             <a
               href={t.chalmers.syllabus(code)}
               target="_blank"

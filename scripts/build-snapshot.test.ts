@@ -170,6 +170,13 @@ describe("buildSnapshot", () => {
     });
   });
 
+  describe("syllabus", () => {
+    it("says a course has a syllabus when names.json has it, whether or not a plan has it this year", () => {
+      // NEW001 is in no plan, and ABC123 is in a plan of this year but not in names.json.
+      expect(["TDA357", "NEW001", "ABC123"].map((code) => detailOf(code).hasSyllabus)).toEqual([true, true, false]);
+    });
+  });
+
   describe("programme names", () => {
     it("takes the names.json name, then the results name, then the code, over every code in either file", () => {
       expect(build().index.programmes).toEqual({

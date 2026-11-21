@@ -65,6 +65,7 @@ export function buildSnapshot({ results, evaluations, plans, names, upcoming: up
       parts,
       evaluations: rounds,
       placements: coursePlacements,
+      hasSyllabus: courseNames.has(course.code),
     });
     courses.push({
       ...summarizeCourse({ ...course, ...nameOf(courseNames.get(course.code), name) }, parts, today),
