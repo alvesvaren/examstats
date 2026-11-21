@@ -1,0 +1,102 @@
+{
+  "search": {
+    "results": [
+      {
+        "degreeWithDegreeRequirements": [
+          {
+            "reqCode": "CRED_TOT",
+            "reqCredit": 180
+          },
+          {
+            "reqCode": "COURSES_IN_PLAN",
+            "reqCredit": 0
+          },
+          {
+            "reqCode": "CRED_DEGREE_PROJ",
+            "reqCredit": 15
+          },
+          {
+            "reqCode": "CRED_CTH_INC",
+            "reqCredit": 60
+          },
+          {
+            "reqCode": "CRED_MAIN_FIELD",
+            "reqCredit": 90
+          },
+          {
+            "reqCode": "CRED_MTS",
+            "reqCredit": 7.5
+          },
+          {
+            "reqCode": "CRED_CTH_INC",
+            "reqCredit": 90
+          },
+          {
+            "reqCode": "CRED_MJO",
+            "reqCredit": 7.5
+          },
+          {
+            "reqCode": "C_IN_PLAN_ACK_MP",
+            "reqCredit": 0
+          },
+          {
+            "reqCode": "CRED_ADV_LEV_INC",
+            "reqCredit": 90
+          },
+          {
+            "reqCode": "CRED_DEGREE_PROJ",
+            "reqCredit": 30
+          },
+          {
+            "reqCode": "CRED_TOT",
+            "reqCredit": 300
+          },
+          {
+            "reqCode": "COURSES_IN_PLAN",
+            "reqCredit": 0
+          },
+          {
+            "reqCode": "CRED_MATH_NO_DP",
+            "reqCredit": 30
+          },
+          {
+            "reqCode": "CRED_ADV_CTH_INC",
+            "reqCredit": 45
+          }
+        ],
+        "degreeWithDegreeSpecRequirements": [
+          {
+            "degreeSpecId": 137,
+            "courseCode": "EDA322"
+          },
+          {
+            "degreeSpecId": 137,
+            "courseCode": "EEF031"
+          },
+          {
+            "degreeSpecId": 137,
+            "courseCode": "FFR105"
+          },
+          {
+            "degreeSpecId": 137,
+            "courseCode": "TDA507"
+          }
+        ],
+        "accreditations": {
+          "forMastersProgramme": [
+            {
+              "masterCode": "MPALG"
+            },
+            {
+              "masterCode": "MPCSC"
+            },
+            {
+              "masterCode": "MPSOF"
+            }
+          ]
+        },
+        "prerequisites": ""
+      }
+    ]
+  }
+}

@@ -1,0 +1,235 @@
+{
+  "search": {
+    "results": [
+      {
+        "courseCode": "TDA357",
+        "courseRounds": [
+          {
+            "cancelled": 0,
+            "blockSchedule": "D+",
+            "maxAmount": 185,
+            "moments": [
+              {
+                "mCode": "0206",
+                "credit": 3,
+                "distribution": [
+                  {
+                    "code": "LP1",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP2",
+                    "credit": 3
+                  },
+                  {
+                    "code": "LP3",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP4",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP5",
+                    "credit": null
+                  },
+                  {
+                    "code": "OTH",
+                    "credit": null
+                  }
+                ]
+              },
+              {
+                "mCode": "0106",
+                "credit": 4.5,
+                "distribution": [
+                  {
+                    "code": "LP1",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP2",
+                    "credit": 4.5
+                  },
+                  {
+                    "code": "LP3",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP4",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP5",
+                    "credit": null
+                  },
+                  {
+                    "code": "OTH",
+                    "credit": null
+                  }
+                ]
+              }
+            ],
+            "examiners": [
+              {
+                "fName": "Examiner1",
+                "lName": "Number1"
+              }
+            ]
+          },
+          {
+            "cancelled": 0,
+            "blockSchedule": "B+",
+            "maxAmount": 165,
+            "moments": [
+              {
+                "mCode": "0206",
+                "credit": 3,
+                "distribution": [
+                  {
+                    "code": "LP1",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP2",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP3",
+                    "credit": 3
+                  },
+                  {
+                    "code": "LP4",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP5",
+                    "credit": null
+                  },
+                  {
+                    "code": "OTH",
+                    "credit": null
+                  }
+                ]
+              },
+              {
+                "mCode": "0106",
+                "credit": 4.5,
+                "distribution": [
+                  {
+                    "code": "LP1",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP2",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP3",
+                    "credit": 4.5
+                  },
+                  {
+                    "code": "LP4",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP5",
+                    "credit": null
+                  },
+                  {
+                    "code": "OTH",
+                    "credit": null
+                  }
+                ]
+              }
+            ],
+            "examiners": [
+              {
+                "fName": "Examiner2",
+                "lName": "Number1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "courseCode": "DAT151",
+        "courseRounds": [
+          {
+            "cancelled": 0,
+            "blockSchedule": "B",
+            "maxAmount": -1,
+            "moments": [
+              {
+                "mCode": "0212",
+                "credit": 1.5,
+                "distribution": [
+                  {
+                    "code": "LP1",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP2",
+                    "credit": 1.5
+                  },
+                  {
+                    "code": "LP3",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP4",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP5",
+                    "credit": null
+                  },
+                  {
+                    "code": "OTH",
+                    "credit": null
+                  }
+                ]
+              },
+              {
+                "mCode": "0112",
+                "credit": 6,
+                "distribution": [
+                  {
+                    "code": "LP1",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP2",
+                    "credit": 6
+                  },
+                  {
+                    "code": "LP3",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP4",
+                    "credit": null
+                  },
+                  {
+                    "code": "LP5",
+                    "credit": null
+                  },
+                  {
+                    "code": "OTH",
+                    "credit": null
+                  }
+                ]
+              }
+            ],
+            "examiners": [
+              {
+                "fName": "Examiner1",
+                "lName": "Number1"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

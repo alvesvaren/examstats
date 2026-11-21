@@ -1,0 +1,28 @@
+{
+  "courses": [
+    {
+      "courseCode": "CIUX03",
+      "courseName": "Kandidatarbete vid Tillämpad informationsteknologi",
+      "programShort": "TKITE",
+      "programLong": "INFORMATIONSTEKNIK, CIVILINGENJÖR"
+    },
+    {
+      "courseCode": "CIU250",
+      "courseName": "Interkulturell kommunikativ kompetens",
+      "programShort": "SPRAK",
+      "programLong": "-"
+    },
+    {
+      "courseCode": "ACE615",
+      "courseName": "Form, rum och struktur",
+      "programShort": "-",
+      "programLong": "-"
+    },
+    {
+      "courseCode": "CTE031",
+      "courseName": "Teknikhistoria",
+      "programShort": "MTS",
+      "programLong": "-"
+    }
+  ]
+}

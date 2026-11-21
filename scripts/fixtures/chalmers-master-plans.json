@@ -1,0 +1,308 @@
+{
+  "search": {
+    "results": [
+      {
+        "programCode": "MPBIO",
+        "yearClasses": [
+          {
+            "grade": 1,
+            "courseMoments": [
+              {
+                "courseCode": "BBT051",
+                "courseName": "Sustainable food production",
+                "cancelled": false,
+                "moduleCode": "0123",
+                "momentCredit": 3.5,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP1",
+                "blockSchedule": "D",
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 85202,
+                "momentGroupings": [
+                  {
+                    "varId": 5102,
+                    "cl": "MAN",
+                    "benamning": "The following courses are classified as compulsury elective and can be studied during both year 1 and 2.",
+                    "req_Courses": null,
+                    "req_Cred": 37.5
+                  },
+                  {
+                    "varId": 5215,
+                    "cl": "REC",
+                    "benamning": "To acquire a profile from track <i>Food and health</i>, it is recommended to follow one or more of these specified courses",
+                    "req_Courses": 0,
+                    "req_Cred": 0
+                  },
+                  {
+                    "varId": 5218,
+                    "cl": "REC",
+                    "benamning": "To acquire a profile from track <i>Systems biotechnology and bioeconomy</i>, it is recommended to follow one or more of these specified courses",
+                    "req_Courses": 0,
+                    "req_Cred": 0
+                  }
+                ]
+              },
+              {
+                "courseCode": "BBT051",
+                "courseName": "Sustainable food production",
+                "cancelled": false,
+                "moduleCode": "0223",
+                "momentCredit": 4,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP1",
+                "blockSchedule": "D",
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 85202,
+                "momentGroupings": [
+                  {
+                    "varId": 5102,
+                    "cl": "MAN",
+                    "benamning": "The following courses are classified as compulsury elective and can be studied during both year 1 and 2.",
+                    "req_Courses": null,
+                    "req_Cred": 37.5
+                  },
+                  {
+                    "varId": 5215,
+                    "cl": "REC",
+                    "benamning": "To acquire a profile from track <i>Food and health</i>, it is recommended to follow one or more of these specified courses",
+                    "req_Courses": 0,
+                    "req_Cred": 0
+                  },
+                  {
+                    "varId": 5218,
+                    "cl": "REC",
+                    "benamning": "To acquire a profile from track <i>Systems biotechnology and bioeconomy</i>, it is recommended to follow one or more of these specified courses",
+                    "req_Courses": 0,
+                    "req_Cred": 0
+                  }
+                ]
+              },
+              {
+                "courseCode": "KBB101",
+                "courseName": "Biochemical toxicology",
+                "cancelled": false,
+                "moduleCode": "0114",
+                "momentCredit": 7.5,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP1",
+                "blockSchedule": "B+",
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 86725,
+                "momentGroupings": [
+                  {
+                    "varId": 5102,
+                    "cl": "MAN",
+                    "benamning": "The following courses are classified as compulsury elective and can be studied during both year 1 and 2.",
+                    "req_Courses": null,
+                    "req_Cred": 37.5
+                  },
+                  {
+                    "varId": 5217,
+                    "cl": "REC",
+                    "benamning": "To acquire a profile from track <i>Biomolecular science and technology</i>, it is recommended to follow one or more of these specified courses",
+                    "req_Courses": 0,
+                    "req_Cred": 0
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "grade": 2,
+            "courseMoments": [
+              {
+                "courseCode": "BBT051",
+                "courseName": "Sustainable food production",
+                "cancelled": false,
+                "moduleCode": "0123",
+                "momentCredit": 3.5,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP1",
+                "blockSchedule": "D",
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 85204,
+                "momentGroupings": [
+                  {
+                    "varId": 5219,
+                    "cl": "REC",
+                    "benamning": "These compulsory elective courses are recommended for year 2.",
+                    "req_Courses": 0,
+                    "req_Cred": 0
+                  }
+                ]
+              },
+              {
+                "courseCode": "BBT051",
+                "courseName": "Sustainable food production",
+                "cancelled": false,
+                "moduleCode": "0223",
+                "momentCredit": 4,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP1",
+                "blockSchedule": "D",
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 85204,
+                "momentGroupings": [
+                  {
+                    "varId": 5219,
+                    "cl": "REC",
+                    "benamning": "These compulsory elective courses are recommended for year 2.",
+                    "req_Courses": 0,
+                    "req_Cred": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "programCode": "MPCAS",
+        "yearClasses": [
+          {
+            "grade": 1,
+            "courseMoments": [
+              {
+                "courseCode": "TIF295",
+                "courseName": "Experimental methods in modern physics",
+                "cancelled": false,
+                "moduleCode": "0119",
+                "momentCredit": 3,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP1",
+                "blockSchedule": "A",
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 86226,
+                "momentGroupings": [
+                  {
+                    "varId": 5103,
+                    "cl": "MAN",
+                    "benamning": "-",
+                    "req_Courses": null,
+                    "req_Cred": 22.5
+                  },
+                  {
+                    "varId": 5221,
+                    "cl": "REC",
+                    "benamning": "The course is normally followed during the second year of the Masters programme",
+                    "req_Courses": 0,
+                    "req_Cred": 0
+                  }
+                ]
+              },
+              {
+                "courseCode": "MVE155",
+                "courseName": "Statistical inference",
+                "cancelled": false,
+                "moduleCode": "0107",
+                "momentCredit": 7.5,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP3",
+                "blockSchedule": "B",
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 83926,
+                "momentGroupings": [
+                  {
+                    "varId": 5103,
+                    "cl": "MAN",
+                    "benamning": "-",
+                    "req_Courses": null,
+                    "req_Cred": 22.5
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "programCode": "MPBDP",
+        "yearClasses": [
+          {
+            "grade": 1,
+            "courseMoments": [
+              {
+                "courseCode": "TEK031",
+                "courseName": "Organizational behavior",
+                "cancelled": false,
+                "moduleCode": "0124",
+                "momentCredit": 1.5,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP4",
+                "blockSchedule": "A",
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 85500,
+                "momentGroupings": [
+                  {
+                    "varId": 5101,
+                    "cl": "MAN",
+                    "benamning": "At least one",
+                    "req_Courses": 1,
+                    "req_Cred": 0
+                  }
+                ]
+              },
+              {
+                "courseCode": "TEK031",
+                "courseName": "Organizational behavior",
+                "cancelled": false,
+                "moduleCode": "0224",
+                "momentCredit": 6,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP4",
+                "blockSchedule": "A",
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 85500,
+                "momentGroupings": [
+                  {
+                    "varId": 5101,
+                    "cl": "MAN",
+                    "benamning": "At least one",
+                    "req_Courses": 1,
+                    "req_Cred": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
