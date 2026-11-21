@@ -1,6 +1,5 @@
 import { createContext, use, useEffect, useState, type ReactNode } from "react";
-
-type Theme = "light" | "dark" | "system";
+import type { Theme } from "@/lib/theme";
 
 /** Also read by the inline script in index.html, which applies the theme before first paint. */
 const STORAGE_KEY = "u345-theme";
@@ -27,23 +26,24 @@ function useApplyTheme(theme: Theme) {
   }, [theme]);
 }
 
-const ThemeContext = createContext<{ toggle: () => void } | null>(null);
+const ThemeContext = createContext<{ theme: Theme; choose: (theme: Theme) => void } | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState(readStoredTheme);
   useApplyTheme(theme);
 
-  const toggle = () => {
-    const next = document.documentElement.classList.contains("dark") ? "light" : "dark";
+  const choose = (next: Theme) => {
     try {
-      localStorage.setItem(STORAGE_KEY, next);
+      // "system" is stored as no choice, so the device decides again.
+      if (next === "system") localStorage.removeItem(STORAGE_KEY);
+      else localStorage.setItem(STORAGE_KEY, next);
     } catch {
       // Private windows can refuse storage. The theme still applies for this visit.
     }
     setTheme(next);
   };
 
-  return <ThemeContext value={{ toggle }}>{children}</ThemeContext>;
+  return <ThemeContext value={{ theme, choose }}>{children}</ThemeContext>;
 }
 
 // oxlint-disable-next-line react/only-export-components -- The provider and its hook share a private context.

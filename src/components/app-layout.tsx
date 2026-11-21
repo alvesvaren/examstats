@@ -1,9 +1,16 @@
 import type { ReactNode } from "react";
 import { HeadContent, Link, Outlet, useRouter, type ErrorComponentProps } from "@tanstack/react-router";
-import { ArrowUpIcon, MoonIcon, SunIcon } from "lucide-react";
+import { ArrowUpIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 import { cn } from "cn";
 import { GradeChip } from "@/components/grade";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { LANGUAGES, languageSchema } from "@/domain/names";
@@ -12,20 +19,41 @@ import { useMessages } from "@/hooks/use-messages";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import { useScrolledPast } from "@/hooks/use-scrolled-past";
 import { useTheme } from "@/hooks/use-theme";
+import { isTheme, THEMES } from "@/lib/theme";
 
 const LOGO_GRADES = ["U", "3", "4", "5"] as const;
 const SKELETON_ROWS = 12;
 /** How far down the page, in pixels, the button back to the top appears. */
 const SCROLL_TOP_OFFSET = 600;
 
-function ThemeToggle() {
-  const { toggle } = useTheme();
+const THEME_ICONS = { light: SunIcon, dark: MoonIcon, system: MonitorIcon };
+
+/** Picks light, dark or the device's theme. The button shows the theme in use. */
+function ThemePicker() {
+  const { theme, choose } = useTheme();
   const t = useMessages();
   return (
-    <Button variant="ghost" size="icon" onClick={toggle} aria-label={t.layout.toggleTheme}>
-      <SunIcon className="hidden dark:block" />
-      <MoonIcon className="dark:hidden" />
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label={t.layout.theme}>
+          <SunIcon className="dark:hidden" />
+          <MoonIcon className="hidden dark:block" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuRadioGroup value={theme} onValueChange={(next) => isTheme(next) && choose(next)}>
+          {THEMES.map((option) => {
+            const Icon = THEME_ICONS[option];
+            return (
+              <DropdownMenuRadioItem key={option} value={option}>
+                <Icon aria-hidden />
+                {t.layout.themes[option]}
+              </DropdownMenuRadioItem>
+            );
+          })}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -101,7 +129,7 @@ export function AppLayout() {
             </Link>
           </Button>
           <LanguageSwitcher />
-          <ThemeToggle />
+          <ThemePicker />
         </nav>
       </header>
       <main className="flex-1 pb-16">
