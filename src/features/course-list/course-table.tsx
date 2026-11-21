@@ -26,7 +26,7 @@ const TABLE_WIDTH = "min-w-[47.75rem]";
 const GRID = cn(
   "grid items-center gap-x-4",
   TABLE_WIDTH,
-  "grid-cols-[minmax(5rem,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_6.5rem_5rem] lg:grid-cols-[minmax(0,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_6.5rem_5rem]",
+  "grid-cols-[minmax(5rem,1fr)_4.25rem_5rem_4.5rem_4rem_6.5rem_5.5rem_5rem] lg:grid-cols-[minmax(0,1fr)_4.25rem_5rem_4.5rem_4rem_6.5rem_5.5rem_5rem]",
 );
 /** Stays in view while the table scrolls sideways, covering what scrolls under it, with an edge once something has. */
 const PINNED =
@@ -45,11 +45,11 @@ interface Column {
   survey?: boolean;
 }
 
-const columnsOf = (survey: Question): Column[] => [
-  ...BASE_COLUMNS.slice(0, -1),
-  { key: surveySortKey(survey), align: "end", survey: true },
-  ...BASE_COLUMNS.slice(-1),
-];
+/** The columns with the course survey question the reader picked, right before the trend of the course's rating. */
+const columnsOf = (survey: Question): Column[] =>
+  BASE_COLUMNS.flatMap((column): Column[] =>
+    column.key === "trend" ? [{ key: surveySortKey(survey), align: "end", survey: true }, column] : [column],
+  );
 
 const BASE_COLUMNS = [
   { key: "name" },
@@ -288,10 +288,10 @@ const CourseRow = memo(function CourseRow({ course, survey, examiner, canHover, 
           <AverageGradeCell grades={course.recentGrades} interactive={canHover} />
         </div>
         <div className="flex justify-end">
-          <Sparkline trend={course.trend} interactive={canHover} className={cn(muted)} />
+          <SurveyCell question={survey} answers={course.surveyAnswers[survey]} muted={course.ended} interactive={canHover} />
         </div>
         <div className="flex justify-end">
-          <SurveyCell question={survey} answers={course.surveyAnswers[survey]} muted={course.ended} interactive={canHover} />
+          <Sparkline trend={course.trend} interactive={canHover} className={cn(muted)} />
         </div>
         <div className="text-right tabular-nums">{t.format.month(course.lastResult)}</div>
       </div>
