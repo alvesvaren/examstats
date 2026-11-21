@@ -29,16 +29,17 @@ import {
 } from "../src/domain/programme-plans.ts";
 import { upcomingMasters, upcomingMastersFileSchema } from "../src/domain/upcoming-masters.ts";
 
-const env = z
-  .object({
-    OUT_DIR: z.string().default("public/data"),
-    RESULTS_FILE: z.string().default("data/results.json"),
-    EVALUATIONS_FILE: z.string().default("data/evaluations.json"),
-    PLANS_FILE: z.string().default("data/programme-plans.json"),
-    NAMES_FILE: z.string().default("data/names.json"),
-    UPCOMING_MASTERS_FILE: z.string().default("data/upcoming-masters.json"),
-  })
-  .parse(process.env);
+const parseEnv = () =>
+  z
+    .object({
+      OUT_DIR: z.string().default("public/data"),
+      RESULTS_FILE: z.string().default("data/results.json"),
+      EVALUATIONS_FILE: z.string().default("data/evaluations.json"),
+      PLANS_FILE: z.string().default("data/programme-plans.json"),
+      NAMES_FILE: z.string().default("data/names.json"),
+      UPCOMING_MASTERS_FILE: z.string().default("data/upcoming-masters.json"),
+    })
+    .parse(process.env);
 
 const DECIMALS = 1e2;
 
@@ -49,6 +50,7 @@ const roundNumbers = (_key: string, value: unknown) =>
 const readJson = async <T>(file: string, schema: z.ZodType<T>) => schema.parse(JSON.parse(await readFile(file, "utf8")));
 
 async function main() {
+  const env = parseEnv();
   const today = new Date();
   const [results, evaluations, plans, names, upcomingFile] = await Promise.all([
     readJson(env.RESULTS_FILE, resultsFileSchema),
@@ -135,4 +137,4 @@ async function main() {
   console.log(`Wrote ${courses.length} courses and ${Object.keys(snapshot.programmes).length} programmes to ${env.OUT_DIR}`);
 }
 
-await main();
+if (import.meta.main) await main();
