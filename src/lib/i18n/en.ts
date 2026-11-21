@@ -83,7 +83,6 @@ export const en = {
     dataFrom: "Data from",
     surveys: "Chalmers course surveys",
     and: "and",
-    sourceCode: "Source code and feedback on GitHub",
     loadError: "Could not load the data",
     somethingWrong: "Something went wrong.",
     tryAgain: "Try again",

@@ -110,11 +110,10 @@ export function AppLayout() {
       <footer className="flex flex-col gap-2 border-t py-6 text-sm text-muted-foreground">
         <p>
           {t.layout.dataFrom} <FooterLink href="https://stats.ftek.se">stats.ftek.se</FooterLink>,{" "}
-          <FooterLink href="https://www.chalmers.se">chalmers.se</FooterLink> {t.layout.and}{" "}
-          <FooterLink href="https://course-eval.portal.chalmers.se">{t.layout.surveys}</FooterLink>
+          <FooterLink href="https://www.chalmers.se">chalmers.se</FooterLink> {t.layout.and} {t.layout.surveys}
         </p>
         <p>
-          <FooterLink href="https://github.com/alvesvaren/examstats">{t.layout.sourceCode}</FooterLink>
+          <FooterLink href="https://github.com/alvesvaren/examstats">GitHub</FooterLink>
         </p>
       </footer>
       <ScrollToTop />

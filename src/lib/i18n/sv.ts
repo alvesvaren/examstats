@@ -76,7 +76,6 @@ export const sv: Messages = {
     dataFrom: "Data från",
     surveys: "Chalmers kursutvärderingar",
     and: "och",
-    sourceCode: "Källkod och feedback på GitHub",
     loadError: "Kunde inte ladda datan",
     somethingWrong: "Något gick fel.",
     tryAgain: "Försök igen",
