@@ -21,7 +21,8 @@ import type { Messages } from "@/lib/i18n/en";
 
 /**
  * Below `lg` the table scrolls sideways and the course column narrows to the course code, so the numbers get the screen.
- * The minimum width is the fixed columns, the survey column, the gaps, the padding and that narrow course column.
+ * The minimum width is the fixed columns, the survey column, the gaps, the padding and that narrow course column. It
+ * goes on the header's grid and on the box of rows, which both hold the padding, so their columns line up.
  */
 const TABLE_WIDTH = "min-w-[calc(41.25rem_+_var(--survey-column))]";
 /**
@@ -30,7 +31,6 @@ const TABLE_WIDTH = "min-w-[calc(41.25rem_+_var(--survey-column))]";
  */
 const GRID = cn(
   "grid items-center gap-x-4",
-  TABLE_WIDTH,
   "grid-cols-[minmax(5rem,1fr)_4.25rem_5rem_4.5rem_4rem_var(--survey-column)_5.5rem_5rem] lg:grid-cols-[minmax(0,1fr)_4.25rem_5rem_4.5rem_4rem_var(--survey-column)_5.5rem_5rem]",
 );
 /** Stays in view while the table scrolls sideways, covering what scrolls under it, with an edge once something has. */
@@ -128,7 +128,7 @@ function Table({
   return (
     <div style={surveyColumn}>
       <div ref={headerRef} className="group/table sticky z-30 overflow-hidden border-b bg-background" style={{ top: stickyTop }}>
-        <div className={cn(GRID, "px-2 py-2 text-xs text-muted-foreground")}>
+        <div className={cn(GRID, TABLE_WIDTH, "px-2 py-2 text-xs text-muted-foreground")}>
           {columnsOf(survey).map((column) => (
             <SortHeader
               // The survey header keeps its element when the question changes, so its size stays measured.
