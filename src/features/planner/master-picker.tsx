@@ -4,7 +4,7 @@ import type { Catalog } from "@/domain/catalog";
 import { masterSummary, otherNameOf } from "@/domain/planner";
 import { academicYearOf, type ProgrammePlan, type UpcomingMasters } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 /** What it takes for a master's programme to complete a programme's degree. */
 export interface Accreditation {
