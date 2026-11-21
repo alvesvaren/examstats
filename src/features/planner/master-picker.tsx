@@ -24,7 +24,7 @@ export function MasterPicker({ programme, masters, accredited, catalog, onChoose
     .toSorted((a, b) => a.name.localeCompare(b.name, "sv"))
     .map((master) => ({
       master,
-      summary: masterSummary(master, catalog.byCode),
+      summary: masterSummary(master),
       otherName: otherNameOf(catalog.programmes, master.code),
       accreditation: accredited.get(master.code) ?? { specialisations: [], courseList: null },
     }));
@@ -56,7 +56,7 @@ interface MasterOptionProps {
 
 function MasterOption({ master, summary, otherName, accreditation, onChoose }: MasterOptionProps) {
   const t = useMessages();
-  const { tracks, compulsory, compulsoryCredits, electives, passRate, rating } = summary;
+  const { tracks, compulsory, compulsoryCredits, electives } = summary;
   const facts = [
     tracks.length > 0 && t.planner.tracks(tracks.length),
     compulsoryCredits > 0 ? t.planner.compulsoryCredits(compulsoryCredits) : t.planner.nothingCompulsory,
@@ -64,24 +64,15 @@ function MasterOption({ master, summary, otherName, accreditation, onChoose }: M
   ]
     .filter(Boolean)
     .join(" · ");
-  const hasResults = passRate !== null || rating !== null;
 
   return (
     <div className="flex h-full flex-col rounded-xl border transition-colors has-[>button:hover]:border-primary has-[>button:hover]:bg-muted/50">
       <button type="button" onClick={onChoose} className="flex flex-1 flex-col gap-1 px-3 pt-2.5 pb-2 text-left">
-        <span className="font-medium">{master.name}</span>
-        <span className="text-sm text-muted-foreground">{[master.code, otherName].filter(Boolean).join(" · ")}</span>
-        <span className="text-sm">{facts}</span>
-        <span className="text-sm text-muted-foreground">
-          {hasResults ? (
-            <>
-              {t.list.columns.passRate} <span className="font-medium text-foreground tabular-nums">{t.format.percent(passRate)}</span> ·{" "}
-              {t.survey.questions.overall.short} <span className="font-medium text-foreground tabular-nums">{t.format.score(rating)}</span>
-            </>
-          ) : (
-            t.noResultsYet
-          )}
+        <span className="flex flex-wrap items-baseline gap-x-2">
+          <span className="font-medium">{master.name}</span>
+          <span className="text-sm text-muted-foreground">{[master.code, otherName].filter(Boolean).join(" · ")}</span>
         </span>
+        <span className="text-sm">{facts}</span>
         {compulsory.length > 0 && (
           <span className="line-clamp-2 text-xs text-muted-foreground">{t.planner.compulsory(compulsory.map((c) => c.name))}</span>
         )}

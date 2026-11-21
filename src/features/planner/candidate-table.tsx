@@ -8,12 +8,11 @@ import { SurveyColumnPicker } from "@/components/survey-column";
 import { Badge } from "@/components/ui/badge";
 import { surveySortKey, type SortDir } from "@/domain/catalog";
 import type { Question } from "@/domain/evaluation";
-import { requirementKey, type DegreeRuleMark } from "@/domain/degree";
-import { type ListedRound, type PlanElsewhere, type PlannerRound, type PlannerSortKey, type RoundWarning } from "@/domain/planner";
+import type { ListedRound, PlannerRound, PlannerSortKey, RoundWarning } from "@/domain/planner";
 import type { StudyPeriod } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
 import type { Messages } from "@/lib/i18n/en";
-import { DegreeMark, PickMarker } from "./degree-marks";
+import { RoundMarks } from "./degree-marks";
 
 /** Sort headers sit right-aligned over their numbers. */
 const HEADER = "justify-end text-xs text-muted-foreground";
@@ -61,7 +60,7 @@ export function CandidateTable({ period, listed, planInPeriod, sort, dir, survey
         </SortHeader>
       </div>
       <ul>
-        {listed.map(({ round, picked, elsewhere, warnings, marks }) => (
+        {listed.map(({ round, picked, elsewhere, warnings, picks, marks }) => (
           <Candidate
             key={round.key}
             round={round}
@@ -70,6 +69,7 @@ export function CandidateTable({ period, listed, planInPeriod, sort, dir, survey
             picked={picked}
             elsewhere={elsewhere}
             warnings={warnings}
+            picks={picks}
             marks={marks}
             onToggle={() => onToggle(round)}
           />
@@ -106,22 +106,15 @@ function CourseLink({ round }: { round: PlannerRound }) {
   );
 }
 
-interface CandidateProps {
-  round: PlannerRound;
+interface CandidateProps extends ListedRound {
   /** The course survey question the list shows. */
   survey: Question;
   /** The study period the list shows. */
   period: StudyPeriod;
-  picked: boolean;
-  /** Where another round of the same course is in the plan. It greys this round out. */
-  elsewhere: PlanElsewhere | undefined;
-  warnings: RoundWarning[];
-  /** What the course gives towards the degree requirements the student has to choose courses for. */
-  marks: DegreeRuleMark[];
   onToggle: () => void;
 }
 
-function Candidate({ round, survey, period, picked, elsewhere, warnings, marks, onToggle }: CandidateProps) {
+function Candidate({ round, survey, period, picked, elsewhere, warnings, picks, marks, onToggle }: CandidateProps) {
   const t = useMessages();
   const { requirement, stats } = round;
   const inOtherYear = Boolean(elsewhere?.year);
@@ -162,17 +155,10 @@ function Candidate({ round, survey, period, picked, elsewhere, warnings, marks, 
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className={cn("line-clamp-2", !elsewhere && "font-medium")}>
-            {requirement.kind === "compulsoryElective" && (
-              <span className="mr-1.5 inline-flex align-middle">
-                <PickMarker />
-              </span>
-            )}
             <CourseLink round={round} />
           </span>
+          <RoundMarks picks={picks} marks={marks} />
           {round.periods.length > 1 && <Badge variant="outline">{t.planner.runs(t.periods(round.periods))}</Badge>}
-          {marks.map((mark) => (
-            <DegreeMark key={requirementKey(mark.requirement)} mark={mark} />
-          ))}
         </span>
         <span className="text-xs text-muted-foreground">{details}</span>
         {warnings.map((warning) => {

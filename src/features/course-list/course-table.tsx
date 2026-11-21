@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { defaultSortDir, examinerNamed, flip, surveySortKey, type CatalogCourse, type SortDir, type SortKey } from "@/domain/catalog";
 import type { Question } from "@/domain/evaluation";
 import type { InLanguage } from "@/domain/names";
+import { useElementSize } from "@/hooks/use-element-size";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useScrollLeftSync } from "@/hooks/use-scroll-left-sync";
 import { useWindowVirtualList } from "@/hooks/use-window-virtual-list";
@@ -20,13 +21,17 @@ import type { Messages } from "@/lib/i18n/en";
 
 /**
  * Below `lg` the table scrolls sideways and the course column narrows to the course code, so the numbers get the screen.
- * The minimum width is the fixed columns, the gaps, the padding and that narrow course column.
+ * The minimum width is the fixed columns, the survey column, the gaps, the padding and that narrow course column. It
+ * goes on the header's grid and on the box of rows, which both hold the padding, so their columns line up.
  */
-const TABLE_WIDTH = "min-w-[47.75rem]";
+const TABLE_WIDTH = "min-w-[calc(41.25rem_+_var(--survey-column))]";
+/**
+ * The survey column is as wide as its header, which changes with the question picked and the language, so its values
+ * sit as close to the grade as the other columns sit to each other. `--survey-column` holds its width.
+ */
 const GRID = cn(
   "grid items-center gap-x-4",
-  TABLE_WIDTH,
-  "grid-cols-[minmax(5rem,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_6.5rem_5rem] lg:grid-cols-[minmax(0,1fr)_4.25rem_5rem_4.5rem_4rem_5.5rem_6.5rem_5rem]",
+  "grid-cols-[minmax(5rem,1fr)_4.25rem_5rem_4.5rem_4rem_var(--survey-column)_5.5rem_5rem] lg:grid-cols-[minmax(0,1fr)_4.25rem_5rem_4.5rem_4rem_var(--survey-column)_5.5rem_5rem]",
 );
 /** Stays in view while the table scrolls sideways, covering what scrolls under it, with an edge once something has. */
 const PINNED =
@@ -45,11 +50,11 @@ interface Column {
   survey?: boolean;
 }
 
-const columnsOf = (survey: Question): Column[] => [
-  ...BASE_COLUMNS.slice(0, -1),
-  { key: surveySortKey(survey), align: "end", survey: true },
-  ...BASE_COLUMNS.slice(-1),
-];
+/** The columns with the course survey question the reader picked, right before the trend of the course's rating. */
+const columnsOf = (survey: Question): Column[] =>
+  BASE_COLUMNS.flatMap((column): Column[] =>
+    column.key === "trend" ? [{ key: surveySortKey(survey), align: "end", survey: true }, column] : [column],
+  );
 
 const BASE_COLUMNS = [
   { key: "name" },
@@ -82,7 +87,14 @@ interface CourseTableProps {
   stickyTop: number;
 }
 
-export function CourseTable({
+export function CourseTable(props: CourseTableProps) {
+  const t = useMessages();
+  if (!props.active.length && !props.ended.length) return <p className="py-10 text-center text-muted-foreground">{t.list.noMatch}</p>;
+  return <Table {...props} />;
+}
+
+/** The table, once some course matches. It mounts with its header, which it measures. */
+function Table({
   active,
   ended,
   showEnded,
@@ -100,6 +112,7 @@ export function CourseTable({
   const canHover = useMediaQuery(HOVER_QUERY);
   const t = useMessages();
   const { leaderRef: bodyRef, followerRef: headerRef, onScroll } = useScrollLeftSync<HTMLDivElement, HTMLDivElement>();
+  const { ref: surveyHeaderRef, width: surveyHeaderWidth } = useElementSize<HTMLDivElement>();
   const items: Item[] = [
     ...active.map((course) => ({ kind: "course" as const, course })),
     ...(ended.length ? [{ kind: "ended" as const, count: ended.length }] : []),
@@ -108,17 +121,19 @@ export function CourseTable({
   const sortBy = (key: SortKey) => onSortChange(key, key === sort ? flip(dir) : defaultSortDir(key));
   const columnLabels: Partial<Record<SortKey, string>> = t.list.columns;
   const labelOf = (column: Column) => (column.survey ? t.survey.questions[survey].short : (columnLabels[column.key] ?? column.key));
-
-  if (!items.length) return <p className="py-10 text-center text-muted-foreground">{t.list.noMatch}</p>;
+  // The values of the survey column take 3rem.
+  const surveyColumn: CSSProperties & Record<"--survey-column", string> = { "--survey-column": `max(3rem, ${surveyHeaderWidth}px)` };
 
   // A box that scrolls sideways cannot also stick to the page, so the header sits outside it and follows its scroll.
   return (
-    <div>
+    <div style={surveyColumn}>
       <div ref={headerRef} className="group/table sticky z-30 overflow-hidden border-b bg-background" style={{ top: stickyTop }}>
-        <div className={cn(GRID, "px-2 py-2 text-xs text-muted-foreground")}>
+        <div className={cn(GRID, TABLE_WIDTH, "px-2 py-2 text-xs text-muted-foreground")}>
           {columnsOf(survey).map((column) => (
             <SortHeader
-              key={column.key}
+              // The survey header keeps its element when the question changes, so its size stays measured.
+              key={column.survey ? "survey" : column.key}
+              ref={column.survey ? surveyHeaderRef : undefined}
               sortKey={column.key}
               label={labelOf(column)}
               sort={sort}
@@ -128,6 +143,8 @@ export function CourseTable({
                 column.align === "end" && "justify-end",
                 column.align === "center" && "justify-center",
                 column.key === "name" && PINNED,
+                // Sized by its content, which sets the column's width.
+                column.survey && "w-max justify-self-end",
               )}
             >
               {column.metric && <MetricInfo metric={column.metric} name={labelOf(column).toLowerCase()} />}
@@ -288,10 +305,10 @@ const CourseRow = memo(function CourseRow({ course, survey, examiner, canHover, 
           <AverageGradeCell grades={course.recentGrades} interactive={canHover} />
         </div>
         <div className="flex justify-end">
-          <Sparkline trend={course.trend} interactive={canHover} className={cn(muted)} />
+          <SurveyCell question={survey} answers={course.surveyAnswers[survey]} muted={course.ended} interactive={canHover} />
         </div>
         <div className="flex justify-end">
-          <SurveyCell question={survey} answers={course.surveyAnswers[survey]} muted={course.ended} interactive={canHover} />
+          <Sparkline trend={course.trend} interactive={canHover} className={cn(muted)} />
         </div>
         <div className="text-right tabular-nums">{t.format.month(course.lastResult)}</div>
       </div>

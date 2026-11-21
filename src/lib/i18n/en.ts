@@ -187,7 +187,7 @@ export const en = {
 
     chooseMaster: "Choose your master's programme",
     mastersIntro: (count: number, programme: string) =>
-      `${counted(count, "master's programme", "master's programmes")} complete ${programme} as years 4 and 5. Pass rate and rating are the mean over each one's courses with results.`,
+      `${counted(count, "master's programme", "master's programmes")} complete ${programme} as years 4 and 5.`,
     tracks: (count: number) => counted(count, "track", "tracks"),
     compulsoryCredits: (value: number) => `${credits(value)} compulsory`,
     nothingCompulsory: "Nothing compulsory for all",
@@ -198,9 +198,9 @@ export const en = {
     mastersOnChalmers: "Master's programmes on chalmers.se",
     accreditationMatrix: "Accreditation matrix",
     mastersNotPublished: (year: string, shown: string) =>
-      `Chalmers has not published the master's programmes of ${year} yet. Until it does, these are the ones of ${shown}, and the programmes on offer can change.`,
+      `Preliminary: Chalmers has not published the master's programmes of ${year} yet. These are those of ${shown}.`,
     upcomingMasters: (year: string, announced: string, shown: string) =>
-      `Chalmers has not published the plans of the master's programmes of ${year} yet. Until it does, these are the ones its accreditation matrix lists for ${announced}${announced === year ? "" : ", the newest year it has announced"}. Their courses are the ones on each programme's course list that run in ${shown}, in the study periods they run in now. The programmes, their courses and when they run can change.`,
+      `Preliminary: Chalmers has not planned the master's programmes of ${year} yet.${announced === year ? "" : ` These are those of ${announced}.`} Courses keep their study periods from ${shown}.`,
     unplanned: (master: string, names: readonly string[], shown: string) =>
       `The course list of ${master} also names ${names.join(", ")}. They are new or not given in ${shown}, so the plan has no study periods for them.`,
 
@@ -217,12 +217,13 @@ export const en = {
     roomFor: (value: number) => `Room for ${credits(value)}`,
     remove: (name: string) => `Remove ${name}`,
     pickAtLeast: (amount: string) => `Pick at least ${amount} of the marked courses.`,
-    pickSome: "Choose some of the marked courses. The programme's course list does not say how many.",
+    pickSome: "Compulsory electives. Chalmers has not said how many yet.",
     themes: THEMES,
     themeCredits: "Theme credits for the degree",
     courseForDegree: (code: string, offered: boolean) => `${code} for the degree${offered ? "" : ", not in this plan"}`,
     someOfMarked: (count: number) => `${count === 1 ? "One" : f.count(count)} of the marked courses for the degree`,
     oneOfDegree: "One of the courses the degree needs",
+    oneOfPick: "One of the courses to pick some of",
     creditsIn: (total: number, here: number, period: string) => `${credits(total)}, ${f.number(here)} in ${period}`,
     block: (block: string) => `block ${block}`,
     seats: (value: number) => counted(value, "seat", "seats"),

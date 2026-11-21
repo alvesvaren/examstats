@@ -1,6 +1,5 @@
 import { flip, surveySortKey, type Catalog } from "@/domain/catalog";
 import type { Question } from "@/domain/evaluation";
-import { requirementKey } from "@/domain/degree";
 import { togglePick, yearView, type PlannerRound, type PlannerSortKey } from "@/domain/planner";
 import type { PlannerAction, PlannerSearch } from "@/domain/planner-state";
 import type { StudyPeriod, StudyPick, StudyYear } from "@/domain/programme-plans";
@@ -84,11 +83,11 @@ export function YearPlanner({ years, current, track, search, pickedKeys, otherPi
           ))}
         </div>
         <div className="flex flex-col gap-1 text-sm">
-          {pickRules.map(({ pick, progress }) => (
-            <PickRule key={pick.id} progress={progress} pick={pick} />
+          {pickRules.map(({ pick, marker, progress }) => (
+            <PickRule key={pick.id} pick={pick} marker={marker} progress={progress} />
           ))}
           {degreeRules.map((rule) => (
-            <DegreeRule key={requirementKey(rule.requirement)} rule={rule} offered={offered} />
+            <DegreeRule key={rule.marker} rule={rule} offered={offered} />
           ))}
           <p className="flex items-center gap-3 text-muted-foreground">
             {t.planner.inYourYear(planned)}

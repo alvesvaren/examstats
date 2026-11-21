@@ -175,8 +175,7 @@ export const sv: Messages = {
     allTracks: "Alla inriktningar",
 
     chooseMaster: "Välj ditt masterprogram",
-    mastersIntro: (count, programme) =>
-      `${counted(count, "masterprogram", "masterprogram")} kan bli år 4 och 5 i ${programme}. Andel godkända och omdöme är medelvärdet över varje programs kurser med resultat.`,
+    mastersIntro: (count, programme) => `${counted(count, "masterprogram", "masterprogram")} kan bli år 4 och 5 i ${programme}.`,
     tracks: (count) => counted(count, "inriktning", "inriktningar"),
     compulsoryCredits: (value) => `${credits(value)} obligatoriskt`,
     nothingCompulsory: "Inget obligatoriskt för alla",
@@ -187,9 +186,9 @@ export const sv: Messages = {
     mastersOnChalmers: "Masterprogram på chalmers.se",
     accreditationMatrix: "Ackrediteringsmatris",
     mastersNotPublished: (year, shown) =>
-      `Chalmers har inte publicerat masterprogrammen för ${year} än. Tills dess visas de för ${shown}, och vilka program som ges kan ändras.`,
+      `Preliminärt: Chalmers har inte publicerat masterprogrammen för ${year} än. Det här är de för ${shown}.`,
     upcomingMasters: (year, announced, shown) =>
-      `Chalmers har inte publicerat planerna för masterprogrammen ${year} än. Tills dess visas de som ackrediteringsmatrisen listar för ${announced}${announced === year ? "" : ", det senaste år den har annonserat"}. Kurserna är de på varje programs kurslista som ges ${shown}, i de läsperioder de går i nu. Programmen, deras kurser och när de går kan ändras.`,
+      `Preliminärt: Chalmers har inte planerat masterprogrammen för ${year} än.${announced === year ? "" : ` Det här är de för ${announced}.`} Kurserna ligger i sina läsperioder från ${shown}.`,
     unplanned: (master, names, shown) =>
       `Kurslistan för ${master} nämner också ${names.join(", ")}. De är nya eller ges inte ${shown}, så planen har inga läsperioder för dem.`,
 
@@ -206,12 +205,13 @@ export const sv: Messages = {
     roomFor: (value) => `Plats för ${credits(value)}`,
     remove: (name) => `Ta bort ${name}`,
     pickAtLeast: (amount) => `Välj minst ${amount} av de markerade kurserna.`,
-    pickSome: "Välj några av de markerade kurserna. Programmets kurslista säger inte hur många.",
+    pickSome: "Obligatoriskt valbara kurser. Chalmers har inte sagt hur många än.",
     themes: THEMES,
     themeCredits: "Temapoäng för examen",
     courseForDegree: (code, offered) => `${code} för examen${offered ? "" : ", finns inte i den här planen"}`,
     someOfMarked: (count) => `${count === 1 ? "En" : f.count(count)} av de markerade kurserna för examen`,
     oneOfDegree: "En av kurserna som examen kräver",
+    oneOfPick: "En av kurserna att välja några av",
     creditsIn: (total, here, period) => `${credits(total)}, ${f.number(here)} i ${period}`,
     block: (block) => `block ${block}`,
     seats: (value) => counted(value, "plats", "platser"),
