@@ -187,7 +187,7 @@ export const en = {
 
     chooseMaster: "Choose your master's programme",
     mastersIntro: (count: number, programme: string) =>
-      `${counted(count, "master's programme", "master's programmes")} complete ${programme} as years 4 and 5. Pass rate and rating are the mean over each one's courses with results.`,
+      `${counted(count, "master's programme", "master's programmes")} complete ${programme} as years 4 and 5.`,
     tracks: (count: number) => counted(count, "track", "tracks"),
     compulsoryCredits: (value: number) => `${credits(value)} compulsory`,
     nothingCompulsory: "Nothing compulsory for all",

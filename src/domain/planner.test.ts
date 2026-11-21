@@ -285,28 +285,13 @@ describe("masterSummary", () => {
   };
 
   it("sums up the tracks, the courses every student takes, and the courses to choose, each once", () => {
-    const { tracks, compulsory, compulsoryCredits, electives } = masterSummary(mpalg, new Map());
+    const { tracks, compulsory, compulsoryCredits, electives } = masterSummary(mpalg);
     expect({ tracks, compulsory: compulsory.map((c) => c.code), compulsoryCredits, electives }).toEqual({
       tracks: ["Algorithms", "Languages"],
       compulsory: ["TDA251"],
       compulsoryCredits: 7.5,
       electives: 2,
     });
-  });
-
-  it("gives the mean pass rate and rating of its courses with results, each course alike", () => {
-    const results = new Map([
-      ["TDA251", stats("TDA251", 9, 1, { overall: [0, 0, 0, 0, 4] })],
-      ["DAT060", stats("DAT060", 1, 1, { overall: [0, 0, 4, 0, 0] })],
-      ["DAT151", stats("DAT151", 3, 1)],
-    ]);
-    const { passRate, rating } = masterSummary(mpalg, results);
-    expect(passRate).toBeCloseTo((0.9 + 0.5 + 0.75) / 3);
-    expect(rating).toBeCloseTo((5 + 3) / 2);
-  });
-
-  it("has no pass rate or rating when none of its courses has results", () => {
-    expect(masterSummary(mpalg, new Map())).toMatchObject({ passRate: null, rating: null });
   });
 });
 

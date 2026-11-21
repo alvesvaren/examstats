@@ -280,26 +280,18 @@ export function yearView({
   };
 }
 
-const meanOf = (values: readonly (number | null)[]) => {
-  const known = values.filter((value) => value !== null);
-  return known.length ? known.reduce((sum, value) => sum + value, 0) / known.length : null;
-};
-
 /**
  * A master's programme in short, to compare it with the others a programme leads on to: its tracks, what every
- * student of it takes, how many courses it offers to choose, and how a typical course of it with results goes.
+ * student of it takes, and how many courses it offers to choose.
  */
-export function masterSummary(master: ProgrammePlan, stats: ReadonlyMap<string, CatalogCourse>) {
+export function masterSummary(master: ProgrammePlan) {
   const courses = [...new Map(master.years.flatMap((y) => y.courses).map((c) => [c.code, c])).values()];
   const compulsory = plannedCourses([master], []);
-  const withStats = courses.flatMap((c) => stats.get(c.code) ?? []);
   return {
     tracks: tracksOf(courses),
     compulsory,
     compulsoryCredits: tenths(compulsory.reduce((sum, c) => sum + c.credits, 0)),
     electives: courses.filter(isElective).length,
-    passRate: meanOf(withStats.map((c) => c.passRate)),
-    rating: meanOf(withStats.map((c) => c.rating)),
   };
 }
 

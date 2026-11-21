@@ -175,8 +175,7 @@ export const sv: Messages = {
     allTracks: "Alla inriktningar",
 
     chooseMaster: "Välj ditt masterprogram",
-    mastersIntro: (count, programme) =>
-      `${counted(count, "masterprogram", "masterprogram")} kan bli år 4 och 5 i ${programme}. Andel godkända och omdöme är medelvärdet över varje programs kurser med resultat.`,
+    mastersIntro: (count, programme) => `${counted(count, "masterprogram", "masterprogram")} kan bli år 4 och 5 i ${programme}.`,
     tracks: (count) => counted(count, "inriktning", "inriktningar"),
     compulsoryCredits: (value) => `${credits(value)} obligatoriskt`,
     nothingCompulsory: "Inget obligatoriskt för alla",
