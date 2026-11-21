@@ -1,15 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   openProgramme,
-  otherPicks,
   parsePlannerMemory,
   plannerCohort,
   plannerStep,
-  rememberedPicks,
   resolvePlanner,
-  withMaster,
-  withPicks,
-  withStart,
   type PlannerAction,
   type PlannerMemory,
   type PlannerSearch,
@@ -18,7 +13,6 @@ import {
   planCourseSchema,
   programmePlanSchema,
   publishedPlanInfoSchema,
-  studyYears,
   upcomingMastersSchema,
   type PlanCourse,
   type ProgrammePlan,
@@ -76,68 +70,6 @@ describe("parsePlannerMemory", () => {
     expect(parsePlannerMemory(null)).toEqual({ picks: {}, masters: {}, starts: {} });
     expect(parsePlannerMemory("not json")).toEqual({ picks: {}, masters: {}, starts: {} });
     expect(parsePlannerMemory(JSON.stringify({ picks: ["TDA357.LP2"] }))).toEqual({ picks: {}, masters: {}, starts: {} });
-  });
-});
-
-describe("withPicks", () => {
-  const memory = { last: { programme: "TKITE" }, picks: { "TKITE.2": ["DAT026.LP1"] }, masters: {}, starts: {} };
-
-  it("remembers the picks of a year beside those of other years", () => {
-    const next = withPicks(memory, "TKITE", 3, ["TDA357.LP2"]);
-
-    expect(next.picks).toEqual({ "TKITE.2": ["DAT026.LP1"], "TKITE.3": ["TDA357.LP2"] });
-    expect(rememberedPicks(next, "TKITE", 3)).toEqual(["TDA357.LP2"]);
-    expect(rememberedPicks(next, "TKDAT", 3)).toBeUndefined();
-  });
-
-  it("forgets a year whose picks are cleared", () => {
-    expect(withPicks(memory, "TKITE", 2, []).picks).toEqual({});
-  });
-});
-
-describe("withMaster", () => {
-  const memory = { picks: { "MPALG.1": ["DAT060.LP1"] }, masters: { TKDAT: "MPCSC" }, starts: {} };
-
-  it("remembers the master's programme of each programme apart", () => {
-    expect(withMaster(memory, "TKITE", "MPALG").masters).toEqual({ TKDAT: "MPCSC", TKITE: "MPALG" });
-  });
-
-  it("forgets the master's programme but keeps its picks, for when it is chosen again", () => {
-    expect(withMaster({ ...memory, masters: { TKITE: "MPALG" } }, "TKITE", undefined)).toEqual({
-      picks: memory.picks,
-      masters: {},
-      starts: {},
-    });
-  });
-});
-
-describe("withStart", () => {
-  it("remembers the start year of each programme apart", () => {
-    const memory = { picks: {}, masters: {}, starts: { TKDAT: 2023 } };
-    expect(withStart(memory, "TKITE", 2024).starts).toEqual({ TKDAT: 2023, TKITE: 2024 });
-    expect(withStart(memory, "TKDAT", 2025).starts).toEqual({ TKDAT: 2025 });
-  });
-});
-
-describe("otherPicks", () => {
-  const memory = {
-    picks: {
-      "TKITE.1": ["EDA344.LP1"],
-      "TKITE.2": ["DAT026.LP1"],
-      "MPALG.1": ["DAT060.LP1"],
-      "TKDAT.1": ["OTHER.LP1"],
-      "MPCSC.1": ["OTHER.LP2"],
-    },
-    masters: {},
-    starts: {},
-  };
-
-  it("returns the picks of the other years of the programme and of its master's programme, numbered as years of study", () => {
-    const years = studyYears(plan("TKITE", { 1: [], 2: [], 3: [] }), plan("MPALG", { 1: [], 2: [] }));
-    expect(otherPicks(memory, years, 2)).toEqual([
-      { number: 1, programme: "TKITE", year: 1, key: "EDA344.LP1" },
-      { number: 4, programme: "MPALG", year: 1, key: "DAT060.LP1" },
-    ]);
   });
 });
 
@@ -315,8 +247,9 @@ describe("resolvePlanner", () => {
     expect(planned({ programme: "TKITE", year: 1 }).pickedKeys).toEqual([]);
   });
 
-  it("remembers the picks of the other years of study, the master's programme's too", () => {
-    const state = planned({ programme: "TKITE", year: 3 }, WITH_MPALG);
+  it("remembers the picks of the other years of study, the master's programme's too, and none of other programmes", () => {
+    const others = { "TKDAT.1": ["OTHER.LP1"], "MPCSC.1": ["OTHER.LP2"] };
+    const state = planned({ programme: "TKITE", year: 3 }, { ...WITH_MPALG, picks: { ...WITH_MPALG.picks, ...others } });
 
     expect(state.otherPicks).toEqual([
       { number: 2, programme: "TKITE", year: 2, key: "DAT026.LP1" },
@@ -432,6 +365,15 @@ describe("plannerStep", () => {
     });
   });
 
+  it("remembers the master's programme of each programme apart", () => {
+    const stored: PlannerMemory = { ...MEMORY, masters: { TKDAT: "MPCSC" } };
+
+    expect(rememberedAfter(plannerStep(choosing, { type: "chooseMaster", master: "MPALG" }), stored)?.masters).toEqual({
+      TKDAT: "MPCSC",
+      TKITE: "MPALG",
+    });
+  });
+
   it("opens year 4 without picks in the link when the chosen master's programme has none remembered", () => {
     expect(plannerStep(choosing, { type: "chooseMaster", master: "MPCSC" }).search.picked).toBeUndefined();
   });
@@ -463,6 +405,12 @@ describe("plannerStep", () => {
       starts: { TKITE: 2025 },
       last: { programme: "TKITE", start: 2025, year: 3 },
     });
+  });
+
+  it("remembers the start year of each programme apart", () => {
+    const stored: PlannerMemory = { ...MEMORY, starts: { TKDAT: 2023 } };
+
+    expect(rememberedAfter(plannerStep(viewing, { type: "showStart", start: 2025 }), stored)?.starts).toEqual({ TKDAT: 2023, TKITE: 2025 });
   });
 
   it("remembers the picks and keeps the list on its period when a course is picked", () => {
@@ -505,13 +453,13 @@ describe("plannerStep", () => {
     ["showing a start year", { type: "showStart", start: 2025 }, { programme: "TKITE", start: 2025, year: 3 }],
     ["picking courses", { type: "setPicks", keys: ["TDA357.LP2"] }, { programme: "TKITE", start: 2024, year: 3, track: "AI" }],
   ])("stores the view shown after %s as the one last worked on", (_, action, last) => {
-    expect(plannerStep(viewing, action).remember?.(MEMORY).last).toEqual(last);
+    expect(rememberedAfter(plannerStep(viewing, action), MEMORY)?.last).toEqual(last);
   });
 
   it("changes the memory as it is stored when the step happens, not as it was when the page rendered", () => {
     const stored: PlannerMemory = { ...MEMORY, picks: { ...MEMORY.picks, "TKDAT.3": ["EDA061.LP1"] }, starts: { TKDAT: 2023 } };
 
-    const next = plannerStep(viewing, { type: "setPicks", keys: ["TDA555.LP3"] }).remember?.(stored);
+    const next = rememberedAfter(plannerStep(viewing, { type: "setPicks", keys: ["TDA555.LP3"] }), stored);
 
     expect(next?.picks).toEqual({ ...stored.picks, "TKITE.3": ["TDA555.LP3"] });
     expect(next?.starts).toEqual({ TKDAT: 2023 });

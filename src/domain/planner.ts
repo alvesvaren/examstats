@@ -156,7 +156,7 @@ export interface ListedRound {
   marks: DegreeRuleMark[];
 }
 
-export const DEFAULT_PLANNER_SORT: PlannerSortKey = "rating";
+const DEFAULT_PLANNER_SORT: PlannerSortKey = "rating";
 
 interface YearViewInput {
   /** Every year of study of the degree, the master's programme's included. The requirements count them all. */
@@ -227,13 +227,13 @@ export function yearView({
       const inPeriod = (round: PlannerRound) => round.periods.includes(p);
       const fixedIn = fixed.filter(inPeriod);
       const pickedIn = picked.filter(inPeriod);
-      const rounds = [...fixedIn, ...pickedIn];
+      const inPeriodRounds = [...fixedIn, ...pickedIn];
       return {
         period: p,
         fixed: fixedIn,
         picked: pickedIn,
-        credits: creditsIn(rounds, p),
-        clashing: rounds.some((round) => lectureClash(round, rounds)),
+        credits: creditsIn(inPeriodRounds, p),
+        clashing: inPeriodRounds.some((round) => lectureClash(round, inPeriodRounds)),
       };
     }),
     /** The study period the list shows. None when the year has no courses. */

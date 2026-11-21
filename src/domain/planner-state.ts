@@ -71,11 +71,11 @@ export function parsePlannerMemory(stored: string | null): PlannerMemory {
 }
 
 /** The picks remembered for a year of a programme, if any. */
-export const rememberedPicks = (memory: PlannerMemory, programme: string, year: number): string[] | undefined =>
+const rememberedPicks = (memory: PlannerMemory, programme: string, year: number): string[] | undefined =>
   memory.picks[planKey(programme, year)];
 
 /** The picks remembered for every year of study but the `current` one. */
-export const otherPicks = (memory: PlannerMemory, years: readonly StudyYear[], current: number): StudyPick[] =>
+const otherPicks = (memory: PlannerMemory, years: readonly StudyYear[], current: number): StudyPick[] =>
   years
     .filter(({ number }) => number !== current)
     .flatMap(({ number, plan, year }) =>
@@ -83,19 +83,19 @@ export const otherPicks = (memory: PlannerMemory, years: readonly StudyYear[], c
     );
 
 /** The memory after a year's picks changed. A year without picks is forgotten. */
-export function withPicks(memory: PlannerMemory, programme: string, year: number, keys: readonly string[]): PlannerMemory {
+function withPicks(memory: PlannerMemory, programme: string, year: number, keys: readonly string[]): PlannerMemory {
   const { [planKey(programme, year)]: _, ...others } = memory.picks;
   return { ...memory, picks: keys.length ? { ...others, [planKey(programme, year)]: [...keys] } : others };
 }
 
 /** The memory after the master's programme after `programme` changed. Without one, it is forgotten, but its picks are kept. */
-export function withMaster(memory: PlannerMemory, programme: string, master: string | undefined): PlannerMemory {
+function withMaster(memory: PlannerMemory, programme: string, master: string | undefined): PlannerMemory {
   const { [programme]: _, ...others } = memory.masters;
   return { ...memory, masters: master ? { ...others, [programme]: master } : others };
 }
 
 /** The memory after the start year of `programme` changed. */
-export const withStart = (memory: PlannerMemory, programme: string, start: number): PlannerMemory => ({
+const withStart = (memory: PlannerMemory, programme: string, start: number): PlannerMemory => ({
   ...memory,
   starts: { ...memory.starts, [programme]: start },
 });
@@ -172,7 +172,7 @@ export function resolvePlanner({ search, memory, cohort, plans, masterPlans, pro
         : undefined,
   };
 }
-export type PlannerState = ReturnType<typeof resolvePlanner>;
+type PlannerState = ReturnType<typeof resolvePlanner>;
 export type PlanState = Extract<PlannerState, { kind: "plan" }>;
 
 export type PlannerAction =
@@ -187,7 +187,7 @@ export type PlannerAction =
   | { type: "view"; changes: Pick<PlannerSearch, "period" | "sort" | "dir" | "survey"> };
 
 /** What an action does: the changes to the URL's search, and how the memory changes when the action is one to remember. */
-export interface PlannerStep {
+interface PlannerStep {
   search: Partial<PlannerSearch>;
   /** An updater, since it applies to the memory as it is stored when the step happens. */
   remember?: (memory: PlannerMemory) => PlannerMemory;

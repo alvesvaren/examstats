@@ -95,7 +95,7 @@ const courseNameRowSchema = nameRowSchema.extend({ courseCode: z.string() });
 const programmeNameRowSchema = nameRowSchema.extend({ programCode: z.string() });
 const pageSchema = <T>(row: z.ZodType<T>) => z.object({ info: z.object({ count: z.number().int() }), results: z.array(row) });
 
-export const momentSchema = z.object({
+const momentSchema = z.object({
   courseCode: z.string(),
   courseName: z.string(),
   cancelled: z.boolean(),
