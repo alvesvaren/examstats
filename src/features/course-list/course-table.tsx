@@ -33,7 +33,7 @@ const PINNED =
   "sticky left-0 z-20 -ml-2 self-stretch bg-background pr-2 pl-2 group-data-scrolled/table:shadow-[1px_0_0_var(--color-border)]";
 /** Tooltips inside a row link would swallow taps on touch screens. */
 const HOVER_QUERY = "(hover: hover)";
-/** Row heights in pixels. They must match the `h-*` classes on the rows below. */
+/** Row heights in pixels. The virtual list places rows by them, and the rows are sized by them. */
 const ROW_HEIGHT = 61;
 const TOGGLE_ROW_HEIGHT = 56;
 
@@ -198,7 +198,8 @@ function VirtualRows({ items, survey, query, canHover, showEnded, onToggleEnded,
                 type="button"
                 onClick={onToggleEnded}
                 aria-expanded={showEnded}
-                className="flex h-14 w-full items-center border-b bg-background text-sm font-medium text-muted-foreground hover:text-foreground"
+                style={{ height: TOGGLE_ROW_HEIGHT }}
+                className="flex w-full items-center border-b bg-background text-sm font-medium text-muted-foreground hover:text-foreground"
               >
                 <span className="sticky left-0 flex items-center gap-2 px-2">
                   {t.list.ended} · {t.format.count(item.count)}
@@ -232,7 +233,10 @@ const CourseRow = memo(function CourseRow({ course, survey, examiner, canHover, 
   const t = useMessages();
   const muted = course.ended && "opacity-50";
   return (
-    <div className={cn("group relative h-[61px] border-b bg-background px-2 hover:bg-row-hover", course.ended && "text-muted-foreground")}>
+    <div
+      style={{ height: ROW_HEIGHT }}
+      className={cn("group relative border-b bg-background px-2 hover:bg-row-hover", course.ended && "text-muted-foreground")}
+    >
       <Link to="/course/$code" params={{ code: course.code }} className="absolute inset-0" aria-label={`${course.code} ${course.name}`} />
       <div className={cn(GRID, "h-full")}>
         {/* Taps pass through the pinned column to the row link below it. */}
