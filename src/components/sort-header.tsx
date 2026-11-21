@@ -1,5 +1,5 @@
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import { cn } from "cn";
 import type { SortDir } from "@/domain/catalog";
 
@@ -14,14 +14,19 @@ interface SortHeaderProps<K extends string> {
   className?: string;
   /** Controls after the label, such as an explanation or the survey question picker. */
   children?: ReactNode;
+  ref?: Ref<HTMLDivElement>;
 }
 
 /** A column header that sorts by its column, and shows the order when the list is sorted by it. */
-export function SortHeader<K extends string>({ sortKey, label, sort, dir, onSort, className, children }: SortHeaderProps<K>) {
+export function SortHeader<K extends string>({ sortKey, label, sort, dir, onSort, className, children, ref }: SortHeaderProps<K>) {
   const active = sortKey === sort;
   const Arrow = dir === "asc" ? ArrowUpIcon : ArrowDownIcon;
   return (
-    <div className={cn("flex items-center gap-1", className)} aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : undefined}>
+    <div
+      ref={ref}
+      className={cn("flex items-center gap-1", className)}
+      aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : undefined}
+    >
       <button
         type="button"
         onClick={() => onSort(sortKey)}
