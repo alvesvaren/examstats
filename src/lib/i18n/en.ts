@@ -198,9 +198,9 @@ export const en = {
     mastersOnChalmers: "Master's programmes on chalmers.se",
     accreditationMatrix: "Accreditation matrix",
     mastersNotPublished: (year: string, shown: string) =>
-      `Chalmers has not published the master's programmes of ${year} yet. Until it does, these are the ones of ${shown}, and the programmes on offer can change.`,
+      `Preliminary: Chalmers has not published the master's programmes of ${year} yet. These are those of ${shown}.`,
     upcomingMasters: (year: string, announced: string, shown: string) =>
-      `Chalmers has not published the plans of the master's programmes of ${year} yet. Until it does, these are the ones its accreditation matrix lists for ${announced}${announced === year ? "" : ", the newest year it has announced"}. Their courses are the ones on each programme's course list that run in ${shown}, in the study periods they run in now. The programmes, their courses and when they run can change.`,
+      `Preliminary: Chalmers has not planned the master's programmes of ${year} yet.${announced === year ? "" : ` These are those of ${announced}.`} Courses keep their study periods from ${shown}.`,
     unplanned: (master: string, names: readonly string[], shown: string) =>
       `The course list of ${master} also names ${names.join(", ")}. They are new or not given in ${shown}, so the plan has no study periods for them.`,
 
@@ -217,7 +217,7 @@ export const en = {
     roomFor: (value: number) => `Room for ${credits(value)}`,
     remove: (name: string) => `Remove ${name}`,
     pickAtLeast: (amount: string) => `Pick at least ${amount} of the marked courses.`,
-    pickSome: "Choose some of the marked courses. The programme's course list does not say how many.",
+    pickSome: "Compulsory electives. Chalmers has not said how many yet.",
     themes: THEMES,
     themeCredits: "Theme credits for the degree",
     courseForDegree: (code: string, offered: boolean) => `${code} for the degree${offered ? "" : ", not in this plan"}`,
