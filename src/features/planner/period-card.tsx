@@ -1,6 +1,6 @@
 import { LockIcon, XIcon } from "lucide-react";
 import { cn } from "cn";
-import { creditsIn, lectureClash, PERIOD_CREDITS, type PlannerRound } from "@/domain/planner";
+import { PERIOD_CREDITS, type PlannerRound } from "@/domain/planner";
 import type { StudyPeriod } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
 
@@ -9,20 +9,21 @@ interface PeriodCardProps {
   /** Rounds in this study period that every student takes. */
   fixed: PlannerRound[];
   picked: PlannerRound[];
+  /** Credits of the study period's plan. */
+  credits: number;
+  /** Whether two of the period's courses have lectures at the same times. */
+  clashing: boolean;
   active: boolean;
   onFocus: () => void;
   onRemove: (round: PlannerRound) => void;
 }
 
 /** A study period of the year with what is in it, how full it is, and whether two of its courses meet. */
-export function PeriodCard({ period, fixed, picked, active, onFocus, onRemove }: PeriodCardProps) {
+export function PeriodCard({ period, fixed, picked, credits, clashing, active, onFocus, onRemove }: PeriodCardProps) {
   const t = useMessages();
-  const rounds = [...fixed, ...picked];
-  const credits = creditsIn(rounds, period);
   const free = PERIOD_CREDITS - credits;
   const pace = credits > PERIOD_CREDITS ? ` (${t.format.percent(credits / PERIOD_CREDITS)})` : "";
   const fill = `${t.of(t.format.number(credits), t.credits(PERIOD_CREDITS))}${pace}`;
-  const clashing = rounds.some((round) => lectureClash(round, rounds));
   return (
     <div
       className={cn(

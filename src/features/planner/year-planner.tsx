@@ -1,6 +1,7 @@
 import { flip, surveySortKey, type Catalog } from "@/domain/catalog";
 import type { Question } from "@/domain/evaluation";
-import { requirementKey, togglePick, yearView, type PlannerRound, type PlannerSortKey } from "@/domain/planner";
+import { requirementKey } from "@/domain/degree";
+import { togglePick, yearView, type PlannerRound, type PlannerSortKey } from "@/domain/planner";
 import type { PlanState, PlannerAction } from "@/domain/planner-state";
 import type { StudyPeriod, StudyYear } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
@@ -36,7 +37,7 @@ export function YearPlanner({ state, current, catalog, dispatch }: YearPlannerPr
     stats: catalog.byCode,
     ruleNames: t.ruleNames(catalog.plans.ruleNames),
   });
-  const { fixed, candidates, picked, plan, periods, period, sort, dir, survey, listed, planned, pickRules, degreeRules, offered } = view;
+  const { candidates, picked, plan, periodCards, period, sort, dir, survey, listed, planned, pickRules, degreeRules, offered } = view;
   if (!period) return <p className="text-muted-foreground">{t.planner.noCoursesThisYear}</p>;
 
   // The active column flips its order. Another column starts in its own default order.
@@ -66,14 +67,12 @@ export function YearPlanner({ state, current, catalog, dispatch }: YearPlannerPr
         className="z-20 -mx-4 flex flex-col gap-3 border-b bg-background px-4 pt-1 pb-3 sm:sticky sm:top-0"
       >
         <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-          {periods.map((p) => (
+          {periodCards.map((card) => (
             <PeriodCard
-              key={p}
-              period={p}
-              fixed={fixed.filter((r) => r.periods.includes(p))}
-              picked={picked.filter((r) => r.periods.includes(p))}
-              active={p === period}
-              onFocus={() => dispatch({ type: "view", changes: { period: p } })}
+              key={card.period}
+              {...card}
+              active={card.period === period}
+              onFocus={() => dispatch({ type: "view", changes: { period: card.period } })}
               onRemove={toggle}
             />
           ))}

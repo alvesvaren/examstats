@@ -8,15 +8,8 @@ import { SurveyColumnPicker } from "@/components/survey-column";
 import { Badge } from "@/components/ui/badge";
 import { surveySortKey, type SortDir } from "@/domain/catalog";
 import type { Question } from "@/domain/evaluation";
-import {
-  requirementKey,
-  type DegreeRuleMark,
-  type ListedRound,
-  type PlanElsewhere,
-  type PlannerRound,
-  type PlannerSortKey,
-  type RoundWarning,
-} from "@/domain/planner";
+import { requirementKey, type DegreeRuleMark } from "@/domain/degree";
+import { type ListedRound, type PlanElsewhere, type PlannerRound, type PlannerSortKey, type RoundWarning } from "@/domain/planner";
 import type { StudyPeriod } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
 import type { Messages } from "@/lib/i18n/en";

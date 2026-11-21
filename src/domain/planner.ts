@@ -1,5 +1,5 @@
 import { compareSortValues, defaultSortDir, sortValueOf, surveyColumn, type CatalogCourse, type SortDir } from "./catalog.ts";
-import { amountTowards, openRequirements, pickProgress, requirementProgress, tenths } from "./degree.ts";
+import { degreeRulesOf, marksOf, pickProgress, tenths, type DegreeRuleMark } from "./degree.ts";
 import { OTHER_QUESTIONS, type OtherQuestion } from "./evaluation.ts";
 import { normalize, type InLanguage } from "./names.ts";
 import {
@@ -8,7 +8,6 @@ import {
   planYear,
   STUDY_PERIODS,
   tracksOf,
-  type PlanRequirement,
   type PlanRound,
   type ProgrammePlan,
   type StudyPeriod,
@@ -139,18 +138,6 @@ export function exclusiveWith<R extends PlanRound>(round: PlanRound, plan: reado
   return plan.find((other) => !sameCourse(other, round) && other.choices.some((c) => ids.includes(c.id)));
 }
 
-/** An id of a degree requirement within a plan, for lists. */
-export const requirementKey = (requirement: PlanRequirement) =>
-  requirement.kind === "theme" ? requirement.theme : requirement.courses.join();
-
-/** A degree requirement the student has to choose courses for, with how far the whole plan goes towards it. */
-export interface DegreeRuleProgress extends ReturnType<typeof requirementProgress> {
-  requirement: PlanRequirement;
-}
-
-/** What a course gives towards a degree requirement, in the requirement's unit. */
-export type DegreeRuleMark = DegreeRuleProgress & { amount: number };
-
 /** Something to tell about a round that sits badly with the rest of the plan. */
 export type RoundWarning =
   /** Another course has lectures at the same times. `fixed` tells whether every student takes it. */
@@ -219,12 +206,7 @@ export function yearView({
   const plans = [...new Set(years.map((y) => y.plan))];
   const allPicks = [...otherPicks, ...picked.map((r) => ({ programme: yearProgramme.code, year, key: r.key }))];
   const courses = plannedCourses(plans, allPicks, track);
-  const degreeRules = openRequirements(plans, track).map((requirement) => ({ requirement, ...requirementProgress(requirement, courses) }));
-  const marksOf = (round: PlannerRound): DegreeRuleMark[] =>
-    degreeRules.flatMap((rule) => {
-      const amount = Math.max(...round.codes.map((code) => amountTowards(rule.requirement, { code, themes: round.themes })));
-      return amount > 0 ? { ...rule, amount } : [];
-    });
+  const degreeRules = degreeRulesOf(plans, courses, track);
   const warningsOf = (round: PlannerRound): RoundWarning[] => {
     const clash = lectureClash(round, plan);
     const exclusive = exclusiveWith(round, plan);
@@ -240,6 +222,20 @@ export function yearView({
     picked,
     plan,
     periods,
+    /** The year's study periods with what is in each, its credits, and whether two of its courses have lectures at the same times. */
+    periodCards: periods.map((p) => {
+      const inPeriod = (round: PlannerRound) => round.periods.includes(p);
+      const fixedIn = fixed.filter(inPeriod);
+      const pickedIn = picked.filter(inPeriod);
+      const rounds = [...fixedIn, ...pickedIn];
+      return {
+        period: p,
+        fixed: fixedIn,
+        picked: pickedIn,
+        credits: creditsIn(rounds, p),
+        clashing: rounds.some((round) => lectureClash(round, rounds)),
+      };
+    }),
     /** The study period the list shows. None when the year has no courses. */
     period,
     sort,
@@ -250,7 +246,7 @@ export function yearView({
       picked: picked.includes(round),
       elsewhere: findElsewhere(round, picked, otherPicks),
       warnings: warningsOf(round),
-      marks: marksOf(round),
+      marks: marksOf(degreeRules, round),
     })),
     /** Credits of the year's plan. */
     planned: plan.reduce((sum, r) => sum + r.credits, 0),

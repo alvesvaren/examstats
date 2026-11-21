@@ -435,6 +435,18 @@ describe("yearView", () => {
     expect(view.planned).toBe(0);
   });
 
+  it("gives each study period its rounds, its credits, and whether two of them have lectures at the same times", () => {
+    const view = viewOf(2, { pickedKeys: ["DAT200.LP1", "DAT310.LP2"] });
+
+    expect(
+      view.periodCards.map(({ period, fixed, picked, credits, clashing }) => [period, keys(fixed), keys(picked), credits, clashing]),
+    ).toEqual([
+      ["LP1", ["DAT100.LP1"], ["DAT200.LP1"], 15, true],
+      ["LP2", [], ["DAT310.LP2"], 7.5, false],
+      ["LP3", [], [], 0, false],
+    ]);
+  });
+
   it("counts the picked rounds in the plan and in the credits, and ignores keys the year does not have", () => {
     const view = viewOf(2, { pickedKeys: ["DAT310.LP2", "GONE.LP4"] });
 

@@ -1,8 +1,7 @@
 import { CheckIcon } from "lucide-react";
 import { cn } from "cn";
 import { Badge } from "@/components/ui/badge";
-import type { pickProgress } from "@/domain/degree";
-import type { DegreeRuleMark, DegreeRuleProgress } from "@/domain/planner";
+import type { DegreeRuleMark, DegreeRuleProgress, pickProgress } from "@/domain/degree";
 import type { PlanChoice, PlanRequirement } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
 import type { Messages } from "@/lib/i18n/en";

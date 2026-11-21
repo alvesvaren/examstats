@@ -36,3 +36,29 @@ export function requirementProgress(requirement: PlanRequirement, courses: reado
  */
 export const openRequirements = (plans: readonly ProgrammePlan[], track?: string) =>
   plans.flatMap((plan) => plan.requirements.filter((r) => !requirementProgress(r, plannedCourses([plan], [], track)).done));
+
+/** An id of a degree requirement within a plan, for lists. */
+export const requirementKey = (requirement: PlanRequirement) =>
+  requirement.kind === "theme" ? requirement.theme : requirement.courses.join();
+
+/** A degree requirement the student has to choose courses for, with how far the whole plan goes towards it. */
+export interface DegreeRuleProgress extends ReturnType<typeof requirementProgress> {
+  requirement: PlanRequirement;
+}
+
+/** What a course gives towards a degree requirement, in the requirement's unit. */
+export type DegreeRuleMark = DegreeRuleProgress & { amount: number };
+
+/** The open requirements of `plans`, each with how far `courses` go towards it. */
+export const degreeRulesOf = (plans: readonly ProgrammePlan[], courses: readonly PlanCourse[], track?: string): DegreeRuleProgress[] =>
+  openRequirements(plans, track).map((requirement) => ({ requirement, ...requirementProgress(requirement, courses) }));
+
+/** The rules a round of `codes` gives something towards, with the most it gives each. */
+export const marksOf = (
+  rules: readonly DegreeRuleProgress[],
+  round: { codes: readonly string[]; themes: PlanCourse["themes"] },
+): DegreeRuleMark[] =>
+  rules.flatMap((rule) => {
+    const amount = Math.max(...round.codes.map((code) => amountTowards(rule.requirement, { code, themes: round.themes })));
+    return amount > 0 ? { ...rule, amount } : [];
+  });
