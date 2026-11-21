@@ -18,8 +18,8 @@ import {
 } from "./planner.ts";
 import {
   planCourseSchema,
+  planYear,
   programmePlanSchema,
-  roundKey,
   studyYears,
   type PlanChoice,
   type PlanCourse,
@@ -29,32 +29,59 @@ import {
   type StudyPeriod,
 } from "./programme-plans.ts";
 
-const REQUIREMENTS = {
-  compulsory: { kind: "compulsory", rank: 0, label: "Compulsory" },
-  elective: { kind: "elective", rank: 2, label: "Elective" },
-  thesis: { kind: "thesis", rank: 3, label: "Diploma thesis" },
-} as const;
-
 const pickTwo: PlanChoice = { id: 1, kind: "pick", text: null, minCourses: 2, minCredits: null };
 const onlyOne: PlanChoice = { id: 3, kind: "exclusive", text: null, minCourses: null, minCredits: null };
 
-/** A 7.5 credit elective in the given study periods, split evenly over them. */
-const round = (code: string, periods: StudyPeriod[], overrides: Partial<PlanRound> = {}): PlanRound => {
+/** A plan entry of 7.5 credits in LP1 under a rule, with the credits it gives in themes. */
+const planCourse = (code: string, rule: string, themes: PlanCourse["themes"] = []): PlanCourse => ({
+  code,
+  name: `${code} name`,
+  credits: 7.5,
+  periods: ["LP1"],
+  periodCredits: [7.5],
+  rule,
+  track: null,
+  block: null,
+  choices: [],
+  themes,
+  examiners: [],
+  modules: [],
+  seats: null,
+});
+
+const entry = (code: string, rule: string, overrides: Partial<PlanCourse> = {}) =>
+  planCourseSchema.parse({ ...planCourse(code, rule), ...overrides });
+const planOf = (code: string, years: Record<number, PlanCourse[]>, overrides: Partial<ProgrammePlan> = {}) =>
+  programmePlanSchema.parse({
+    code,
+    name: code,
+    choices: [],
+    requirements: [],
+    masters: [],
+    prerequisites: [],
+    years: Object.entries(years).map(([year, courses]) => ({ year: Number(year), courses })),
+    ...overrides,
+  });
+
+const RULE_NAMES = { X: "Diploma thesis" };
+
+interface RoundSpec extends Partial<Pick<PlanCourse, "credits" | "periodCredits" | "block" | "seats">> {
+  /** Chalmers' rule code. Elective by default. */
+  rule?: string;
+  choices?: PlanChoice[];
+}
+
+/** A 7.5 credit elective round in the given study periods, split evenly over them, as `planYear` makes it from a plan entry. */
+const round = (code: string, periods: StudyPeriod[], { rule = "V", choices = [], ...overrides }: RoundSpec = {}): PlanRound => {
   const credits = overrides.credits ?? 7.5;
-  return {
-    key: roundKey(code, periods),
-    codes: [code],
-    name: `${code} name`,
+  const course = entry(code, rule, {
     credits,
     periods,
     periodCredits: periods.map(() => credits / periods.length),
-    block: null,
-    seats: null,
-    themes: [],
-    requirement: REQUIREMENTS.elective,
-    choices: [],
+    choices: choices.map((c) => c.id),
     ...overrides,
-  };
+  });
+  return planYear(planOf("TEST", { 1: [course] }, { choices }), 1, { ruleNames: RULE_NAMES }).rounds[0]!;
 };
 
 const stats = (code: string, passed: number, failed: number, surveyAnswers: SurveyAnswers = {}) =>
@@ -76,10 +103,10 @@ const stats = (code: string, passed: number, failed: number, surveyAnswers: Surv
 const keys = (rounds: readonly PlanRound[]) => rounds.map((r) => r.key);
 
 describe("plannerYear", () => {
-  const compulsory = round("EDA322", ["LP1"], { requirement: REQUIREMENTS.compulsory });
+  const compulsory = round("EDA322", ["LP1"], { rule: "O" });
   const elective = round("TDA357", ["LP2"]);
   const thesis = (code: string, periods: StudyPeriod[], credits: number, seats: number | null = null) =>
-    round(code, periods, { credits, seats, requirement: REQUIREMENTS.thesis });
+    round(code, periods, { credits, seats, rule: "X" });
 
   it("fixes the compulsory rounds and leaves the rest to choose between, each with its course's results", () => {
     const results = new Map([["TDA357", stats("TDA357", 9, 1)]]);
@@ -235,23 +262,6 @@ describe("exclusiveWith", () => {
   });
 });
 
-/** A plan entry of 7.5 credits in LP1 under a rule, with the credits it gives in themes. */
-const planCourse = (code: string, rule: string, themes: PlanCourse["themes"] = []): PlanCourse => ({
-  code,
-  name: `${code} name`,
-  credits: 7.5,
-  periods: ["LP1"],
-  periodCredits: [7.5],
-  rule,
-  track: null,
-  block: null,
-  choices: [],
-  themes,
-  examiners: [],
-  modules: [],
-  seats: null,
-});
-
 describe("masterSummary", () => {
   const mpalg: ProgrammePlan = {
     code: "MPALG",
@@ -323,20 +333,6 @@ describe("searchProgrammes", () => {
     expect(found(" ")).toEqual(["MPALG", "TKDAT", "TKITE"]);
   });
 });
-
-const entry = (code: string, rule: string, overrides: Partial<PlanCourse> = {}) =>
-  planCourseSchema.parse({ ...planCourse(code, rule), ...overrides });
-const planOf = (code: string, years: Record<number, PlanCourse[]>, overrides: Partial<ProgrammePlan> = {}) =>
-  programmePlanSchema.parse({
-    code,
-    name: code,
-    choices: [],
-    requirements: [],
-    masters: [],
-    prerequisites: [],
-    years: Object.entries(years).map(([year, courses]) => ({ year: Number(year), courses })),
-    ...overrides,
-  });
 
 /** The progress towards each rule of the degree, in the order the plans list them. */
 const progressOf = (view: ReturnType<typeof yearView>) => {
