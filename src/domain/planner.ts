@@ -192,17 +192,19 @@ export function yearView({
   otherPicks,
   period: shownPeriod,
   sort = DEFAULT_PLANNER_SORT,
-  ...input
+  dir = defaultSortDir(sort),
+  survey,
+  stats,
+  ruleNames,
 }: YearViewInput) {
   // The programme whose plan holds this year: the master's programme in years 4 and 5.
   const { plan: yearProgramme, year } = current;
-  const { rounds, picks } = planYear(yearProgramme, year, { track, ruleNames: input.ruleNames });
-  const { fixed, candidates } = plannerYear(rounds, input.stats);
+  const { rounds, picks } = planYear(yearProgramme, year, { track, ruleNames });
+  const { fixed, candidates } = plannerYear(rounds, stats);
   const picked = candidates.filter((c) => pickedKeys.includes(c.key));
   const plan = [...fixed, ...picked];
   const periods = periodsOf([...fixed, ...candidates]);
   const period = periods.find((p) => p === shownPeriod) ?? firstOpenPeriod(periods, plan);
-  const dir = input.dir ?? defaultSortDir(sort);
 
   const plans = [...new Set(years.map((y) => y.plan))];
   const allPicks = [...otherPicks, ...picked.map((r) => ({ programme: yearProgramme.code, year, key: r.key }))];
@@ -241,7 +243,7 @@ export function yearView({
     period,
     sort,
     dir,
-    survey: surveyColumn(sort, input.survey),
+    survey: surveyColumn(sort, survey),
     listed: (period ? candidatesIn(candidates, period, sort, dir) : []).map((round): ListedRound => ({
       round,
       picked: picked.includes(round),
