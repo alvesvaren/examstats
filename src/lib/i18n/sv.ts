@@ -121,7 +121,6 @@ export const sv: Messages = {
   list: {
     searchPlaceholder: "Kurs, program eller examinator, ; för flera",
     search: "Sök",
-    programme: "Program",
     examinerOf: (courseCount) => `Examinator för ${courses(courseCount)}`,
     examinerOfIn: (courseCount, academicYear) => `Examinator för ${courses(courseCount)} ${academicYear}`,
     runsIn: (academicYear) => `Går i läsperioden ${academicYear}`,

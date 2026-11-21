@@ -129,7 +129,6 @@ export const en = {
   list: {
     searchPlaceholder: "Course, programme or examiner, use ; for several",
     search: "Search",
-    programme: "Programme",
     examinerOf: (courseCount: number) => `Examiner of ${courses(courseCount)}`,
     examinerOfIn: (courseCount: number, academicYear: string) => `Examiner of ${courses(courseCount)} in ${academicYear}`,
     runsIn: (academicYear: string) => `Runs in the study period in ${academicYear}`,

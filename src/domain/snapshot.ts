@@ -15,6 +15,8 @@ export const courseDetailSchema = z.object({
   evaluations: z.array(evaluationRoundSchema),
   /** Where this academic year's programme plans place the course, compulsory first. Empty when no plan has it. */
   placements: z.array(coursePlacementSchema),
+  /** Whether chalmers.se has a syllabus of the course. It has one of every course it names, in a plan this year or not. */
+  hasSyllabus: z.boolean(),
 });
 
 export const courseSummarySchema = namedSchema.extend({

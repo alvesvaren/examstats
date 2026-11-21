@@ -1,9 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { ArrowLeftIcon } from "lucide-react";
-import type { ReactNode } from "react";
-import { FieldSelect } from "@/components/field-select";
-import { NativeSelectOption } from "@/components/ui/native-select";
+import { useDeferredValue, useMemo, type ReactNode } from "react";
 import { SearchField } from "@/components/search-field";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -21,7 +19,6 @@ import {
   type SortKey,
 } from "@/domain/catalog";
 import type { Question } from "@/domain/evaluation";
-import type { InLanguage } from "@/domain/names";
 import type { StudyPeriod } from "@/domain/programme-plans";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { useElementSize } from "@/hooks/use-element-size";
@@ -33,7 +30,6 @@ import { CourseTable } from "./course-table";
 const route = getRouteApi("/");
 type ListSearch = ReturnType<typeof route.useSearch>;
 
-const ALL_PROGRAMMES = "all";
 /** The study periods the list filters on. Summer courses and those outside study periods are few. */
 const PERIOD_FILTERS = ["LP1", "LP2", "LP3", "LP4"] as const satisfies readonly StudyPeriod[];
 const DEFAULT_SORT: SortKey = "attemptsPerYear";
@@ -50,11 +46,17 @@ export function CourseListPage() {
   const { ref: filtersRef, height: filtersHeight } = useElementSize<HTMLDivElement>();
   const { ref: resultsRef, scrollBack } = useScrollBack<HTMLDivElement>();
 
-  const { sort = DEFAULT_SORT, dir = "desc", programme, examiner, periods = [], q = "" } = search;
-  const { active, ended } = queryCourses(snapshot.courses, { q, programme, examiner, periods, sort, dir });
+  const { sort = DEFAULT_SORT, dir = "desc", programme, examiner, periods, q = "" } = search;
+  // A new list can take long to render on a slow device, so it renders in the background and typing stays quick. The
+  // render that the URL starts keeps the old query, and the memo spares it filtering again.
+  const query = useDeferredValue(q);
+  const { active, ended } = useMemo(
+    () => queryCourses(snapshot.courses, { q: query, programme, examiner, periods, sort, dir }),
+    [snapshot.courses, query, programme, examiner, periods, sort, dir],
+  );
   const scoped = Boolean(programme ?? examiner);
-  const programmeMatches = scoped ? [] : matchProgrammes(snapshot.listedProgrammes, q);
-  const examinerMatches = scoped ? [] : matchExaminers(snapshot.examiners, q, EXAMINER_SUGGESTIONS);
+  const programmeMatches = scoped ? [] : matchProgrammes(snapshot.listedProgrammes, query);
+  const examinerMatches = scoped ? [] : matchExaminers(snapshot.examiners, query, EXAMINER_SUGGESTIONS);
   const survey = surveyColumn(sort, search.survey);
   // The heading counts the whole scope, whatever the other filters keep.
   const scopeTotal = snapshot.courses.filter((c) => inScope(c, { programme, examiner })).length;
@@ -67,8 +69,6 @@ export function CourseListPage() {
     void navigate({ search: (prev) => ({ ...prev, ...changes }), replace, resetScroll: false });
   };
   const setQuery = useDebouncedCallback((value: string) => updateList({ q: value || undefined }, true), SEARCH_DELAY_MS);
-  // A list has one scope, a programme or an examiner.
-  const setProgramme = (value: string | undefined) => updateList({ programme: value, examiner: undefined, q: undefined });
   const clearScope = () => updateList({ programme: undefined, examiner: undefined });
   const setPeriods = (values: string[]) => {
     const picked = PERIOD_FILTERS.filter((p) => values.includes(p));
@@ -100,15 +100,14 @@ export function CourseListPage() {
       <div ref={resultsRef} className="-mt-2 flex flex-col gap-2">
         <div ref={filtersRef} className="sticky top-0 z-30 flex flex-wrap gap-2 bg-background py-2">
           <SearchField
-            key={programme ?? examiner ?? ALL_PROGRAMMES}
+            key={programme ?? examiner}
             defaultValue={q}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t.list.searchPlaceholder}
             aria-label={t.list.search}
-            className="min-w-60 flex-1 basis-full sm:basis-0"
+            className="min-w-60 flex-1"
           />
-          <ProgrammeSelect programme={programme} programmes={snapshot.listedProgrammes} onChange={setProgramme} />
-          <PeriodFilter periods={periods} academicYear={snapshot.plans.academicYear} onChange={setPeriods} />
+          <PeriodFilter periods={periods ?? []} academicYear={snapshot.plans.academicYear} onChange={setPeriods} />
         </div>
 
         {programmeMatches.length + examinerMatches.length > 0 && (
@@ -136,7 +135,7 @@ export function CourseListPage() {
           onSortChange={setSort}
           survey={survey}
           onPickSurvey={pickSurvey}
-          query={q}
+          query={query}
           programmes={snapshot.programmes}
           maxAttempts={maxAttempts}
           stickyTop={filtersHeight}
@@ -204,34 +203,5 @@ function PeriodFilter({ periods, academicYear, onChange }: PeriodFilterProps) {
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
-  );
-}
-
-interface ProgrammeSelectProps {
-  programme?: string;
-  programmes: Record<string, InLanguage>;
-  onChange: (programme: string | undefined) => void;
-}
-
-function ProgrammeSelect({ programme, programmes, onChange }: ProgrammeSelectProps) {
-  const t = useMessages();
-  const byName = Object.entries(programmes).toSorted(([, a], [, b]) => a.name.localeCompare(b.name, "sv"));
-  return (
-    <FieldSelect
-      value={programme ?? ALL_PROGRAMMES}
-      onChange={(event) => {
-        const { value } = event.target;
-        onChange(value === ALL_PROGRAMMES ? undefined : value);
-      }}
-      aria-label={t.list.programme}
-      className="min-w-0 flex-1 sm:w-72 sm:flex-none"
-    >
-      <NativeSelectOption value={ALL_PROGRAMMES}>{t.allProgrammes}</NativeSelectOption>
-      {byName.map(([code, { name }]) => (
-        <NativeSelectOption key={code} value={code}>
-          {name === code ? code : `${name} · ${code}`}
-        </NativeSelectOption>
-      ))}
-    </FieldSelect>
   );
 }

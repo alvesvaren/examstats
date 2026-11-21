@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { ChevronRightIcon, ExternalLinkIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useMessages } from "@/hooks/use-messages";
@@ -26,6 +27,24 @@ export function Prerequisites({ paragraphs, children, className }: Prerequisites
         ))}
       </div>
     </details>
+  );
+}
+
+interface CourseListLinkProps {
+  code: string;
+  /** Programmes the course list has courses of. */
+  listed: Readonly<Record<string, unknown>>;
+  children: ReactNode;
+  className?: string;
+}
+
+/** Links `children` to the course list of a programme, or shows them as text when the list has no courses of it. */
+export function CourseListLink({ code, listed, children, className }: CourseListLinkProps) {
+  if (!Object.hasOwn(listed, code)) return <span className={className}>{children}</span>;
+  return (
+    <Link to="/" search={{ programme: code }} className={cn("underline-offset-4 hover:text-foreground hover:underline", className)}>
+      {children}
+    </Link>
   );
 }
 
