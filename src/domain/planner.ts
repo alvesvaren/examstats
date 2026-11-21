@@ -1,5 +1,5 @@
 import { compareSortValues, defaultSortDir, sortValueOf, surveyColumn, type CatalogCourse, type SortDir } from "./catalog.ts";
-import { degreeRulesOf, marksOf, pickProgress, type DegreeRuleMark } from "./degree.ts";
+import { degreeRulesOf, marksOf, pickProgress, type DegreeRuleProgress } from "./degree.ts";
 import { OTHER_QUESTIONS, type OtherQuestion } from "./evaluation.ts";
 import { normalize, type InLanguage } from "./names.ts";
 import {
@@ -146,6 +146,12 @@ export type RoundWarning =
   /** Another course shares a choice where only one course counts towards the degree. */
   | { kind: "exclusive"; name: string };
 
+/**
+ * A requirement of the degree the student has to choose courses for. `marker` is its place among the year's rules,
+ * after the picks, which tells its courses apart from those of the other rules.
+ */
+export type MarkedDegreeRule = DegreeRuleProgress & { marker: number };
+
 /** A round the list shows, with everything the list says about it. */
 export interface ListedRound {
   round: PlannerRound;
@@ -153,8 +159,10 @@ export interface ListedRound {
   /** Where another round of the same course is in the plan. It greys this round out. */
   elsewhere: PlanElsewhere | undefined;
   warnings: RoundWarning[];
+  /** The year's picks the course is one of, by marker, and whether the plan has picked enough of each. */
+  picks: { marker: number; done: boolean }[];
   /** What the course gives towards the degree requirements the student has to choose courses for. */
-  marks: DegreeRuleMark[];
+  marks: (MarkedDegreeRule & { amount: number })[];
 }
 
 const DEFAULT_PLANNER_SORT: PlannerSortKey = "rating";
@@ -209,7 +217,11 @@ export function yearView({
   const plans = [...new Set(years.map((y) => y.plan))];
   const allPicks = [...otherPicks, ...picked.map((r) => ({ programme: yearProgramme.code, year, key: r.key }))];
   const courses = plannedCourses(plans, allPicks, track);
-  const degreeRules = degreeRulesOf(plans, courses, track);
+  const pickRules = picks.map((pick, marker) => ({ pick, marker, progress: pickProgress(pick, yearProgramme, courses) }));
+  // Lists of courses before themes, so that the rules a course carries no badge for take the markers right after the picks.
+  const degreeRules: MarkedDegreeRule[] = degreeRulesOf(plans, courses, track)
+    .toSorted((a, b) => Number(a.requirement.kind === "theme") - Number(b.requirement.kind === "theme"))
+    .map((rule, index) => ({ ...rule, marker: pickRules.length + index }));
   const warningsOf = (round: PlannerRound): RoundWarning[] => {
     const clash = lectureClash(round, plan);
     const exclusive = exclusiveWith(round, plan);
@@ -249,12 +261,19 @@ export function yearView({
       picked: picked.includes(round),
       elsewhere: findElsewhere(round, picked, otherPicks),
       warnings: warningsOf(round),
+      picks: pickRules
+        .filter(({ pick }) => round.choices.some((choice) => choice.id === pick.id))
+        .map(({ marker, progress }) => ({ marker, done: progress.done })),
       marks: marksOf(degreeRules, round),
     })),
     /** Credits of the year's plan. */
     planned: plan.reduce((sum, r) => sum + r.credits, 0),
-    /** The choices that ask for some of the year's courses, with how far the courses of every year go towards them. */
-    pickRules: picks.map((pick) => ({ pick, progress: pickProgress(pick, yearProgramme, courses) })),
+    /**
+     * The choices that ask for some of the year's courses, with how far the courses of every year go towards them.
+     * `marker` is each one's place among the year's rules, which tells its courses apart from those of the others.
+     */
+    pickRules,
+    /** The degree's requirements, its lists of courses before its themes. */
     degreeRules,
     /** The codes of every course any year of the degree's plans offers. */
     offered: new Set(plans.flatMap((p) => p.years.flatMap((y) => y.courses.map((c) => c.code)))),

@@ -334,9 +334,9 @@ describe("searchProgrammes", () => {
   });
 });
 
-/** The progress towards each rule of the degree, in the order the plans list them. */
+/** The progress towards each rule of the degree, its lists of courses before its themes. */
 const progressOf = (view: ReturnType<typeof yearView>) => {
-  const [mtsProgress, scienceProgress, masterProgress] = view.degreeRules;
+  const [scienceProgress, masterProgress, mtsProgress] = view.degreeRules;
   return { mts: mtsProgress, science: scienceProgress, master: masterProgress };
 };
 const listedKeys = (view: ReturnType<typeof yearView>) => keys(view.listed.map((l) => l.round));
@@ -487,13 +487,13 @@ describe("yearView", () => {
   });
 
   describe("degree rules", () => {
-    it("asks for what the compulsory courses of the degree do not give, across every plan of the degree", () => {
+    it("asks for what the compulsory courses of the degree do not give, across every plan of the degree, numbered after the picks", () => {
       const view = viewOf(2);
 
       expect(view.degreeRules).toEqual([
-        { requirement: mtsRule, have: 0, need: 7.5, unit: "credits", done: false },
-        { requirement: scienceRule, have: 0, need: 1, unit: "courses", done: false },
-        { requirement: masterRule, have: 0, need: 1, unit: "courses", done: false },
+        { requirement: scienceRule, marker: 1, have: 0, need: 1, unit: "courses", done: false },
+        { requirement: masterRule, marker: 2, have: 0, need: 1, unit: "courses", done: false },
+        { requirement: mtsRule, marker: 3, have: 0, need: 7.5, unit: "credits", done: false },
       ]);
       expect([...view.offered].toSorted()).toEqual(
         ["DAT100", "DAT200", "DAT300", "DAT310", "DAT320", "MVE055", "DAT400", "DAT500", "DAT510", "DAT550", "DAT600"].toSorted(),
@@ -503,7 +503,7 @@ describe("yearView", () => {
     it("counts a pick of the year shown towards the rules", () => {
       const view = viewOf(2, { pickedKeys: ["DAT300.LP2"] });
 
-      expect(progressOf(view).mts).toEqual({ requirement: mtsRule, have: 7.5, need: 7.5, unit: "credits", done: true });
+      expect(progressOf(view).mts).toEqual({ requirement: mtsRule, marker: 3, have: 7.5, need: 7.5, unit: "credits", done: true });
     });
 
     it("counts the picks of the other years of study, in the programme and in its master's programme", () => {
@@ -525,7 +525,7 @@ describe("yearView", () => {
       const both = viewOf(2, { pickedKeys: ["DAT300.LP2", "DAT310.LP2"] });
       const inOtherYear = viewOf(3, { otherPicks: [{ number: 2, programme: "TKITE", year: 2, key: "DAT310.LP2" }] });
 
-      expect(none.pickRules).toEqual([{ pick: pickTwo, progress: { have: 0, need: 2, unit: "courses", done: false } }]);
+      expect(none.pickRules).toEqual([{ pick: pickTwo, marker: 0, progress: { have: 0, need: 2, unit: "courses", done: false } }]);
       expect(one.pickRules[0]?.progress).toEqual({ have: 1, need: 2, unit: "courses", done: false });
       expect(both.pickRules[0]?.progress).toEqual({ have: 2, need: 2, unit: "courses", done: true });
       expect(inOtherYear.pickRules[0]?.progress).toEqual({ have: 1, need: 2, unit: "courses", done: false });
@@ -538,11 +538,13 @@ describe("yearView", () => {
       const lp3 = viewOf(2, { period: "LP3" }).listed.map((l) => [l.round.key, l.marks]);
 
       expect(lp2).toEqual([
-        ["DAT300.LP2", [{ requirement: mtsRule, have: 0, need: 7.5, unit: "credits", done: false, amount: 7.5 }]],
+        ["DAT300.LP2", [{ requirement: mtsRule, marker: 3, have: 0, need: 7.5, unit: "credits", done: false, amount: 7.5 }]],
         ["DAT310.LP2", []],
         ["DAT320.LP2", []],
       ]);
-      expect(lp3).toEqual([["MVE055.LP3", [{ requirement: scienceRule, have: 0, need: 1, unit: "courses", done: false, amount: 1 }]]]);
+      expect(lp3).toEqual([
+        ["MVE055.LP3", [{ requirement: scienceRule, marker: 1, have: 0, need: 1, unit: "courses", done: false, amount: 1 }]],
+      ]);
     });
 
     it("marks a course towards a rule the plan has met as done", () => {
@@ -550,6 +552,43 @@ describe("yearView", () => {
 
       expect(view.listed[0]?.marks.map(({ requirement, done, amount }) => ({ requirement, done, amount }))).toEqual([
         { requirement: mtsRule, done: true, amount: 7.5 },
+      ]);
+    });
+
+    it("marks the courses of each pick of the year with that pick's marker, done once the plan has enough of them", () => {
+      const pickOne: PlanChoice = { id: 2, kind: "pick", text: null, minCourses: 1, minCredits: null };
+      const twoPicks = planOf(
+        "TWO",
+        {
+          1: [entry("DAT700", "V", { choices: [1] }), entry("DAT710", "V", { choices: [2] }), entry("DAT720", "V", { choices: [1, 2, 3] })],
+        },
+        { choices: [pickTwo, pickOne, onlyOne] },
+      );
+      const years = studyYears(twoPicks);
+      const view = yearView({
+        years,
+        current: years[0]!,
+        track: undefined,
+        pickedKeys: ["DAT710.LP1"],
+        otherPicks: [],
+        stats: new Map(),
+        ruleNames: {},
+      });
+
+      expect(view.pickRules.map(({ pick, marker }) => [pick.id, marker])).toEqual([
+        [1, 0],
+        [2, 1],
+      ]);
+      expect(view.listed.map((l) => [l.round.key, l.picks])).toEqual([
+        ["DAT700.LP1", [{ marker: 0, done: false }]],
+        ["DAT710.LP1", [{ marker: 1, done: true }]],
+        [
+          "DAT720.LP1",
+          [
+            { marker: 0, done: false },
+            { marker: 1, done: true },
+          ],
+        ],
       ]);
     });
 

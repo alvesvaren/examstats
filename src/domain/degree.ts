@@ -44,18 +44,15 @@ export interface DegreeRuleProgress extends ReturnType<typeof requirementProgres
   requirement: PlanRequirement;
 }
 
-/** What a course gives towards a degree requirement, in the requirement's unit. */
-export type DegreeRuleMark = DegreeRuleProgress & { amount: number };
-
 /** The open requirements of `plans`, each with how far `courses` go towards it. */
 export const degreeRulesOf = (plans: readonly ProgrammePlan[], courses: readonly PlanCourse[], track?: string): DegreeRuleProgress[] =>
   openRequirements(plans, track).map((requirement) => ({ requirement, ...requirementProgress(requirement, courses) }));
 
-/** The rules a round of `codes` gives something towards, with the most it gives each. */
-export const marksOf = (
-  rules: readonly DegreeRuleProgress[],
+/** The rules a round of `codes` gives something towards, each with the most it gives in the rule's unit. */
+export const marksOf = <R extends DegreeRuleProgress>(
+  rules: readonly R[],
   round: { codes: readonly string[]; themes: PlanCourse["themes"] },
-): DegreeRuleMark[] =>
+): (R & { amount: number })[] =>
   rules.flatMap((rule) => {
     const amount = Math.max(...round.codes.map((code) => amountTowards(rule.requirement, { code, themes: round.themes })));
     return amount > 0 ? { ...rule, amount } : [];

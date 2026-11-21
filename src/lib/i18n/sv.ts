@@ -212,6 +212,7 @@ export const sv: Messages = {
     courseForDegree: (code, offered) => `${code} för examen${offered ? "" : ", finns inte i den här planen"}`,
     someOfMarked: (count) => `${count === 1 ? "En" : f.count(count)} av de markerade kurserna för examen`,
     oneOfDegree: "En av kurserna som examen kräver",
+    oneOfPick: "En av kurserna att välja några av",
     creditsIn: (total, here, period) => `${credits(total)}, ${f.number(here)} i ${period}`,
     block: (block) => `block ${block}`,
     seats: (value) => counted(value, "plats", "platser"),

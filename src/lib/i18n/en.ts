@@ -223,6 +223,7 @@ export const en = {
     courseForDegree: (code: string, offered: boolean) => `${code} for the degree${offered ? "" : ", not in this plan"}`,
     someOfMarked: (count: number) => `${count === 1 ? "One" : f.count(count)} of the marked courses for the degree`,
     oneOfDegree: "One of the courses the degree needs",
+    oneOfPick: "One of the courses to pick some of",
     creditsIn: (total: number, here: number, period: string) => `${credits(total)}, ${f.number(here)} in ${period}`,
     block: (block: string) => `block ${block}`,
     seats: (value: number) => counted(value, "seat", "seats"),
