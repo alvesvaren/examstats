@@ -12,6 +12,7 @@ import { getMessages } from "@/hooks/use-messages";
 import { CoursePage } from "@/features/course/course-page";
 import { CourseListPage } from "@/features/course-list/course-list-page";
 import { PlannerPage } from "@/features/planner/planner-page";
+import { PlannerSkeleton } from "@/features/planner/planner-skeleton";
 import { courseHeading, pageTitle } from "@/lib/page-meta";
 
 const rootRoute = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -76,6 +77,8 @@ const plannerRoute = createRoute({
   },
   head: () => ({ meta: [{ title: pageTitle(getMessages().layout.plannerHeading) }] }),
   component: PlannerPage,
+  // The page suspends when a remembered start year needs another plan file.
+  pendingComponent: PlannerSkeleton,
 });
 
 export const router = createRouter({
