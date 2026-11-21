@@ -2,18 +2,10 @@ import { ChevronRightIcon, ExternalLinkIcon, InfoIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Catalog } from "@/domain/catalog";
 import { otherNameOf } from "@/domain/names";
-import { masterSummary } from "@/domain/planner";
+import { masterSummary, type Accreditation } from "@/domain/planner";
 import { academicYearOf, type ProgrammePlan, type UpcomingMasters } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
 import { cn } from "cn";
-
-/** What it takes for a master's programme to complete a programme's degree. */
-export interface Accreditation {
-  /** Specialisations of the master's programme that the degree needs one of. Empty when any will do. */
-  specialisations: readonly string[];
-  /** The course list of a master's programme Chalmers has announced but not planned yet. */
-  courseList: string | null;
-}
 
 interface MasterPickerProps {
   programme: ProgrammePlan;

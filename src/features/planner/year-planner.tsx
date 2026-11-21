@@ -7,7 +7,7 @@ import { SortHeader } from "@/components/sort-header";
 import { SurveyColumnPicker } from "@/components/survey-column";
 import { Badge } from "@/components/ui/badge";
 import { amountTowards, openRequirements, pickProgress, requirementProgress } from "@/domain/degree";
-import { defaultSortDir, flip, surveyColumn, surveySortKey, type Catalog, type SortDir } from "@/domain/catalog";
+import { defaultSortDir, flip, surveyColumn, surveySortKey, type Catalog } from "@/domain/catalog";
 import {
   candidatesIn,
   creditsIn,
@@ -23,19 +23,17 @@ import {
   type PlannerRound,
   type PlannerSortKey,
 } from "@/domain/planner";
-import { otherPicks, rememberedPicks, withPicks } from "@/domain/planner-state";
+import type { PlanState, PlannerAction } from "@/domain/planner-state";
 import {
   plannedCourses,
   planYear,
   type PlanChoice,
   type PlanRequirement,
-  type ProgrammePlan,
   type StudyPeriod,
   type StudyYear,
 } from "@/domain/programme-plans";
-import type { OtherQuestion, Question } from "@/domain/evaluation";
+import type { Question } from "@/domain/evaluation";
 import { useMessages } from "@/hooks/use-messages";
-import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import type { Messages } from "@/lib/i18n/en";
 
 /** Sort headers sit right-aligned over their numbers. */
@@ -44,40 +42,26 @@ const DEFAULT_SORT: PlannerSortKey = "rating";
 /** The add button, the course, its pass rate and a course survey question. Phones get narrower numbers, so the name keeps its room. */
 const ROW = "grid grid-cols-[2rem_minmax(0,1fr)_4rem_6rem] items-center gap-x-2 sm:grid-cols-[2rem_minmax(0,1fr)_5.5rem_6.5rem] sm:gap-x-3";
 
-interface YearSearch {
-  period?: StudyPeriod;
-  sort?: PlannerSortKey;
-  dir?: SortDir;
-  survey?: OtherQuestion;
-  picked?: string[];
-}
-
 interface YearPlannerProps {
-  programme: ProgrammePlan;
-  /** Every year of study of the degree, the master's programme's included. Its requirements count them all. */
-  years: readonly StudyYear[];
+  state: PlanState;
+  /** The year of study to fill. It is the state's current year. */
   current: StudyYear;
-  track: string | undefined;
-  search: YearSearch;
-  onChange: (changes: YearSearch) => void;
   catalog: Catalog;
+  dispatch: (action: PlannerAction) => void;
 }
 
 /**
  * A year of a programme to fill: the study periods with what every student takes already in them, and the courses
  * to choose between for one study period at a time.
  */
-export function YearPlanner({ programme, years, current, track, search, onChange, catalog }: YearPlannerProps) {
+export function YearPlanner({ state, current, catalog, dispatch }: YearPlannerProps) {
+  const { years, track, search, pickedKeys, otherPicks: other } = state;
   // The programme whose plan holds this year: the master's programme in years 4 and 5.
   const t = useMessages();
   const { plan: yearProgramme, year } = current;
   const { rounds, picks } = planYear(yearProgramme, year, { track, ruleNames: t.ruleNames(catalog.plans.ruleNames) });
   const stats = new Map(catalog.courses.map((c) => [c.code, c]));
   const { fixed, candidates } = plannerYear(rounds, stats);
-  const { memory, remember } = usePlannerMemory();
-  const other = otherPicks(memory, years, current.number);
-  // Picks in the URL are a shared plan and win. Without them, the year is as this device remembers it.
-  const pickedKeys = search.picked ?? rememberedPicks(memory, yearProgramme.code, year) ?? [];
   const picked = candidates.filter((c) => pickedKeys.includes(c.key));
   const plan = [...fixed, ...picked];
   const periods = periodsOf([...fixed, ...candidates]);
@@ -89,9 +73,12 @@ export function YearPlanner({ programme, years, current, track, search, onChange
   const listed = candidatesIn(candidates, period, sort, dir);
   const survey = surveyColumn(sort, search.survey);
   // The active column flips its order. Another column starts in its own default order.
-  const sortBy = (key: PlannerSortKey) => onChange({ sort: key, dir: key === sort ? flip(dir) : undefined });
+  const sortBy = (key: PlannerSortKey) => dispatch({ type: "view", changes: { sort: key, dir: key === sort ? flip(dir) : undefined } });
   const pickSurvey = (question: Question) =>
-    onChange({ sort: surveySortKey(question), dir: undefined, survey: question === "overall" ? undefined : question });
+    dispatch({
+      type: "view",
+      changes: { sort: surveySortKey(question), dir: undefined, survey: question === "overall" ? undefined : question },
+    });
   const planned = plan.reduce((sum, r) => sum + r.credits, 0);
   // Degree requirements count the whole degree: the compulsory courses and the picks of every year of every plan.
   const plans = [...new Set(years.map((y) => y.plan))];
@@ -108,13 +95,7 @@ export function YearPlanner({ programme, years, current, track, search, onChange
       return amount > 0 ? { ...rule, amount } : [];
     });
   const inPeriod = (round: PlannerRound) => round.periods.includes(period);
-  const setPicks = (keys: string[], changes: YearSearch = {}) => {
-    remember((m) => ({
-      ...withPicks(m, yearProgramme.code, year, keys),
-      last: { programme: programme.code, year: current.number, track },
-    }));
-    onChange({ ...changes, picked: keys.length ? keys : undefined });
-  };
+  const setPicks = (keys: string[], keepPeriod?: StudyPeriod) => dispatch({ type: "setPicks", keys, period: keepPeriod });
   // Picking keeps the list on its study period, even once that period is full.
   const toggle = (round: PlannerRound) =>
     setPicks(
@@ -123,7 +104,7 @@ export function YearPlanner({ programme, years, current, track, search, onChange
         round,
         candidates,
       ),
-      { period },
+      period,
     );
   const warningsOf = (round: PlannerRound) => {
     const clash = lectureClash(round, plan);
@@ -147,7 +128,7 @@ export function YearPlanner({ programme, years, current, track, search, onChange
               fixed={fixed.filter((r) => r.periods.includes(p))}
               picked={picked.filter((r) => r.periods.includes(p))}
               active={p === period}
-              onFocus={() => onChange({ period: p })}
+              onFocus={() => dispatch({ type: "view", changes: { period: p } })}
               onRemove={toggle}
             />
           ))}

@@ -1,113 +1,27 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { getRouteApi, Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { ArrowLeftIcon, PlusIcon, RepeatIcon } from "lucide-react";
 import { FieldSelect } from "@/components/field-select";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { catalogQuery, plansQuery } from "@/data/queries";
-import { otherNameOf } from "@/domain/names";
-import { rememberedPicks, withMaster, withStart } from "@/domain/planner-state";
-import { academicYearOf, cohortOf, MASTER_START_YEAR, studyYears, tracksOf, type StudyYear } from "@/domain/programme-plans";
-import { useLanguage } from "@/hooks/use-language";
+import { academicYearOf, MASTER_START_YEAR } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
-import { usePlannerMemory } from "@/hooks/use-planner-memory";
-import {
-  ChalmersLink,
-  MasterPicker,
-  type Accreditation,
-  MastersNotPublished,
-  Prerequisites,
-  Specialisations,
-  UnplannedCourses,
-} from "./master-picker";
+import { ChalmersLink, MasterPicker, MastersNotPublished, Prerequisites, Specialisations, UnplannedCourses } from "./master-picker";
 import { ProgrammeSearch } from "./programme-search";
+import { usePlanner } from "./use-planner";
 import { YearPlanner } from "./year-planner";
-
-const route = getRouteApi("/planner");
-export type PlannerSearch = ReturnType<typeof route.useSearch>;
 
 const ALL_TRACKS = "";
 
 export function PlannerPage() {
-  const search = route.useSearch();
-  const navigate = route.useNavigate();
-  const language = useLanguage();
   const t = useMessages();
-  const { data: catalog } = useSuspenseQuery(catalogQuery(language));
-  const { memory, remember } = usePlannerMemory();
-  // A start year in the URL is a shared plan and wins. Without one, it is the one this device remembers.
-  const cohort = cohortOf(catalog.plans, search.programme, search.start ?? memory.starts[search.programme ?? ""]);
-  const { data: plans } = useSuspenseQuery(plansQuery(language, cohort.start));
-  const { data: masterPlans } = useSuspenseQuery(plansQuery(language, cohort.masterPlans));
+  const { state, catalog, dispatch, openProgramme, rememberProgramme } = usePlanner();
+  if (state.kind === "search") {
+    return <ProgrammeSearch programmes={state.programmes} names={state.names} onOpen={openProgramme} onRemember={rememberProgramme} />;
+  }
 
-  const programme = plans.find((p) => p.code === search.programme);
-  if (!programme) return <ProgrammeSearch programmes={plans} names={catalog.programmes} />;
-
-  const update = (changes: Partial<PlannerSearch>) =>
-    navigate({ search: (prev) => ({ ...prev, ...changes }), replace: true, resetScroll: false });
-  // Upcoming master's programmes come with their own accreditations, since the programme syllabus names the current ones.
-  const upcoming = cohort.upcomingMasters;
-  const accredited = new Map<string, Accreditation>(
-    upcoming
-      ? (upcoming.accreditations[programme.code] ?? []).map(({ code, specialisations }) => [
-          code,
-          { specialisations, courseList: upcoming.masters[code]?.courseList ?? null },
-        ])
-      : programme.masters.map((code) => [code, { specialisations: [], courseList: null }]),
-  );
-  const masters = masterPlans.filter((p) => accredited.has(p.code));
-  // A master's programme in the URL is a shared plan and wins. Without one, the degree is as this device remembers it.
-  const masterCode = search.master ?? memory.masters[programme.code];
-  const master = masters.find((p) => p.code === masterCode);
-  const years = studyYears(programme, master);
-  // Without a master's programme, its first year is where to choose one.
-  const choosingMaster = !master && masters.length > 0 && search.year === MASTER_START_YEAR;
-  const current = years.find((y) => y.number === search.year) ?? years[0];
-  const tracks = choosingMaster ? [] : tracksOf(current?.plan.years.find((y) => y.year === current.year)?.courses ?? []);
-  const track = tracks.find((name) => name === search.track);
-  const otherName = otherNameOf(catalog.programmes, programme.code);
-
-  const picksIn = (shown: StudyYear | undefined) => shown && rememberedPicks(memory, shown.plan.code, shown.year);
-  const start = cohort.start;
-  // The header's link to the planner comes back to the start year, year and track last shown.
-  const showYear = (next: number) => {
-    remember((m) => ({ ...m, last: { programme: programme.code, start, year: next } }));
-    void update({
-      start,
-      year: next,
-      master: master?.code,
-      track: undefined,
-      period: undefined,
-      picked: picksIn(years.find((y) => y.number === next)),
-    });
-  };
-  const showTrack = (next: string | undefined) => {
-    remember((m) => ({ ...m, last: { programme: programme.code, start, year: current?.number, track: next } }));
-    void update({ track: next });
-  };
-  const chooseMaster = (code: string | undefined) => {
-    const chosen = studyYears(
-      programme,
-      masters.find((p) => p.code === code),
-    );
-    remember((m) => ({ ...withMaster(m, programme.code, code), last: { programme: programme.code, start, year: MASTER_START_YEAR } }));
-    void update({
-      start,
-      year: MASTER_START_YEAR,
-      master: code,
-      track: undefined,
-      period: undefined,
-      picked: picksIn(chosen.find((y) => y.number === MASTER_START_YEAR)),
-    });
-  };
-  const showStart = (next: number) => {
-    remember((m) => ({ ...withStart(m, programme.code, next), last: { programme: programme.code, start: next, year: current?.number } }));
-    void update({ start: next, track: undefined, period: undefined });
-  };
-  const showsMasters = Boolean(master) || choosingMaster;
-  const masterAccreditation = master && accredited.get(master.code);
-  const unplanned =
-    master && current?.plan === master ? upcoming?.masters[master.code]?.unplanned.find((u) => u.year === current.year)?.names : undefined;
+  const { programme, otherName, cohort, start, masters, master, masterAccreditation, years, choosingMaster, current, tracks, track } =
+    state;
+  const chooseMaster = (code: string | undefined) => dispatch({ type: "chooseMaster", master: code });
 
   return (
     <div className="flex flex-col gap-5">
@@ -142,7 +56,7 @@ export function PlannerPage() {
           <FieldSelect
             aria-label={t.planner.startYear}
             value={String(start)}
-            onChange={(event) => showStart(Number(event.target.value))}
+            onChange={(event) => dispatch({ type: "showStart", start: Number(event.target.value) })}
             options={cohort.admitted.toReversed().map((year) => ({ value: String(year), label: t.planner.started(academicYearOf(year)) }))}
           />
         )}
@@ -151,7 +65,7 @@ export function PlannerPage() {
             type="single"
             variant="outline"
             value={choosingMaster || !current ? "" : String(current.number)}
-            onValueChange={(value) => value && showYear(Number(value))}
+            onValueChange={(value) => value && dispatch({ type: "showYear", year: Number(value) })}
             aria-label={t.planner.yearOfStudy}
           >
             {years.map(({ number }) => (
@@ -170,7 +84,7 @@ export function PlannerPage() {
               <Button
                 variant="outline"
                 aria-pressed={choosingMaster}
-                onClick={() => showYear(MASTER_START_YEAR)}
+                onClick={() => dispatch({ type: "showYear", year: MASTER_START_YEAR })}
                 className="border-dashed aria-pressed:border-primary aria-pressed:bg-muted dark:aria-pressed:border-primary"
               >
                 <PlusIcon />
@@ -182,38 +96,30 @@ export function PlannerPage() {
           <FieldSelect
             aria-label={t.planner.track}
             value={track ?? ALL_TRACKS}
-            onChange={(event) => showTrack(event.target.value || undefined)}
+            onChange={(event) => dispatch({ type: "showTrack", track: event.target.value || undefined })}
             options={[{ value: ALL_TRACKS, label: t.planner.allTracks }, ...tracks.map((name) => ({ value: name, label: name }))]}
           />
         )}
       </div>
 
-      {showsMasters && !cohort.mastersPublished && (
-        <MastersNotPublished year={cohort.masterStart} shown={catalog.plans.academicYear} upcoming={upcoming} />
+      {state.showsMasters && !cohort.mastersPublished && (
+        <MastersNotPublished year={cohort.masterStart} shown={catalog.plans.academicYear} upcoming={cohort.upcomingMasters} />
       )}
-      {master && unplanned && (
+      {master && state.unplanned && (
         <UnplannedCourses
           master={master.code}
-          names={unplanned}
+          names={state.unplanned}
           shown={catalog.plans.academicYear}
           courseList={masterAccreditation?.courseList ?? null}
         />
       )}
 
       {choosingMaster ? (
-        <MasterPicker programme={programme} masters={masters} accredited={accredited} catalog={catalog} onChoose={chooseMaster} />
+        <MasterPicker programme={programme} masters={masters} accredited={state.accredited} catalog={catalog} onChoose={chooseMaster} />
       ) : current === undefined ? (
         <p className="text-muted-foreground">{t.planner.noCourses}</p>
       ) : (
-        <YearPlanner
-          programme={programme}
-          years={years}
-          current={current}
-          track={track}
-          search={search}
-          onChange={update}
-          catalog={catalog}
-        />
+        <YearPlanner state={state} current={current} catalog={catalog} dispatch={dispatch} />
       )}
     </div>
   );

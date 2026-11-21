@@ -1,26 +1,26 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { SearchField } from "@/components/search-field";
 import type { InLanguage } from "@/domain/names";
 import { otherNameOf } from "@/domain/names";
 import { searchProgrammes } from "@/domain/planner";
 import { useMessages } from "@/hooks/use-messages";
-import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import type { ProgrammePlan } from "@/domain/programme-plans";
 
 interface ProgrammeSearchProps {
   programmes: readonly ProgrammePlan[];
   /** Programme names by code. Most students know their programme by its Swedish name. */
   names: Readonly<Record<string, InLanguage>>;
+  /** Opens a programme's plan, and remembers it as the one last worked on. */
+  onOpen: (code: string) => void;
+  /** Remembers a programme as the one last worked on, for a link that opens it itself. */
+  onRemember: (code: string) => void;
 }
 
 /** The planner before a programme is picked: a search over every programme, by code or by name in either language. */
-export function ProgrammeSearch({ programmes, names }: ProgrammeSearchProps) {
+export function ProgrammeSearch({ programmes, names, onOpen, onRemember }: ProgrammeSearchProps) {
   const t = useMessages();
   const [query, setQuery] = useState("");
-  const navigate = useNavigate();
-  const { remember } = usePlannerMemory();
-  const rememberProgramme = (code: string) => remember((m) => ({ ...m, last: { programme: code } }));
   const matches = searchProgrammes(programmes, names, query);
   const [best] = matches;
 
@@ -34,8 +34,7 @@ export function ProgrammeSearch({ programmes, names }: ProgrammeSearchProps) {
         onSubmit={(event) => {
           event.preventDefault();
           if (!best) return;
-          rememberProgramme(best.code);
-          void navigate({ to: "/planner", search: { programme: best.code } });
+          onOpen(best.code);
         }}
       >
         <SearchField
@@ -52,7 +51,7 @@ export function ProgrammeSearch({ programmes, names }: ProgrammeSearchProps) {
             <Link
               to="/planner"
               search={{ programme: programme.code }}
-              onClick={() => rememberProgramme(programme.code)}
+              onClick={() => onRemember(programme.code)}
               className="flex h-full flex-col rounded-md border px-3 py-2 hover:bg-muted/50"
             >
               <span className="font-medium">{programme.name}</span>
