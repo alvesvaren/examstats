@@ -11,13 +11,14 @@ import { nameOf, type NamesFile } from "../src/domain/names.ts";
 import {
   cohortPlans,
   courseThisYear,
+  isThesis,
   placementsByCourse,
   startYearOf,
   type ProgrammePlan,
   type ProgrammePlansFile,
   type PublishedPlan,
 } from "../src/domain/programme-plans.ts";
-import type { CourseDetail, Snapshot } from "../src/domain/snapshot.ts";
+import type { CourseDetail, NewCourse, Snapshot } from "../src/domain/snapshot.ts";
 import { upcomingMasters, type UpcomingMastersFile } from "../src/domain/upcoming-masters.ts";
 
 /** The parsed files of `data/`. `upcoming` is null when there is no file of upcoming master's programmes. */
@@ -80,6 +81,35 @@ export function buildSnapshot({ results, evaluations, plans, names, upcoming: up
     });
   }
 
+  const withResults = new Set(results.courses.map((c) => c.code));
+  const plannedNames = new Map(currentPlans.flatMap((p) => p.years.flatMap((y) => y.courses.map((c) => [c.code, c.name] as const))));
+  const plannedNew: NewCourse[] = [...placements]
+    .filter(([code]) => !withResults.has(code))
+    .map(([code, coursePlacements]) => ({
+      code,
+      ...nameOf(courseNames.get(code), plannedNames.get(code) ?? code),
+      ...courseThisYear(coursePlacements),
+      masters: [],
+    }));
+  // A course only a course list names has a code made from its name, so the master's programmes that list it share it.
+  // Every master's programme lists a thesis, so one that only a list names tells nothing of a course.
+  const listedNew: NewCourse[] = [
+    ...Map.groupBy(
+      (upcoming?.plans ?? []).flatMap((plan) =>
+        plan.years.flatMap((year) =>
+          year.courses.filter((c) => c.pending && !isThesis(c)).map((course) => ({ master: plan.code, course })),
+        ),
+      ),
+      (entry) => entry.course.code,
+    ).values(),
+  ].map((entries) => ({
+    code: null,
+    ...nameOf(undefined, entries[0]!.course.name),
+    periods: [],
+    examiners: [],
+    masters: [...new Set(entries.map((e) => e.master))],
+  }));
+
   const index: Snapshot = {
     generatedAt: today.toISOString(),
     evaluationsFetchedAt: evaluations.fetchedAt,
@@ -97,6 +127,7 @@ export function buildSnapshot({ results, evaluations, plans, names, upcoming: up
       [...programmeCodes].toSorted().map((code) => [code, nameOf(names.programmes[code], results.programmes[code] ?? code)]),
     ),
     courses,
+    newCourses: [...plannedNew, ...listedNew],
   };
   // Older plans name courses and programmes as they were named then, often in capitals.
   const publish = (plan: ProgrammePlan): PublishedPlan => ({

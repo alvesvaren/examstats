@@ -1,8 +1,8 @@
 import { flip, surveySortKey, type Catalog } from "@/domain/catalog";
 import type { Question } from "@/domain/evaluation";
-import { togglePick, yearView, type PlannerRound, type PlannerSortKey } from "@/domain/planner";
+import { togglePick, UNSCHEDULED, yearView, type Lane, type PlannerRound, type PlannerSortKey } from "@/domain/planner";
 import type { PlannerAction, PlannerSearch } from "@/domain/planner-state";
-import type { StudyPeriod, StudyPick, StudyYear } from "@/domain/programme-plans";
+import type { StudyPick, StudyYear } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
 import { CandidateTable } from "./candidate-table";
 import { DegreeRule, PickRule } from "./degree-marks";
@@ -19,15 +19,17 @@ interface YearPlannerProps {
   pickedKeys: readonly string[];
   /** The picks of the other years of study. */
   otherPicks: readonly StudyPick[];
+  /** The course list of the upcoming master's programme the year belongs to, which its new courses link to. */
+  courseList: string | null;
   catalog: Catalog;
   dispatch: (action: PlannerAction) => void;
 }
 
 /**
  * A year of a programme to fill: the study periods with what every student takes already in them, and the courses
- * to choose between for one study period at a time.
+ * of one study period at a time, those every student takes locked among those to choose between.
  */
-export function YearPlanner({ years, current, track, search, pickedKeys, otherPicks, catalog, dispatch }: YearPlannerProps) {
+export function YearPlanner({ years, current, track, search, pickedKeys, otherPicks, courseList, catalog, dispatch }: YearPlannerProps) {
   const t = useMessages();
   const view = yearView({
     years,
@@ -42,8 +44,8 @@ export function YearPlanner({ years, current, track, search, pickedKeys, otherPi
     stats: catalog.byCode,
     ruleNames: t.ruleNames(catalog.plans.ruleNames),
   });
-  const { candidates, picked, plan, periodCards, period, sort, dir, survey, listed, planned, pickRules, degreeRules, offered } = view;
-  if (!period) return <p className="text-muted-foreground">{t.planner.noCoursesThisYear}</p>;
+  const { candidates, picked, laneCards, lane, sort, dir, survey, listed, planned, pendingCourses, pickRules, degreeRules, offered } = view;
+  if (!lane) return <p className="text-muted-foreground">{t.planner.noCoursesThisYear}</p>;
 
   // The active column flips its order. Another column starts in its own default order.
   const sortBy = (key: PlannerSortKey) => dispatch({ type: "view", changes: { sort: key, dir: key === sort ? flip(dir) : undefined } });
@@ -52,9 +54,8 @@ export function YearPlanner({ years, current, track, search, pickedKeys, otherPi
       type: "view",
       changes: { sort: surveySortKey(question), dir: undefined, survey: question === "overall" ? undefined : question },
     });
-  const inPeriod = (round: PlannerRound) => round.periods.includes(period);
-  const setPicks = (keys: string[], keepPeriod?: StudyPeriod) => dispatch({ type: "setPicks", keys, period: keepPeriod });
-  // Picking keeps the list on its study period, even once that period is full.
+  const setPicks = (keys: string[], keepLane?: Lane) => dispatch({ type: "setPicks", keys, period: keepLane });
+  // Picking keeps the list on its lane, even once that study period is full.
   const toggle = (round: PlannerRound) =>
     setPicks(
       togglePick(
@@ -62,7 +63,7 @@ export function YearPlanner({ years, current, track, search, pickedKeys, otherPi
         round,
         candidates,
       ),
-      period,
+      lane,
     );
 
   return (
@@ -72,13 +73,15 @@ export function YearPlanner({ years, current, track, search, pickedKeys, otherPi
         className="z-20 -mx-4 flex flex-col gap-3 border-b bg-background px-4 pt-1 pb-3 sm:sticky sm:top-0"
       >
         <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-          {periodCards.map((card) => (
+          {laneCards.map((card) => (
             <PeriodCard
-              key={card.period}
+              key={card.lane}
               {...card}
-              active={card.period === period}
-              onFocus={() => dispatch({ type: "view", changes: { period: card.period } })}
+              active={card.lane === lane}
+              onFocus={() => dispatch({ type: "view", changes: { period: card.lane } })}
               onRemove={toggle}
+              // The courses without a study period are often many, with long names.
+              className={card.lane === UNSCHEDULED ? "col-span-2" : undefined}
             />
           ))}
         </div>
@@ -90,7 +93,7 @@ export function YearPlanner({ years, current, track, search, pickedKeys, otherPi
             <DegreeRule key={rule.marker} rule={rule} offered={offered} />
           ))}
           <p className="flex items-center gap-3 text-muted-foreground">
-            {t.planner.inYourYear(planned)}
+            {t.planner.inYourYear(planned, pendingCourses)}
             {picked.length > 0 && (
               <button type="button" onClick={() => setPicks([])} className="underline underline-offset-2 hover:text-foreground">
                 {t.planner.clearPicks}
@@ -101,9 +104,9 @@ export function YearPlanner({ years, current, track, search, pickedKeys, otherPi
       </section>
 
       <CandidateTable
-        period={period}
+        lane={lane}
         listed={listed}
-        planInPeriod={plan.some(inPeriod)}
+        courseList={courseList}
         sort={sort}
         dir={dir}
         survey={survey}

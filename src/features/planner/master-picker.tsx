@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { Catalog } from "@/domain/catalog";
 import { otherNameOf } from "@/domain/names";
 import { masterSummary, type Accreditation } from "@/domain/planner";
-import { academicYearOf, type ProgrammePlan, type UpcomingMasters } from "@/domain/programme-plans";
+import { academicYearOf, trackKind, type ProgrammePlan, type UpcomingMasters } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
 import { ChalmersLink, Prerequisites, Specialisations } from "./master-details";
 
@@ -58,7 +58,7 @@ function MasterOption({ master, summary, otherName, accreditation, onChoose }: M
   const t = useMessages();
   const { tracks, compulsory, compulsoryCredits, electives } = summary;
   const facts = [
-    tracks.length > 0 && t.planner.tracks(tracks.length),
+    tracks.length > 0 && t.planner.trackCount(trackKind(master.code), tracks.length),
     compulsoryCredits > 0 ? t.planner.compulsoryCredits(compulsoryCredits) : t.planner.nothingCompulsory,
     t.planner.electives(electives),
   ]
@@ -133,30 +133,6 @@ export function MastersNotPublished({ year, shown, upcoming }: MastersNotPublish
         {t.planner.accreditationMatrix}
       </a>{" "}
       · {mastersLink}
-    </Note>
-  );
-}
-
-interface UnplannedCoursesProps {
-  master: string;
-  /** Courses on the master's programme's course list for the year shown that no current plan gives. */
-  names: readonly string[];
-  /** The academic year of the current plans. */
-  shown: string;
-  courseList: string | null;
-}
-
-/** The courses of an upcoming master's programme's year that the planner cannot place, since none of this year's plans gives them. */
-export function UnplannedCourses({ master, names, shown, courseList }: UnplannedCoursesProps) {
-  const t = useMessages();
-  return (
-    <Note>
-      {t.planner.unplanned(master, names, shown)}{" "}
-      {courseList && (
-        <a href={courseList} target="_blank" rel="noreferrer" className={linkClass}>
-          {t.planner.courseList}
-        </a>
-      )}
     </Note>
   );
 }

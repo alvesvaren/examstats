@@ -2,16 +2,15 @@ import { z } from "zod";
 import { OTHER_QUESTIONS } from "./evaluation.ts";
 import type { InLanguage } from "./names.ts";
 import { otherNameOf } from "./names.ts";
-import { accreditedMasters, PLANNER_SORT_KEYS } from "./planner.ts";
+import { accreditedMasters, LANES, PLANNER_SORT_KEYS, type Lane } from "./planner.ts";
 import {
   cohortOf,
   MASTER_START_YEAR,
-  STUDY_PERIODS,
   studyYears,
+  trackKind,
   tracksOf,
   type ProgrammePlan,
   type PublishedPlanInfo,
-  type StudyPeriod,
   type StudyPick,
   type StudyYear,
 } from "./programme-plans.ts";
@@ -26,8 +25,8 @@ export const plannerSearchSchema = z.object({
   /** The master's programme after the programme, as its code. */
   master: z.string().optional().catch(undefined),
   track: z.string().optional().catch(undefined),
-  /** The study period whose courses are listed. */
-  period: z.enum(STUDY_PERIODS).optional().catch(undefined),
+  /** The study period whose courses are listed, or the courses without one. */
+  period: z.enum(LANES).optional().catch(undefined),
   sort: z.enum(PLANNER_SORT_KEYS).optional().catch(undefined),
   dir: z.enum(["asc", "desc"]).optional().catch(undefined),
   /** The course survey question the survey column shows, when not the overall impression. */
@@ -37,9 +36,12 @@ export const plannerSearchSchema = z.object({
 });
 export type PlannerSearch = z.infer<typeof plannerSearchSchema>;
 
+/** The choice of no track: the student follows none, and sees the courses of every track. */
+export const NO_TRACK = "";
+
 /**
- * What the planner remembers on a device: the plan last worked on, the picks of every year planned, and the start
- * year of and master's programme after each programme.
+ * What the planner remembers on a device: the plan last worked on, the picks of every year planned, the start year of
+ * and master's programme after each programme, and the track chosen in each plan.
  */
 const plannerMemorySchema = z.object({
   last: z
@@ -56,6 +58,8 @@ const plannerMemorySchema = z.object({
   masters: z.record(z.string(), z.string()).default({}),
   /** Start years by programme code. */
   starts: z.record(z.string(), z.number().int()).default({}),
+  /** The track chosen in each plan, by the plan's code, so a master's programme keeps it in both its years. `NO_TRACK` is a choice of none. */
+  tracks: z.record(z.string(), z.string()).default({}),
 });
 export type PlannerMemory = z.infer<typeof plannerMemorySchema>;
 
@@ -66,7 +70,7 @@ export function parsePlannerMemory(stored: string | null): PlannerMemory {
   try {
     return plannerMemorySchema.parse(JSON.parse(stored ?? ""));
   } catch {
-    return { picks: {}, masters: {}, starts: {} };
+    return { picks: {}, masters: {}, starts: {}, tracks: {} };
   }
 }
 
@@ -99,6 +103,16 @@ const withStart = (memory: PlannerMemory, programme: string, start: number): Pla
   ...memory,
   starts: { ...memory.starts, [programme]: start },
 });
+
+/** The memory after the track chosen in `plan` changed. */
+const withTrack = (memory: PlannerMemory, plan: string, track: string): PlannerMemory => ({
+  ...memory,
+  tracks: { ...memory.tracks, [plan]: track },
+});
+
+/** The first of `wanted` that is a choice for a year with `tracks`: one of them, or none. Undefined when none of them is. */
+const chosenTrack = (tracks: readonly string[], ...wanted: (string | undefined)[]) =>
+  wanted.find((t) => t === NO_TRACK || (t !== undefined && tracks.includes(t)));
 
 /** The memory after a programme was opened from the list of programmes. The header's link goes back to it. */
 export const withLastProgramme =
@@ -142,6 +156,9 @@ export function resolvePlanner({ search, memory, cohort, plans, masterPlans, nam
   const choosingMaster = !master && masters.length > 0 && search.year === MASTER_START_YEAR;
   const current = years.find((y) => y.number === search.year) ?? years[0];
   const tracks = choosingMaster ? [] : tracksOf(current?.plan.years.find((y) => y.year === current.year)?.courses ?? []);
+  // A track in the URL is a shared plan and wins. Without one, it is the one this device chose in the plan, which a
+  // master's programme keeps in both its years. Without either, the student chooses one, or none.
+  const trackChoice = current && chosenTrack(tracks, search.track, memory.tracks[current.plan.code]);
   return {
     kind: "plan" as const,
     search,
@@ -158,17 +175,24 @@ export function resolvePlanner({ search, memory, cohort, plans, masterPlans, nam
     /** Whether the page says where the master's programmes come from. */
     showsMasters: Boolean(master) || choosingMaster,
     current,
+    /**
+     * Whether the student chooses the start year before the plan shows, since the plan depends on it and the newest
+     * is easy to keep by mistake.
+     */
+    choosingStart: cohort.admitted.length > 1 && (search.start ?? memory.starts[programme.code]) === undefined,
     tracks,
-    track: tracks.find((name) => name === search.track),
+    /** What the plan of the year shown calls its tracks. */
+    trackKind: trackKind(current?.plan.code ?? programme.code),
+    /** The track whose courses the year shows. Undefined shows those of every track. */
+    track: trackChoice || undefined,
+    /** Whether the student chooses a track, or none, before the year shows, since the track decides what is compulsory. */
+    choosingTrack: tracks.length > 0 && trackChoice === undefined,
     /** The round keys picked in the current year. Picks in the URL are a shared plan and win over the remembered ones. */
     pickedKeys: current ? (search.picked ?? rememberedPicks(memory, current.plan.code, current.year) ?? []) : [],
     /** The picks remembered for the other years of study. */
     otherPicks: current ? otherPicks(memory, years, current.number) : [],
-    /** Courses of an upcoming master's programme's current year that no plan gives. */
-    unplanned:
-      master && current?.plan === master
-        ? cohort.upcomingMasters?.masters[master.code]?.unplanned.find((u) => u.year === current.year)?.names
-        : undefined,
+    /** The course list of the upcoming master's programme the current year belongs to, which its new courses link to. */
+    courseList: master && current?.plan === master ? (accredited.get(master.code)?.courseList ?? null) : null,
   };
 }
 type PlannerState = ReturnType<typeof resolvePlanner>;
@@ -176,12 +200,13 @@ type PlanState = Extract<PlannerState, { kind: "plan" }>;
 
 export type PlannerAction =
   | { type: "showYear"; year: number }
-  | { type: "showTrack"; track: string | undefined }
+  /** `NO_TRACK` shows the courses of every track. */
+  | { type: "showTrack"; track: string }
   /** Without a master's programme, the degree is the programme's years alone. */
   | { type: "chooseMaster"; master: string | undefined }
   | { type: "showStart"; start: number }
-  /** The picks of the current year. `period` keeps the list on that study period. */
-  | { type: "setPicks"; keys: readonly string[]; period?: StudyPeriod }
+  /** The picks of the current year. `period` keeps the list on that lane. */
+  | { type: "setPicks"; keys: readonly string[]; period?: Lane }
   /** What the year's list shows. It touches the URL only. */
   | { type: "view"; changes: Pick<PlannerSearch, "period" | "sort" | "dir" | "survey"> };
 
@@ -206,47 +231,56 @@ export function plannerStep(state: PlanState, action: PlannerAction): PlannerSte
     track,
     ...view,
   });
-  // The picks of a year of study, which the URL takes along when the year is shown.
+  // The picks and the track remembered for a year of study, which the URL takes along when the year is shown.
   const picksIn = (shownYears: readonly StudyYear[], number: number) => {
     const year = shownYears.find((y) => y.number === number);
     return year && rememberedPicks(memory, year.plan.code, year.year);
   };
+  const trackIn = (shownYears: readonly StudyYear[], number: number) => {
+    const year = shownYears.find((y) => y.number === number);
+    return year && memory.tracks[year.plan.code];
+  };
 
   switch (action.type) {
-    case "showYear":
+    case "showYear": {
+      const nextTrack = trackIn(years, action.year);
       return {
         search: {
           start,
           year: action.year,
           master: state.master?.code,
-          track: undefined,
+          track: nextTrack,
           period: undefined,
           picked: picksIn(years, action.year),
         },
-        remember: (m) => ({ ...m, last: shown({ year: action.year, track: undefined }) }),
+        remember: (m) => ({ ...m, last: shown({ year: action.year, track: nextTrack || undefined }) }),
       };
-    case "showTrack":
+    }
+    case "showTrack": {
+      if (!current) return { search: {} };
       return {
         search: { track: action.track },
-        remember: (m) => ({ ...m, last: shown({ track: action.track }) }),
+        remember: (m) => ({ ...withTrack(m, current.plan.code, action.track), last: shown({ track: action.track || undefined }) }),
       };
+    }
     case "chooseMaster": {
       const chosen = studyYears(
         programme,
         state.masters.find((p) => p.code === action.master),
       );
+      const nextTrack = trackIn(chosen, MASTER_START_YEAR);
       return {
         search: {
           start,
           year: MASTER_START_YEAR,
           master: action.master,
-          track: undefined,
+          track: nextTrack,
           period: undefined,
           picked: picksIn(chosen, MASTER_START_YEAR),
         },
         remember: (m) => ({
           ...withMaster(m, programme.code, action.master),
-          last: shown({ year: MASTER_START_YEAR, track: undefined }),
+          last: shown({ year: MASTER_START_YEAR, track: nextTrack || undefined }),
         }),
       };
     }

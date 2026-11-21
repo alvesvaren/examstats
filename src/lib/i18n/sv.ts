@@ -1,7 +1,7 @@
 /** Every word the site shows in Swedish, in the shape of the English messages. */
 import { RECENT_YEARS } from "@/domain/course-stats";
 import { ANSWER_SCALE, BALANCED_WORKLOAD, EVALUATION_YEARS, RATING_YEARS, type Question } from "@/domain/evaluation";
-import type { Requirement, Theme } from "@/domain/programme-plans";
+import type { Requirement, Theme, TrackKind } from "@/domain/programme-plans";
 import { FORMATS, periodsWith } from "@/lib/format";
 import type { Messages } from "./en";
 
@@ -40,11 +40,22 @@ const REQUIREMENTS: Partial<Record<Requirement["kind"], string>> = {
 
 const HINTS: Partial<Record<Question, string>> = { overall: QUESTIONS.overall.short, workload: `${ANSWER_SCALE.max} är för hög` };
 
+/** The planner's lane of courses whose study periods are not known yet. */
+const NOT_SCHEDULED = "Utan läsperiod";
+
+/** The words for each kind of track. The site calls both kinds inriktningar in Swedish. */
+const TRACKS = {
+  specialisation: { label: "Inriktning", one: "inriktning", many: "inriktningar" },
+  concentration: { label: "Inriktning", one: "inriktning", many: "inriktningar" },
+} satisfies Record<TrackKind, { label: string; one: string; many: string }>;
+
+const formatPeriods = periodsWith({ LP1: "LP1", LP2: "LP2", LP3: "LP3", LP4: "LP4", Summer: "Sommar", Other: "Utanför läsperioderna" });
+
 export const sv: Messages = {
   format: f,
   credits,
   courses,
-  periods: periodsWith({ LP1: "LP1", LP2: "LP2", LP3: "LP3", LP4: "LP4", Summer: "Sommar", Other: "Utanför läsperioderna" }),
+  periods: formatPeriods,
   of: (have, total) => `${have} av ${total}`,
   spread: ({ mean, median, sd }) => `Medel ${f.number(mean)} · median ${f.number(median)} · std.avv. ${f.number(sd)}`,
   medianAndSd: (median, sd) => `Median ${f.number(median)} · std.avv. ${f.number(sd)}`,
@@ -57,6 +68,8 @@ export const sv: Messages = {
   allCourses: "Alla kurser",
   allProgrammes: "Alla program",
   noResultsYet: "Inga resultat än",
+  newCourse: "Ny kurs",
+  onChalmers: (course) => `${course} på chalmers.se`,
   chalmers: {
     syllabus: (code) =>
       `https://www.chalmers.se/utbildning/dina-studier/hitta-kurs-och-programplaner/kursplaner/${encodeURIComponent(code)}/`,
@@ -171,12 +184,17 @@ export const sv: Messages = {
     year: (number) => `År ${number}`,
     changeMaster: "Byt master",
     addMaster: "Lägg till master",
-    track: "Inriktning",
-    allTracks: "Alla inriktningar",
+    chooseStart: "När började du programmet?",
+    chooseStartHint: "Varje årskull följer programplanen från året den började, så kurserna och när de går beror på det.",
+    trackLabel: (kind) => TRACKS[kind].label,
+    noTrack: (kind) => `Ingen ${TRACKS[kind].one}`,
+    chooseTrack: (kind) => `Vilken ${TRACKS[kind].one} läser du?`,
+    chooseTrackHint: (kind, plan) => `${plan} har ${TRACKS[kind].many} med egna kurser. Du kan byta senare.`,
+    everyTrack: "Visar kurserna i alla",
 
     chooseMaster: "Välj ditt masterprogram",
     mastersIntro: (count, programme) => `${counted(count, "masterprogram", "masterprogram")} kan bli år 4 och 5 i ${programme}.`,
-    tracks: (count) => counted(count, "inriktning", "inriktningar"),
+    trackCount: (kind, count) => counted(count, TRACKS[kind].one, TRACKS[kind].many),
     compulsoryCredits: (value) => `${credits(value)} obligatoriskt`,
     nothingCompulsory: "Inget obligatoriskt för alla",
     electives: (count) => counted(count, "valbar kurs", "valbara kurser"),
@@ -188,17 +206,21 @@ export const sv: Messages = {
     mastersNotPublished: (year, shown) =>
       `Preliminärt: Chalmers har inte publicerat masterprogrammen för ${year} än. Det här är de för ${shown}.`,
     upcomingMasters: (year, announced, shown) =>
-      `Preliminärt: Chalmers har inte planerat masterprogrammen för ${year} än.${announced === year ? "" : ` Det här är de för ${announced}.`} Kurserna ligger i sina läsperioder från ${shown}.`,
-    unplanned: (master, names, shown) =>
-      `Kurslistan för ${master} nämner också ${names.join(", ")}. De är nya eller ges inte ${shown}, så planen har inga läsperioder för dem.`,
+      `Preliminärt: Chalmers har inte planerat masterprogrammen för ${year} än.${announced === year ? "" : ` Det här är de för ${announced}.`} Kurserna ligger i sina läsperioder från ${shown}, och nya kurser väntar under ${NOT_SCHEDULED}.`,
 
     noCoursesThisYear: "Planen har inga kurser för det här året.",
     yourYear: "Ditt år",
-    inYourYear: (value) => `${credits(value)} i ditt år`,
+    inYourYear: (value, pending) =>
+      `${credits(value)} i ditt år${pending > 0 ? `, och ${courses(pending)} vars poäng inte är kända än` : ""}`,
     clearPicks: "Rensa mina val",
     toChooseFrom: (count) => `${f.count(count)} att välja bland`,
     allInYear: "Alla kurser i den här läsperioden finns redan i ditt år.",
     noCoursesInPeriod: "Planen har inga kurser i den här läsperioden.",
+    notScheduled: NOT_SCHEDULED,
+    notScheduledHint: "Nya kurser, utan läsperiod och poäng än",
+    inProgrammePlan: (name) => `${name} ingår i programplanen`,
+    creditsNotKnown: "Poäng inte kända än",
+    preliminary: "Preliminär",
     sameLectures: (name, compulsory) => `Samma föreläsningstider som ${name}${compulsory ? ", som är obligatorisk" : ""}`,
     exclusive: (name) => `Bara en av den här och ${name} räknas till examen`,
     shareLectures: "Två av dessa har samma föreläsningstider",
@@ -219,7 +241,7 @@ export const sv: Messages = {
     removeFromYear: (name) => `Ta bort ${name} från ditt år`,
     addToYear: (name) => `Lägg till ${name} i ditt år`,
     runs: (periods) => `Går ${periods}`,
-    elsewhereInYear: (year, periods) => `I år ${year} i ${periods}.`,
+    elsewhereInYear: (year, inPeriods) => `I år ${year}${inPeriods.length > 0 ? ` i ${formatPeriods(inPeriods)}` : ""}.`,
     elsewhereInThisYear: (periods) => `I ditt år i ${periods}. Lägger du till den här flyttas den.`,
   },
 };

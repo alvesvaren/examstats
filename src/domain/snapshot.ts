@@ -37,6 +37,21 @@ export const courseSummarySchema = namedSchema.extend({
   examiners: z.array(z.string()),
 });
 
+/**
+ * A course without results on stats.ftek.se, which the course list links to chalmers.se instead of a page of its own:
+ * one that this academic year's plans give, or a new one that only an upcoming master's programme's course list names.
+ */
+export const newCourseSchema = namedSchema.extend({
+  /** Null for a course that only a course list names, since it has no code yet. */
+  code: z.string().nullable(),
+  /** Study periods the course runs in this academic year. Empty for a course that only a course list names. */
+  periods: z.array(z.enum(STUDY_PERIODS)),
+  /** Examiners of the course's rounds this academic year. */
+  examiners: z.array(z.string()),
+  /** The upcoming master's programmes whose course lists name the course, by code. Empty for a course of this year's plans. */
+  masters: z.array(z.string()),
+});
+
 export const snapshotSchema = z.object({
   generatedAt: z.iso.datetime(),
   /** When the course surveys were last crawled. */
@@ -46,8 +61,10 @@ export const snapshotSchema = z.object({
   /** Programme names by code. */
   programmes: z.record(z.string(), namedSchema),
   courses: z.array(courseSummarySchema),
+  newCourses: z.array(newCourseSchema),
 });
 
 export type CourseDetail = z.infer<typeof courseDetailSchema>;
 export type CourseSummary = z.infer<typeof courseSummarySchema>;
+export type NewCourse = z.infer<typeof newCourseSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;

@@ -43,6 +43,7 @@ const names: NamesFile = {
     // A name Chalmers has in one language only has the other one empty.
     { code: "NEW001", en: "New course", sv: "", lastOffered: "2026/2027" },
     { code: "DAT405", en: "Introduction to data science and AI", sv: "Introduktion till data science och AI", lastOffered: "2022/2023" },
+    { code: "DAT700", en: "Advanced programming language theory", sv: "Avancerad programspråksteori", lastOffered: "2026/2027" },
   ],
 };
 
@@ -116,7 +117,14 @@ const plans: ProgrammePlansFile = {
       { year: 2, courses: [planCourse("TDA357", { examiners: ["Ada Examiner"], seats: 185 })] },
     ]),
     plan("MPALG", "2026/2027", [
-      { year: 1, courses: [planCourse("TDA357", { rule: "O", periods: ["LP3"], examiners: ["Grace Examiner"] })] },
+      {
+        year: 1,
+        courses: [
+          planCourse("TDA357", { rule: "O", periods: ["LP3"], examiners: ["Grace Examiner"] }),
+          // A new course, which stats.ftek.se has no results for yet.
+          planCourse("DAT700", { periods: ["LP4"], examiners: ["Alan Examiner"] }),
+        ],
+      },
     ]),
   ],
 };
@@ -333,7 +341,12 @@ describe("buildSnapshot", () => {
           code: "MPALG",
           name: "Computer science - algorithms, languages and logic",
           swedishName: "Datavetenskap",
-          years: [[["TDA357", "Databases", "Databaser", "O"]]],
+          years: [
+            [
+              ["TDA357", "Databases", "Databaser", "O"],
+              ["DAT700", "Advanced programming language theory", "Avancerad programspråksteori", "V"],
+            ],
+          ],
         },
       ]);
     });
@@ -346,17 +359,18 @@ describe("buildSnapshot", () => {
       expect(published.get(2027)!.map((p) => ({ code: p.code, name: p.name, swedishName: p.swedishName }))).toEqual([
         { code: "MPNEW", name: "New master", swedishName: "New master" },
       ]);
-      expect(published.get(2027)![0]!.years.map((y) => y.courses.map((c) => [c.code, c.name, c.periods, c.rule]))).toEqual([
+      expect(published.get(2027)![0]!.years.map((y) => y.courses.map((c) => [c.code, c.name, c.periods, c.rule, c.pending]))).toEqual([
         [
-          ["TDA357", "Databases", ["LP2"], "O"],
-          ["TDA357", "Databases", ["LP3"], "O"],
+          ["TDA357", "Databases", ["LP2"], "O", undefined],
+          ["TDA357", "Databases", ["LP3"], "O", undefined],
+          ["new-unknown-course", "Unknown course", [], "V", true],
         ],
       ]);
       expect(index.plans.upcomingMasters).toEqual({
         academicYear: "2027/2028",
         matrix: "https://example.com/matrix.xlsx",
         accreditations: { TKITE: [{ code: "MPNEW", specialisations: [] }] },
-        masters: { MPNEW: { courseList: null, unplanned: [{ year: 1, names: ["Unknown course (preliminary)"] }] } },
+        masters: { MPNEW: { courseList: null } },
       });
       // Only programmes with plans of their own have start years.
       expect(index.plans.starts).toEqual({ TKITE: [2025, 2026], MPALG: [2026] });
@@ -372,6 +386,42 @@ describe("buildSnapshot", () => {
       const { index, plans: published } = build(null);
       expect([...published.keys()]).toEqual([2025, 2026]);
       expect(index.plans.upcomingMasters).toBeNull();
+    });
+  });
+
+  describe("courses without results", () => {
+    const dat700 = {
+      code: "DAT700",
+      name: "Advanced programming language theory",
+      swedishName: "Avancerad programspråksteori",
+      periods: ["LP4"],
+      examiners: ["Alan Examiner"],
+      masters: [],
+    };
+
+    it("lists the courses of this year's plans that have no results, with their names, study periods and examiners", () => {
+      expect(build().index.newCourses).toEqual([dat700]);
+    });
+
+    it("adds each new course of the upcoming master's programmes once, with the programmes whose course lists name it", () => {
+      const file = upcomingFile("2027/2028");
+      const second = { ...file.masters[0]!, code: "MPTWO", name: "Second master" };
+      expect(build({ ...file, masters: [...file.masters, second] }).index.newCourses).toEqual([
+        dat700,
+        { code: null, name: "Unknown course", swedishName: "Unknown course", periods: [], examiners: [], masters: ["MPNEW", "MPTWO"] },
+      ]);
+    });
+
+    it("leaves out a thesis that only a course list names, since every master's programme lists one", () => {
+      const file = upcomingFile("2027/2028");
+      const master = file.masters[0]!;
+      const thesis = { name: "Master’s thesis", requirement: "compulsory" as const, track: null, year: 2, preliminary: false };
+      const withThesis = { ...master, courses: [...master.courses!, thesis] };
+      expect(build({ ...file, masters: [withThesis] }).index.newCourses.map((c) => c.name)).toEqual([dat700.name, "Unknown course"]);
+    });
+
+    it("drops the new courses of the upcoming master's programmes once the plans have their year", () => {
+      expect(build(upcomingFile("2026/2027")).index.newCourses).toEqual([dat700]);
     });
   });
 });
