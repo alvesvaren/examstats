@@ -1,7 +1,7 @@
-import { compareSortValues, defaultSortDir, normalize, sortValueOf, type CatalogCourse, type SortDir } from "./catalog.ts";
+import { compareSortValues, defaultSortDir, sortValueOf, type CatalogCourse, type SortDir } from "./catalog.ts";
 import { tenths } from "./degree.ts";
 import { OTHER_QUESTIONS } from "./evaluation.ts";
-import type { InLanguage } from "./names.ts";
+import { normalize, type InLanguage } from "./names.ts";
 import {
   isElective,
   plannedCourses,
@@ -156,12 +156,6 @@ export function masterSummary(master: ProgrammePlan, stats: ReadonlyMap<string, 
     passRate: meanOf(withStats.map((c) => c.passRate)),
     rating: meanOf(withStats.map((c) => c.rating)),
   };
-}
-
-/** A programme's name in the language not shown, or undefined when Chalmers names it the same in both languages. */
-export function otherNameOf(names: Readonly<Record<string, InLanguage>>, code: string) {
-  const named = names[code];
-  return named && normalize(named.otherName) !== normalize(named.name) ? named.otherName : undefined;
 }
 
 /** Programmes whose code or name in either language holds every word of `query`, by name. Every programme without a query. */

@@ -1,7 +1,8 @@
 import { ChevronRightIcon, ExternalLinkIcon, InfoIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Catalog } from "@/domain/catalog";
-import { masterSummary, otherNameOf } from "@/domain/planner";
+import { otherNameOf } from "@/domain/names";
+import { masterSummary } from "@/domain/planner";
 import { academicYearOf, type ProgrammePlan, type UpcomingMasters } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
 import { cn } from "cn";

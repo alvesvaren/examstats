@@ -8,7 +8,7 @@ import {
   type TrendPoint,
 } from "./evaluation.ts";
 import { averageGradeOf, passRateOf } from "./grades.ts";
-import { inLanguage, type InLanguage, type Language } from "./names.ts";
+import { inLanguage, normalize, type InLanguage, type Language } from "./names.ts";
 import type { StudyPeriod } from "./programme-plans.ts";
 import type { CourseSummary, Snapshot } from "./snapshot.ts";
 
@@ -45,12 +45,6 @@ const TREND_BASELINE_YEARS = 3;
 const MIN_PROGRAMME_QUERY = 2;
 /** Shorter queries match too many names to suggest examiners. */
 const MIN_EXAMINER_QUERY = 3;
-
-export const normalize = (text: string) =>
-  text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
 
 const SEARCH_SEPARATOR = ";";
 

@@ -30,6 +30,19 @@ export interface InLanguage {
   otherName: string;
 }
 
+/** `text` in lower case without diacritics, for comparing names and matching them against a query. */
+export const normalize = (text: string) =>
+  text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+/** A programme's name in the language not shown, or undefined when Chalmers names it the same in both languages. */
+export function otherNameOf(names: Readonly<Record<string, InLanguage>>, code: string) {
+  const named = names[code];
+  return named && normalize(named.otherName) !== normalize(named.name) ? named.otherName : undefined;
+}
+
 /** `named` with `name` in `language`. Its `swedishName` stays Swedish. */
 export const inLanguage = <T extends Named>(named: T, language: Language): T & InLanguage =>
   language === "sv" ? { ...named, name: named.swedishName, otherName: named.name } : { ...named, otherName: named.swedishName };

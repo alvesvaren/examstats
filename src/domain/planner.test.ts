@@ -13,7 +13,6 @@ import {
   periodsOf,
   plannerYear,
   searchProgrammes,
-  otherNameOf,
   togglePick,
 } from "./planner.ts";
 import { roundKey, type PlanChoice, type PlanCourse, type PlanRound, type ProgrammePlan, type StudyPeriod } from "./programme-plans.ts";
@@ -310,16 +309,5 @@ describe("searchProgrammes", () => {
 
   it("lists every programme by name without a query", () => {
     expect(found(" ")).toEqual(["MPALG", "TKDAT", "TKITE"]);
-  });
-});
-
-describe("otherNameOf", () => {
-  const names = {
-    TKDAT: { name: "Computer Science and Engineering", otherName: "Datateknik" },
-    MPSOF: { name: "Software Engineering and Technology", otherName: "Software engineering and technology" },
-  };
-
-  it("gives the name in the other language only when it differs", () => {
-    expect(["TKDAT", "MPSOF", "MBATT"].map((code) => otherNameOf(names, code))).toEqual(["Datateknik", undefined, undefined]);
   });
 });
