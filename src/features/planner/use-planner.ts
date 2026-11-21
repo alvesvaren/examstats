@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi } from "@tanstack/react-router";
 import { catalogQuery, plansQuery } from "@/data/queries";
-import { openProgramme, plannerCohort, plannerStep, resolvePlanner, type PlannerAction } from "@/domain/planner-state";
+import { plannerCohort, plannerStep, resolvePlanner, withLastProgramme, type PlannerAction } from "@/domain/planner-state";
 import { useLanguage } from "@/hooks/use-language";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 
@@ -20,7 +20,7 @@ export function usePlanner() {
   const cohort = plannerCohort(catalog.plans, search, memory);
   const { data: plans } = useSuspenseQuery(plansQuery(language, cohort.start));
   const { data: masterPlans } = useSuspenseQuery(plansQuery(language, cohort.masterPlans));
-  const state = resolvePlanner({ search, memory, cohort, plans, masterPlans, programmes: catalog.programmes });
+  const state = resolvePlanner({ search, memory, cohort, plans, masterPlans, names: catalog.programmes });
 
   const dispatch = (action: PlannerAction) => {
     if (state.kind !== "plan") return;
@@ -29,7 +29,7 @@ export function usePlanner() {
     void navigate({ search: (prev) => ({ ...prev, ...step.search }), replace: true, resetScroll: false });
   };
   /** Remembers the programme as the one last worked on. A link to it opens it. */
-  const rememberProgramme = (code: string) => remember(openProgramme(code));
+  const rememberProgramme = (code: string) => remember(withLastProgramme(code));
   const open = (code: string) => {
     rememberProgramme(code);
     void navigate({ to: "/planner", search: { programme: code } });

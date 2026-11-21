@@ -2,17 +2,24 @@ import { flip, surveySortKey, type Catalog } from "@/domain/catalog";
 import type { Question } from "@/domain/evaluation";
 import { requirementKey } from "@/domain/degree";
 import { togglePick, yearView, type PlannerRound, type PlannerSortKey } from "@/domain/planner";
-import type { PlanState, PlannerAction } from "@/domain/planner-state";
-import type { StudyPeriod, StudyYear } from "@/domain/programme-plans";
+import type { PlannerAction, PlannerSearch } from "@/domain/planner-state";
+import type { StudyPeriod, StudyPick, StudyYear } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
 import { CandidateTable } from "./candidate-table";
 import { DegreeRule, PickRule } from "./degree-marks";
 import { PeriodCard } from "./period-card";
 
 interface YearPlannerProps {
-  state: PlanState;
-  /** The year of study to fill. It is the state's current year. */
+  /** Every year of study of the degree. */
+  years: readonly StudyYear[];
+  /** The year of study to fill. */
   current: StudyYear;
+  track: string | undefined;
+  search: PlannerSearch;
+  /** The round keys picked in the current year. */
+  pickedKeys: readonly string[];
+  /** The picks of the other years of study. */
+  otherPicks: readonly StudyPick[];
   catalog: Catalog;
   dispatch: (action: PlannerAction) => void;
 }
@@ -21,9 +28,8 @@ interface YearPlannerProps {
  * A year of a programme to fill: the study periods with what every student takes already in them, and the courses
  * to choose between for one study period at a time.
  */
-export function YearPlanner({ state, current, catalog, dispatch }: YearPlannerProps) {
+export function YearPlanner({ years, current, track, search, pickedKeys, otherPicks, catalog, dispatch }: YearPlannerProps) {
   const t = useMessages();
-  const { years, track, search, pickedKeys, otherPicks } = state;
   const view = yearView({
     years,
     current,

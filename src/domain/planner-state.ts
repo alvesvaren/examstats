@@ -101,7 +101,7 @@ const withStart = (memory: PlannerMemory, programme: string, start: number): Pla
 });
 
 /** The memory after a programme was opened from the list of programmes. The header's link goes back to it. */
-export const openProgramme =
+export const withLastProgramme =
   (programme: string) =>
   (memory: PlannerMemory): PlannerMemory => ({ ...memory, last: { programme } });
 
@@ -121,16 +121,16 @@ interface PlannerInput {
   /** The programmes of the year the master's programmes start in. */
   masterPlans: readonly ProgrammePlan[];
   /** Programme names by code. */
-  programmes: Readonly<Record<string, InLanguage>>;
+  names: Readonly<Record<string, InLanguage>>;
 }
 
 /**
  * What the planner shows: the search of programmes when the URL names none, else the programme's plan, with the
  * master's programme, year, track and picks that the URL names, or else this device remembers.
  */
-export function resolvePlanner({ search, memory, cohort, plans, masterPlans, programmes }: PlannerInput) {
+export function resolvePlanner({ search, memory, cohort, plans, masterPlans, names }: PlannerInput) {
   const programme = plans.find((p) => p.code === search.programme);
-  if (!programme) return { kind: "search" as const, programmes: plans, names: programmes };
+  if (!programme) return { kind: "search" as const, programmes: plans, names };
 
   const accredited = accreditedMasters(programme, cohort.upcomingMasters);
   const masters = masterPlans.filter((p) => accredited.has(p.code));
@@ -147,9 +147,8 @@ export function resolvePlanner({ search, memory, cohort, plans, masterPlans, pro
     search,
     memory,
     cohort,
-    start: cohort.start,
     programme,
-    otherName: otherNameOf(programmes, programme.code),
+    otherName: otherNameOf(names, programme.code),
     accredited,
     masters,
     master,
@@ -173,7 +172,7 @@ export function resolvePlanner({ search, memory, cohort, plans, masterPlans, pro
   };
 }
 type PlannerState = ReturnType<typeof resolvePlanner>;
-export type PlanState = Extract<PlannerState, { kind: "plan" }>;
+type PlanState = Extract<PlannerState, { kind: "plan" }>;
 
 export type PlannerAction =
   | { type: "showYear"; year: number }
@@ -198,7 +197,8 @@ interface PlannerStep {
  * every action that remembers stores the view as it is after the action.
  */
 export function plannerStep(state: PlanState, action: PlannerAction): PlannerStep {
-  const { programme, start, current, track, memory, years } = state;
+  const { programme, cohort, current, track, memory, years } = state;
+  const { start } = cohort;
   const shown = (view: { start?: number; year?: number; track?: string }): PlannerMemory["last"] => ({
     programme: programme.code,
     start,

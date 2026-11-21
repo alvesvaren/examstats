@@ -21,8 +21,7 @@ export function PlannerPage() {
     return <ProgrammeSearch programmes={state.programmes} names={state.names} onOpen={openProgramme} onRemember={rememberProgramme} />;
   }
 
-  const { programme, otherName, cohort, start, masters, master, masterAccreditation, years, choosingMaster, current, tracks, track } =
-    state;
+  const { programme, otherName, cohort, masters, master, masterAccreditation, years, choosingMaster, current, tracks, track } = state;
   const startYears = cohort.admitted.toReversed();
   const chooseMaster = (code: string | undefined) => dispatch({ type: "chooseMaster", master: code });
 
@@ -58,7 +57,7 @@ export function PlannerPage() {
         {cohort.admitted.length > 1 && (
           <FieldSelect
             aria-label={t.planner.startYear}
-            value={String(start)}
+            value={String(cohort.start)}
             onChange={(event) => dispatch({ type: "showStart", start: Number(event.target.value) })}
           >
             {startYears.map((year) => (
@@ -133,7 +132,16 @@ export function PlannerPage() {
       ) : current === undefined ? (
         <p className="text-muted-foreground">{t.planner.noCourses}</p>
       ) : (
-        <YearPlanner state={state} current={current} catalog={catalog} dispatch={dispatch} />
+        <YearPlanner
+          years={years}
+          current={current}
+          track={track}
+          search={state.search}
+          pickedKeys={state.pickedKeys}
+          otherPicks={state.otherPicks}
+          catalog={catalog}
+          dispatch={dispatch}
+        />
       )}
     </div>
   );

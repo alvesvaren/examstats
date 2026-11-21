@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  openProgramme,
+  withLastProgramme,
   parsePlannerMemory,
   plannerCohort,
   plannerStep,
@@ -73,7 +73,7 @@ describe("parsePlannerMemory", () => {
   });
 });
 
-describe("openProgramme", () => {
+describe("withLastProgramme", () => {
   it("makes the programme the one last worked on, forgetting the start year, year and track of the one before", () => {
     const memory: PlannerMemory = {
       last: { programme: "TKITE", start: 2024, year: 3, track: "AI" },
@@ -82,7 +82,7 @@ describe("openProgramme", () => {
       starts: { TKITE: 2024 },
     };
 
-    expect(openProgramme("TKDAT")(memory)).toEqual({ ...memory, last: { programme: "TKDAT" } });
+    expect(withLastProgramme("TKDAT")(memory)).toEqual({ ...memory, last: { programme: "TKDAT" } });
   });
 });
 
@@ -140,7 +140,7 @@ const WITH_MPALG: PlannerMemory = { ...MEMORY, masters: { TKITE: "MPALG" } };
 
 function resolve(search: PlannerSearch, memory = MEMORY, info = INFO) {
   const cohort = plannerCohort(info, search, memory);
-  return resolvePlanner({ search, memory, cohort, plans: [TKITE], masterPlans: [MPALG, MPCSC, MPSEC], programmes: NAMES });
+  return resolvePlanner({ search, memory, cohort, plans: [TKITE], masterPlans: [MPALG, MPCSC, MPSEC], names: NAMES });
 }
 
 function planned(search: PlannerSearch, memory = MEMORY, info = INFO) {
@@ -182,7 +182,7 @@ describe("resolvePlanner", () => {
   it("shows a start year in the link over the remembered one", () => {
     const state = planned({ programme: "TKITE", start: 2024 }, { ...MEMORY, starts: { TKITE: 2023 } });
 
-    expect(state.start).toBe(2024);
+    expect(state.cohort.start).toBe(2024);
   });
 
   it("shows without a link the master's programme this device remembers", () => {
