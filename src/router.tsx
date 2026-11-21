@@ -4,7 +4,7 @@ import { z } from "zod";
 import { AppLayout, CourseNotFound, ErrorState, PageNotFound, PageSkeleton } from "@/components/app-layout";
 import { courseQuery, plansQuery, queryClient, snapshotQuery } from "@/data/queries";
 import { SORT_KEYS, toCatalogCourse } from "@/domain/catalog";
-import { PLANNER_SORT_KEYS } from "@/domain/planner";
+import { plannerSearchSchema } from "@/domain/planner-state";
 import { OTHER_QUESTIONS } from "@/domain/evaluation";
 import { cohortOf, STUDY_PERIODS } from "@/domain/programme-plans";
 import { getLanguage } from "@/hooks/use-language";
@@ -61,25 +61,6 @@ const courseRoute = createRoute({
   head: ({ loaderData }) => ({ meta: loaderData ? [{ title: pageTitle(courseHeading(loaderData.course)) }] : [] }),
   notFoundComponent: CourseNotFound,
   component: CoursePage,
-});
-
-const plannerSearchSchema = z.object({
-  programme: z.string().optional().catch(undefined),
-  /** The year the student started the programme in, as the first calendar year of that academic year, such as 2024. */
-  start: z.number().int().optional().catch(undefined),
-  /** The year of study, counted on into the master's programme. */
-  year: z.number().int().positive().optional().catch(undefined),
-  /** The master's programme after the programme, as its code. */
-  master: z.string().optional().catch(undefined),
-  track: z.string().optional().catch(undefined),
-  /** The study period whose courses are listed. */
-  period: z.enum(STUDY_PERIODS).optional().catch(undefined),
-  sort: z.enum(PLANNER_SORT_KEYS).optional().catch(undefined),
-  dir: z.enum(["asc", "desc"]).optional().catch(undefined),
-  /** The course survey question the survey column shows, when not the overall impression. */
-  survey: z.enum(OTHER_QUESTIONS).optional().catch(undefined),
-  /** Round keys of the courses added to the year, such as "TDA357.LP2". */
-  picked: z.array(z.string()).optional().catch(undefined),
 });
 
 const plannerRoute = createRoute({

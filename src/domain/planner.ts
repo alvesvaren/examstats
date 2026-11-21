@@ -11,6 +11,7 @@ import {
   type ProgrammePlan,
   type StudyPeriod,
   type StudyPick,
+  type UpcomingMasters,
 } from "./programme-plans.ts";
 
 export const PLANNER_SORT_KEYS = ["rating", "passRate", ...OTHER_QUESTIONS] as const;
@@ -156,6 +157,29 @@ export function masterSummary(master: ProgrammePlan, stats: ReadonlyMap<string, 
     passRate: meanOf(withStats.map((c) => c.passRate)),
     rating: meanOf(withStats.map((c) => c.rating)),
   };
+}
+
+/** What it takes for a master's programme to complete a programme's degree. */
+export interface Accreditation {
+  /** Specialisations of the master's programme that the degree needs one of. Empty when any will do. */
+  specialisations: readonly string[];
+  /** The course list of a master's programme Chalmers has announced but not planned yet. */
+  courseList: string | null;
+}
+
+/**
+ * The master's programmes that complete `programme`'s degree, by code. Upcoming master's programmes come with their
+ * own accreditations, since the programme syllabus names the current ones.
+ */
+export function accreditedMasters(programme: ProgrammePlan, upcoming: UpcomingMasters | null): Map<string, Accreditation> {
+  return new Map(
+    upcoming
+      ? (upcoming.accreditations[programme.code] ?? []).map(({ code, specialisations }) => [
+          code,
+          { specialisations, courseList: upcoming.masters[code]?.courseList ?? null },
+        ])
+      : programme.masters.map((code) => [code, { specialisations: [], courseList: null }]),
+  );
 }
 
 /** Programmes whose code or name in either language holds every word of `query`, by name. Every programme without a query. */
