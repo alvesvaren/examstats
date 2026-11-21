@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { attemptsOf, gradeCountsSchema, passRateOf, sumCounts } from "./grades.ts";
 import type { GradeCounts } from "./grades.ts";
-import type { CourseSummary } from "./snapshot.ts";
+import type { Named } from "./names.ts";
 
 export const sittingSchema = z.object({
   date: z.iso.date(),
@@ -93,11 +93,7 @@ export function latestExam(sittings: readonly Sitting[]) {
  * Builds the exam results of a course's list row from its parts.
  * Recent grades and size cover the main part's last {@link RECENT_YEARS} finished academic years with results.
  */
-export function summarizeCourse(
-  course: Pick<CourseSummary, "code" | "name" | "swedishName" | "programme">,
-  parts: readonly Part[],
-  today: Date,
-): Omit<CourseSummary, "surveyAnswers" | "trend" | "periods" | "examiners"> {
+export function summarizeCourse(course: Named & { code: string; programme: string | null }, parts: readonly Part[], today: Date) {
   const [main] = orderParts(parts);
   const dates = parts.flatMap((p) => p.sittings.map((s) => s.date)).toSorted();
   const lastResult = dates.at(-1) ?? null;
