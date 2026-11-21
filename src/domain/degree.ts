@@ -1,6 +1,4 @@
-import { plannedCourses, type PlanChoice, type PlanCourse, type PlanRequirement, type ProgrammePlan } from "./programme-plans.ts";
-
-export const tenths = (credits: number) => Math.round(credits * 10) / 10;
+import { plannedCourses, tenths, type PlanChoice, type PlanCourse, type PlanRequirement, type ProgrammePlan } from "./programme-plans.ts";
 
 /**
  * How far the courses of a whole plan go towards a choice of `programme` that asks for some of its courses, in courses

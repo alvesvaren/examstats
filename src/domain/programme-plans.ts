@@ -9,6 +9,9 @@ export type StudyPeriod = (typeof STUDY_PERIODS)[number];
 export const THEMES = ["mts", "environment"] as const;
 export type Theme = (typeof THEMES)[number];
 
+/** Credits come in tenths, and summing them in floating point drifts. */
+export const tenths = (credits: number) => Math.round(credits * 10) / 10;
+
 export const planCourseSchema = z.object({
   code: z.string(),
   name: z.string(),

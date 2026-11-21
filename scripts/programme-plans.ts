@@ -17,6 +17,7 @@ import {
   roundOf,
   startYearOf,
   STUDY_PERIODS,
+  tenths,
   type CourseRound,
   type PlanChoice,
   type PlanCourse,
@@ -73,8 +74,6 @@ const MIN_PROGRAMMES = 40;
 const MIN_COURSE_NAMES = 1500;
 /** More failed syllabi than this means the API is down or changed, and the file keeps its last good contents. */
 const MAX_FAILED_SHARE = 0.02;
-/** Credits come in tenths, and summing them in floating point drifts. */
-const tenths = (credits: number) => Math.round(credits * 10) / 10;
 
 const PERIOD_CODES: Record<string, StudyPeriod> = { LP1: "LP1", LP2: "LP2", LP3: "LP3", LP4: "LP4", LP5: "Summer" };
 const periodOf = (code: string | null) => PERIOD_CODES[code ?? ""] ?? "Other";

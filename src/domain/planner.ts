@@ -1,5 +1,5 @@
 import { compareSortValues, defaultSortDir, sortValueOf, surveyColumn, type CatalogCourse, type SortDir } from "./catalog.ts";
-import { degreeRulesOf, marksOf, pickProgress, tenths, type DegreeRuleMark } from "./degree.ts";
+import { degreeRulesOf, marksOf, pickProgress, type DegreeRuleMark } from "./degree.ts";
 import { OTHER_QUESTIONS, type OtherQuestion } from "./evaluation.ts";
 import { normalize, type InLanguage } from "./names.ts";
 import {
@@ -7,6 +7,7 @@ import {
   plannedCourses,
   planYear,
   STUDY_PERIODS,
+  tenths,
   tracksOf,
   type PlanRound,
   type ProgrammePlan,
