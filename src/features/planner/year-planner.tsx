@@ -6,21 +6,18 @@ import { PassRateCell, SurveyCell } from "@/components/course-cells";
 import { MetricInfo } from "@/components/metric-label";
 import { SurveyColumnPicker } from "@/components/survey-column";
 import { Badge } from "@/components/ui/badge";
+import { amountTowards, openRequirements, pickProgress, requirementProgress } from "@/domain/degree";
 import { defaultSortDir, surveyColumn, surveySortKey, type Catalog, type SortDir } from "@/domain/catalog";
 import {
-  amountTowards,
   candidatesIn,
   creditsIn,
   exclusiveWith,
   findElsewhere,
   firstOpenPeriod,
   lectureClash,
-  openRequirements,
   PERIOD_CREDITS,
   periodsOf,
-  pickProgress,
   plannerYear,
-  requirementProgress,
   togglePick,
   type PlanElsewhere,
   type PlannerRound,
