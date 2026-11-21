@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  NO_TRACK,
   withLastProgramme,
   parsePlannerMemory,
   plannerCohort,
@@ -57,19 +58,21 @@ describe("parsePlannerMemory", () => {
       picks: { "TKITE.3": ["TDA357.LP2"] },
       masters: { TKITE: "MPALG" },
       starts: { TKITE: 2024 },
+      tracks: { MPALG: "Security", TKITE: NO_TRACK },
     };
     expect(parsePlannerMemory(JSON.stringify(memory))).toEqual(memory);
   });
 
-  it("keeps the picks of a memory stored before it held master's programmes and start years", () => {
+  it("keeps the picks of a memory stored before it held master's programmes, start years and tracks", () => {
     const stored = { last: { programme: "TKITE" }, picks: { "TKITE.3": ["TDA357.LP2"] } };
-    expect(parsePlannerMemory(JSON.stringify(stored))).toEqual({ ...stored, masters: {}, starts: {} });
+    expect(parsePlannerMemory(JSON.stringify(stored))).toEqual({ ...stored, masters: {}, starts: {}, tracks: {} });
   });
 
   it("starts empty when nothing is stored, or when what is stored is not a memory", () => {
-    expect(parsePlannerMemory(null)).toEqual({ picks: {}, masters: {}, starts: {} });
-    expect(parsePlannerMemory("not json")).toEqual({ picks: {}, masters: {}, starts: {} });
-    expect(parsePlannerMemory(JSON.stringify({ picks: ["TDA357.LP2"] }))).toEqual({ picks: {}, masters: {}, starts: {} });
+    const empty = { picks: {}, masters: {}, starts: {}, tracks: {} };
+    expect(parsePlannerMemory(null)).toEqual(empty);
+    expect(parsePlannerMemory("not json")).toEqual(empty);
+    expect(parsePlannerMemory(JSON.stringify({ picks: ["TDA357.LP2"] }))).toEqual(empty);
   });
 });
 
@@ -80,6 +83,7 @@ describe("withLastProgramme", () => {
       picks: { "TKITE.3": ["TDA357.LP2"] },
       masters: { TKITE: "MPALG" },
       starts: { TKITE: 2024 },
+      tracks: {},
     };
 
     expect(withLastProgramme("TKDAT")(memory)).toEqual({ ...memory, last: { programme: "TKDAT" } });
@@ -99,7 +103,10 @@ const TKITE = plan(
   },
   { masters: ["MPALG", "MPCSC"] },
 );
-const MPALG = plan("MPALG", { 1: [course("DAT060")], 2: [course("TDA352", { track: "Security" })] });
+const MPALG = plan("MPALG", {
+  1: [course("DAT060"), course("DAT061", { periods: ["LP2"], track: "Security" })],
+  2: [course("TDA352", { track: "Security" })],
+});
 const MPCSC = plan("MPCSC", { 1: [course("DAT450")] });
 /** A master's programme that TKITE does not lead on to. */
 const MPSEC = plan("MPSEC", { 1: [course("DAT510")] });
@@ -127,6 +134,7 @@ const MEMORY: PlannerMemory = {
   picks: { "TKITE.2": ["DAT026.LP1"], "TKITE.3": ["TDA357.LP2"], "MPALG.1": ["DAT060.LP1"] },
   masters: {},
   starts: {},
+  tracks: {},
 };
 const WITH_MPALG: PlannerMemory = { ...MEMORY, masters: { TKITE: "MPALG" } };
 
@@ -221,10 +229,49 @@ describe("resolvePlanner", () => {
     expect(planned({ programme: "TKITE", year: 7 }).current?.number).toBe(1);
   });
 
-  it("offers the tracks of the year shown, and shows the one in the link when the year has it", () => {
-    expect(planned({ programme: "TKITE", year: 3, track: "AI" })).toMatchObject({ tracks: ["AI", "Web"], track: "AI" });
-    expect(planned({ programme: "TKITE", year: 3, track: "Nope" })).toMatchObject({ tracks: ["AI", "Web"], track: undefined });
-    expect(planned({ programme: "TKITE", year: 2 }).tracks).toEqual([]);
+  it("asks for the start year when the programme admitted students in several years and neither the link nor the device names one", () => {
+    expect(planned({ programme: "TKITE" }).choosingStart).toBe(true);
+    expect(planned({ programme: "TKITE", start: 2024 }).choosingStart).toBe(false);
+    expect(planned({ programme: "TKITE" }, { ...MEMORY, starts: { TKITE: 2023 } }).choosingStart).toBe(false);
+    expect(planned({ programme: "TKITE" }, MEMORY, { ...INFO, starts: { TKITE: [2025] } }).choosingStart).toBe(false);
+  });
+
+  describe("tracks", () => {
+    it("offers the tracks of the year shown, and shows the one in the link when the year has it", () => {
+      expect(planned({ programme: "TKITE", year: 3, track: "AI" })).toMatchObject({
+        tracks: ["AI", "Web"],
+        track: "AI",
+        choosingTrack: false,
+      });
+      expect(planned({ programme: "TKITE", year: 2 })).toMatchObject({ tracks: [], track: undefined, choosingTrack: false });
+    });
+
+    it("shows without a track in the link the one this device chose in the plan, which a master's programme keeps in both its years", () => {
+      const memory = { ...WITH_MPALG, tracks: { MPALG: "Security" } };
+
+      expect(planned({ programme: "TKITE", year: 4 }, memory).track).toBe("Security");
+      expect(planned({ programme: "TKITE", year: 5 }, memory).track).toBe("Security");
+    });
+
+    it("skips a track the year does not have, for the remembered one", () => {
+      const state = planned({ programme: "TKITE", year: 3, track: "Nope" }, { ...MEMORY, tracks: { TKITE: "Web" } });
+
+      expect(state).toMatchObject({ track: "Web", choosingTrack: false });
+    });
+
+    it("shows the courses of every track when the student chose none", () => {
+      expect(planned({ programme: "TKITE", year: 3, track: NO_TRACK })).toMatchObject({ track: undefined, choosingTrack: false });
+      expect(planned({ programme: "TKITE", year: 3 }, { ...MEMORY, tracks: { TKITE: NO_TRACK } }).choosingTrack).toBe(false);
+    });
+
+    it("asks for a track, or none, when the year has tracks and nothing chose one", () => {
+      expect(planned({ programme: "TKITE", year: 3, track: "Nope" })).toMatchObject({ track: undefined, choosingTrack: true });
+    });
+
+    it("calls the tracks of a master's programme specialisations, and those of the programme before it concentrations", () => {
+      expect(planned({ programme: "TKITE", year: 3 }).trackKind).toBe("concentration");
+      expect(planned({ programme: "TKITE", year: 4 }, WITH_MPALG).trackKind).toBe("specialisation");
+    });
   });
 
   it("shows the picks in the link over the remembered ones", () => {
@@ -320,18 +367,48 @@ describe("plannerStep", () => {
     });
   });
 
-  it("shows another track, and remembers it", () => {
+  it("shows another track, and remembers it for the plan", () => {
     const step = plannerStep(viewing, { type: "showTrack", track: "Web" });
 
     expect(step.search).toStrictEqual({ track: "Web" });
-    expect(rememberedAfter(step, MEMORY)).toEqual({ ...MEMORY, last: { programme: "TKITE", start: 2024, year: 3, track: "Web" } });
+    expect(rememberedAfter(step, MEMORY)).toEqual({
+      ...MEMORY,
+      tracks: { TKITE: "Web" },
+      last: { programme: "TKITE", start: 2024, year: 3, track: "Web" },
+    });
   });
 
-  it("shows all tracks by forgetting the track", () => {
-    const step = plannerStep(viewing, { type: "showTrack", track: undefined });
+  it("shows every track's courses when the student chooses none, and remembers that choice", () => {
+    const step = plannerStep(viewing, { type: "showTrack", track: NO_TRACK });
 
-    expect(step.search).toStrictEqual({ track: undefined });
+    expect(step.search).toStrictEqual({ track: NO_TRACK });
+    expect(rememberedAfter(step, MEMORY)?.tracks).toEqual({ TKITE: NO_TRACK });
     expect(rememberedAfter(step, MEMORY)?.last).toEqual({ programme: "TKITE", start: 2024, year: 3 });
+  });
+
+  it("remembers the track of each plan apart", () => {
+    const stored: PlannerMemory = { ...MEMORY, tracks: { MPALG: "Security" } };
+
+    expect(rememberedAfter(plannerStep(viewing, { type: "showTrack", track: "Web" }), stored)?.tracks).toEqual({
+      MPALG: "Security",
+      TKITE: "Web",
+    });
+  });
+
+  it("shows another year with the track this device chose in its plan, so a master's programme keeps it between its years", () => {
+    const memory = { ...WITH_MPALG, tracks: { MPALG: "Security" } };
+    const inYear4 = planned({ programme: "TKITE", start: 2024, year: 4 }, memory);
+    const step = plannerStep(inYear4, { type: "showYear", year: 5 });
+
+    expect(step.search.track).toBe("Security");
+    expect(rememberedAfter(step, memory)?.last).toEqual({ programme: "TKITE", start: 2024, year: 5, track: "Security" });
+  });
+
+  it("opens year 4 with the track this device chose in the master's programme", () => {
+    const memory = { ...MEMORY, tracks: { MPALG: "Security" } };
+    const step = plannerStep(planned({ programme: "TKITE", start: 2024, year: 4 }, memory), { type: "chooseMaster", master: "MPALG" });
+
+    expect(step.search.track).toBe("Security");
   });
 
   it("opens year 4 with that year's remembered picks when choosing a master's programme, and remembers the choice", () => {

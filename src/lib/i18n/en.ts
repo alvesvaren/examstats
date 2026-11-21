@@ -4,7 +4,7 @@
  */
 import { RECENT_YEARS } from "../../domain/course-stats.ts";
 import { ANSWER_SCALE, BALANCED_WORKLOAD, EVALUATION_YEARS, RATING_YEARS, type Question } from "../../domain/evaluation.ts";
-import type { Requirement, StudyPeriod, Theme } from "../../domain/programme-plans.ts";
+import type { Requirement, StudyPeriod, Theme, TrackKind } from "../../domain/programme-plans.ts";
 import type { TrendPoint } from "../../domain/evaluation.ts";
 import type { Spread } from "../../domain/spread.ts";
 import { FORMATS, periodsWith } from "../format.ts";
@@ -47,6 +47,12 @@ const HINTS: Partial<Record<Question, string>> = { overall: QUESTIONS.overall.sh
 
 /** The planner's lane of courses whose study periods are not known yet. */
 const NOT_SCHEDULED = "Not scheduled";
+
+/** The words for each kind of track. */
+const TRACKS = {
+  specialisation: { label: "Specialisation", one: "specialisation", many: "specialisations" },
+  concentration: { label: "Concentration", one: "concentration", many: "concentrations" },
+} satisfies Record<TrackKind, { label: string; one: string; many: string }>;
 
 const formatPeriods = periodsWith({ LP1: "LP1", LP2: "LP2", LP3: "LP3", LP4: "LP4", Summer: "Summer", Other: "Outside study periods" });
 
@@ -190,13 +196,19 @@ export const en = {
     year: (number: number) => `Year ${number}`,
     changeMaster: "Change master",
     addMaster: "Add master",
-    track: "Track",
-    allTracks: "All tracks",
+    chooseStart: "When did you start the programme?",
+    chooseStartHint: "Each year's students follow the plan of the year they started, so the courses and when they run depend on it.",
+    trackLabel: (kind: TrackKind) => TRACKS[kind].label,
+    noTrack: (kind: TrackKind) => `No ${TRACKS[kind].one}`,
+    chooseTrack: (kind: TrackKind) => `Which ${TRACKS[kind].one} do you follow?`,
+    chooseTrackHint: (kind: TrackKind, plan: string) =>
+      `${plan} has ${TRACKS[kind].many} with courses of their own. You can change it later.`,
+    everyTrack: "Shows the courses of all of them",
 
     chooseMaster: "Choose your master's programme",
     mastersIntro: (count: number, programme: string) =>
       `${counted(count, "master's programme", "master's programmes")} complete ${programme} as years 4 and 5.`,
-    tracks: (count: number) => counted(count, "track", "tracks"),
+    trackCount: (kind: TrackKind, count: number) => counted(count, TRACKS[kind].one, TRACKS[kind].many),
     compulsoryCredits: (value: number) => `${credits(value)} compulsory`,
     nothingCompulsory: "Nothing compulsory for all",
     electives: (count: number) => counted(count, "elective", "electives"),

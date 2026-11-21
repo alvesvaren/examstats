@@ -244,6 +244,10 @@ export function placementsByCourse(
   );
 }
 
+export type TrackKind = "specialisation" | "concentration";
+/** What Chalmers calls the tracks of a plan: specialisations in a master's programme, and concentrations in a programme before it. */
+export const trackKind = (planCode: string): TrackKind => (planCode.startsWith("MP") ? "specialisation" : "concentration");
+
 /** Tracks that list courses in a year of a programme, by name. */
 export const tracksOf = (courses: readonly PlanCourse[]) =>
   [...new Set(courses.flatMap((c) => c.track ?? []))].toSorted((a, b) => a.localeCompare(b));

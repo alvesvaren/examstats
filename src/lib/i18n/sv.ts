@@ -1,7 +1,7 @@
 /** Every word the site shows in Swedish, in the shape of the English messages. */
 import { RECENT_YEARS } from "@/domain/course-stats";
 import { ANSWER_SCALE, BALANCED_WORKLOAD, EVALUATION_YEARS, RATING_YEARS, type Question } from "@/domain/evaluation";
-import type { Requirement, Theme } from "@/domain/programme-plans";
+import type { Requirement, Theme, TrackKind } from "@/domain/programme-plans";
 import { FORMATS, periodsWith } from "@/lib/format";
 import type { Messages } from "./en";
 
@@ -42,6 +42,12 @@ const HINTS: Partial<Record<Question, string>> = { overall: QUESTIONS.overall.sh
 
 /** The planner's lane of courses whose study periods are not known yet. */
 const NOT_SCHEDULED = "Utan läsperiod";
+
+/** The words for each kind of track. The site calls both kinds inriktningar in Swedish. */
+const TRACKS = {
+  specialisation: { label: "Inriktning", one: "inriktning", many: "inriktningar" },
+  concentration: { label: "Inriktning", one: "inriktning", many: "inriktningar" },
+} satisfies Record<TrackKind, { label: string; one: string; many: string }>;
 
 const formatPeriods = periodsWith({ LP1: "LP1", LP2: "LP2", LP3: "LP3", LP4: "LP4", Summer: "Sommar", Other: "Utanför läsperioderna" });
 
@@ -178,12 +184,17 @@ export const sv: Messages = {
     year: (number) => `År ${number}`,
     changeMaster: "Byt master",
     addMaster: "Lägg till master",
-    track: "Inriktning",
-    allTracks: "Alla inriktningar",
+    chooseStart: "När började du programmet?",
+    chooseStartHint: "Varje årskull följer programplanen från året den började, så kurserna och när de går beror på det.",
+    trackLabel: (kind) => TRACKS[kind].label,
+    noTrack: (kind) => `Ingen ${TRACKS[kind].one}`,
+    chooseTrack: (kind) => `Vilken ${TRACKS[kind].one} läser du?`,
+    chooseTrackHint: (kind, plan) => `${plan} har ${TRACKS[kind].many} med egna kurser. Du kan byta senare.`,
+    everyTrack: "Visar kurserna i alla",
 
     chooseMaster: "Välj ditt masterprogram",
     mastersIntro: (count, programme) => `${counted(count, "masterprogram", "masterprogram")} kan bli år 4 och 5 i ${programme}.`,
-    tracks: (count) => counted(count, "inriktning", "inriktningar"),
+    trackCount: (kind, count) => counted(count, TRACKS[kind].one, TRACKS[kind].many),
     compulsoryCredits: (value) => `${credits(value)} obligatoriskt`,
     nothingCompulsory: "Inget obligatoriskt för alla",
     electives: (count) => counted(count, "valbar kurs", "valbara kurser"),
