@@ -1,14 +1,15 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowDownIcon, ArrowUpIcon, ChevronDownIcon } from "lucide-react";
-import { memo, type CSSProperties, type ReactNode } from "react";
+import { ChevronDownIcon } from "lucide-react";
+import { memo, type CSSProperties } from "react";
 import { cn } from "cn";
 import { AverageGradeCell, PassRateCell, StackedCell, SurveyCell } from "@/components/course-cells";
 import { SizeBar, Sparkline } from "@/components/marks";
 import { MetricInfo, type Metric } from "@/components/metric-label";
+import { SortHeader } from "@/components/sort-header";
 import { SurveyColumnPicker } from "@/components/survey-column";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { defaultSortDir, examinerNamed, surveySortKey, type CatalogCourse, type SortDir, type SortKey } from "@/domain/catalog";
+import { defaultSortDir, examinerNamed, flip, surveySortKey, type CatalogCourse, type SortDir, type SortKey } from "@/domain/catalog";
 import type { Question } from "@/domain/evaluation";
 import type { InLanguage } from "@/domain/names";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -59,8 +60,6 @@ const BASE_COLUMNS = [
   { key: "trend", metric: "trend", align: "end" },
   { key: "lastResult", align: "end" },
 ] as const satisfies (Column & { key: keyof Messages["list"]["columns"] })[];
-
-const flip = (dir: SortDir): SortDir => (dir === "asc" ? "desc" : "asc");
 
 type Item = { kind: "course"; course: CatalogCourse } | { kind: "ended"; count: number };
 
@@ -118,7 +117,20 @@ export function CourseTable({
       <div ref={headerRef} className="group/table sticky z-30 overflow-hidden border-b bg-background" style={{ top: stickyTop }}>
         <div className={cn(GRID, "px-2 py-2 text-xs text-muted-foreground")}>
           {columnsOf(survey).map((column) => (
-            <SortHeader key={column.key} column={column} label={labelOf(column)} sort={sort} dir={dir} onSort={sortBy}>
+            <SortHeader
+              key={column.key}
+              sortKey={column.key}
+              label={labelOf(column)}
+              sort={sort}
+              dir={dir}
+              onSort={sortBy}
+              className={cn(
+                column.align === "end" && "justify-end",
+                column.align === "center" && "justify-center",
+                column.key === "name" && PINNED,
+              )}
+            >
+              {column.metric && <MetricInfo metric={column.metric} name={labelOf(column).toLowerCase()} />}
               {column.survey && <SurveyColumnPicker question={survey} onPick={onPickSurvey} />}
             </SortHeader>
           ))}
@@ -197,46 +209,6 @@ function VirtualRows({ items, survey, query, canHover, showEnded, onToggleEnded,
           </div>
         );
       })}
-    </div>
-  );
-}
-
-interface SortHeaderProps {
-  column: Column;
-  label: string;
-  sort: SortKey;
-  dir: SortDir;
-  onSort: (key: SortKey) => void;
-  /** Controls after the label, such as the survey question picker. */
-  children?: ReactNode;
-}
-
-function SortHeader({ column, label, sort, dir, onSort, children }: SortHeaderProps) {
-  const isActive = sort === column.key;
-  const Arrow = dir === "asc" ? ArrowUpIcon : ArrowDownIcon;
-  return (
-    <div
-      className={cn(
-        "flex items-center gap-1",
-        column.align === "end" && "justify-end",
-        column.align === "center" && "justify-center",
-        column.key === "name" && PINNED,
-      )}
-      aria-sort={isActive ? (dir === "asc" ? "ascending" : "descending") : undefined}
-    >
-      <button
-        type="button"
-        onClick={() => onSort(column.key)}
-        className={cn(
-          "inline-flex items-center gap-0.5 font-medium whitespace-nowrap hover:text-foreground",
-          isActive && "text-foreground",
-        )}
-      >
-        {label}
-        {isActive && <Arrow className="size-3" aria-hidden />}
-      </button>
-      {column.metric && <MetricInfo metric={column.metric} name={label.toLowerCase()} />}
-      {children}
     </div>
   );
 }

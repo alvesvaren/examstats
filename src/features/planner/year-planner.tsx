@@ -1,13 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowDownIcon, ArrowUpIcon, ArrowUpRightIcon, CheckIcon, LockIcon, PlusIcon, XIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { ArrowUpRightIcon, CheckIcon, LockIcon, PlusIcon, XIcon } from "lucide-react";
 import { cn } from "cn";
 import { PassRateCell, SurveyCell } from "@/components/course-cells";
 import { MetricInfo } from "@/components/metric-label";
+import { SortHeader } from "@/components/sort-header";
 import { SurveyColumnPicker } from "@/components/survey-column";
 import { Badge } from "@/components/ui/badge";
 import { amountTowards, openRequirements, pickProgress, requirementProgress } from "@/domain/degree";
-import { defaultSortDir, surveyColumn, surveySortKey, type Catalog, type SortDir } from "@/domain/catalog";
+import { defaultSortDir, flip, surveyColumn, surveySortKey, type Catalog, type SortDir } from "@/domain/catalog";
 import {
   candidatesIn,
   creditsIn,
@@ -38,11 +38,11 @@ import { useMessages } from "@/hooks/use-messages";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
 import type { Messages } from "@/lib/i18n/en";
 
+/** Sort headers sit right-aligned over their numbers. */
+const HEADER = "justify-end text-xs text-muted-foreground";
 const DEFAULT_SORT: PlannerSortKey = "rating";
 /** The add button, the course, its pass rate and a course survey question. Phones get narrower numbers, so the name keeps its room. */
 const ROW = "grid grid-cols-[2rem_minmax(0,1fr)_4rem_6rem] items-center gap-x-2 sm:grid-cols-[2rem_minmax(0,1fr)_5.5rem_6.5rem] sm:gap-x-3";
-
-const flip = (dir: SortDir): SortDir => (dir === "asc" ? "desc" : "asc");
 
 interface YearSearch {
   period?: StudyPeriod;
@@ -176,12 +176,19 @@ export function YearPlanner({ programme, years, current, track, search, onChange
             {t.periods([period])}{" "}
             <span className="text-base font-normal text-muted-foreground">{t.planner.toChooseFrom(listed.length)}</span>
           </h2>
-          <SortHeader sortKey="passRate" label={t.list.columns.passRate} sort={sort} dir={dir} onSort={sortBy}>
+          <SortHeader sortKey="passRate" label={t.list.columns.passRate} sort={sort} dir={dir} onSort={sortBy} className={HEADER}>
             <span className="hidden sm:inline-flex">
               <MetricInfo metric="passRate" name={t.list.columns.passRate.toLowerCase()} />
             </span>
           </SortHeader>
-          <SortHeader sortKey={surveySortKey(survey)} label={t.survey.questions[survey].short} sort={sort} dir={dir} onSort={sortBy}>
+          <SortHeader
+            sortKey={surveySortKey(survey)}
+            label={t.survey.questions[survey].short}
+            sort={sort}
+            dir={dir}
+            onSort={sortBy}
+            className={HEADER}
+          >
             <SurveyColumnPicker question={survey} onPick={pickSurvey} />
           </SortHeader>
         </div>
@@ -394,37 +401,6 @@ function DegreeMark({ mark }: { mark: DegreeRuleProgress & { amount: number } })
     <Badge variant="outline" title={t.planner.themes[requirement.theme].name} className={cn(done && "opacity-50")}>
       {t.planner.themes[requirement.theme].short} {t.credits(amount)}
     </Badge>
-  );
-}
-
-interface SortHeaderProps {
-  sortKey: PlannerSortKey;
-  label: string;
-  sort: PlannerSortKey;
-  dir: SortDir;
-  onSort: (key: PlannerSortKey) => void;
-  /** Controls after the label, such as an explanation or the survey question picker. */
-  children: ReactNode;
-}
-
-function SortHeader({ sortKey, label, sort, dir, onSort, children }: SortHeaderProps) {
-  const active = sortKey === sort;
-  const Arrow = dir === "asc" ? ArrowUpIcon : ArrowDownIcon;
-  return (
-    <div
-      className="flex items-center justify-end gap-1 text-xs text-muted-foreground"
-      aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : undefined}
-    >
-      <button
-        type="button"
-        onClick={() => onSort(sortKey)}
-        className={cn("inline-flex items-center gap-0.5 font-medium whitespace-nowrap hover:text-foreground", active && "text-foreground")}
-      >
-        {label}
-        {active && <Arrow className="size-3" aria-hidden />}
-      </button>
-      {children}
-    </div>
   );
 }
 

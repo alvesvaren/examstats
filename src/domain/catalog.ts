@@ -29,6 +29,9 @@ export type SortDir = "asc" | "desc";
 /** Text starts A to Z, and workload with the lightest, since 5 is too high. */
 const ASCENDING_SORTS: readonly SortKey[] = ["name", "programme", "workload"];
 
+/** The other direction. */
+export const flip = (dir: SortDir): SortDir => (dir === "asc" ? "desc" : "asc");
+
 /** The direction a sort starts in: the rest start with the largest. */
 export const defaultSortDir = (key: SortKey): SortDir => (ASCENDING_SORTS.includes(key) ? "asc" : "desc");
 
