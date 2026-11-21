@@ -1,16 +1,19 @@
-import { compareSortValues, defaultSortDir, sortValueOf, type CatalogCourse, type SortDir } from "./catalog.ts";
-import { tenths } from "./degree.ts";
-import { OTHER_QUESTIONS } from "./evaluation.ts";
+import { compareSortValues, defaultSortDir, sortValueOf, surveyColumn, type CatalogCourse, type SortDir } from "./catalog.ts";
+import { amountTowards, openRequirements, pickProgress, requirementProgress, tenths } from "./degree.ts";
+import { OTHER_QUESTIONS, type OtherQuestion } from "./evaluation.ts";
 import { normalize, type InLanguage } from "./names.ts";
 import {
   isElective,
   plannedCourses,
+  planYear,
   STUDY_PERIODS,
   tracksOf,
+  type PlanRequirement,
   type PlanRound,
   type ProgrammePlan,
   type StudyPeriod,
   type StudyPick,
+  type StudyYear,
   type UpcomingMasters,
 } from "./programme-plans.ts";
 
@@ -134,6 +137,125 @@ export function lectureClash<R extends PlanRound>(round: PlanRound, plan: readon
 export function exclusiveWith<R extends PlanRound>(round: PlanRound, plan: readonly R[]): R | undefined {
   const ids = round.choices.filter((c) => c.kind === "exclusive").map((c) => c.id);
   return plan.find((other) => !sameCourse(other, round) && other.choices.some((c) => ids.includes(c.id)));
+}
+
+/** A degree requirement the student has to choose courses for, with how far the whole plan goes towards it. */
+export interface DegreeRule extends ReturnType<typeof requirementProgress> {
+  requirement: PlanRequirement;
+}
+
+/** What a course gives towards a degree requirement, in the requirement's unit. */
+export type DegreeMark = DegreeRule & { amount: number };
+
+/** Something to tell about a round that sits badly with the rest of the plan. */
+export type RoundWarning =
+  /** Another course has lectures at the same times. `fixed` tells whether every student takes it. */
+  | { kind: "sameLectures"; name: string; fixed: boolean }
+  /** Another course shares a choice where only one course counts towards the degree. */
+  | { kind: "exclusive"; name: string };
+
+/** A round the list shows, with everything the list says about it. */
+export interface ListedRound {
+  round: PlannerRound;
+  picked: boolean;
+  /** Where another round of the same course is in the plan. It greys this round out. */
+  elsewhere: PlanElsewhere | undefined;
+  warnings: RoundWarning[];
+  /** What the course gives towards the degree requirements the student has to choose courses for. */
+  marks: DegreeMark[];
+}
+
+export const DEFAULT_PLANNER_SORT: PlannerSortKey = "rating";
+
+interface YearViewInput {
+  /** Every year of study of the degree, the master's programme's included. The requirements count them all. */
+  years: readonly StudyYear[];
+  /** The year of study to show. */
+  current: StudyYear;
+  track: string | undefined;
+  /** The round keys picked in the current year. */
+  pickedKeys: readonly string[];
+  /** The picks of the other years of study. */
+  otherPicks: readonly StudyPick[];
+  /** What the list shows. By default the first study period the plan leaves room in, the best rated first. */
+  period?: StudyPeriod;
+  sort?: PlannerSortKey;
+  dir?: SortDir;
+  survey?: OtherQuestion;
+  stats: ReadonlyMap<string, CatalogCourse>;
+  /** Chalmers' names of the rule codes, in the language shown. */
+  ruleNames: Readonly<Record<string, string>>;
+}
+
+/**
+ * A year of study as the planner shows it: what every student takes, the rounds picked and the ones to choose
+ * between, the study period the list shows and its rounds in order, and how far the courses of the whole degree go
+ * towards its rules. The degree's requirements count the compulsory courses and the picks of every year of every plan.
+ */
+export function yearView({
+  years,
+  current,
+  track,
+  pickedKeys,
+  otherPicks,
+  period: shownPeriod,
+  sort = DEFAULT_PLANNER_SORT,
+  ...input
+}: YearViewInput) {
+  // The programme whose plan holds this year: the master's programme in years 4 and 5.
+  const { plan: yearProgramme, year } = current;
+  const { rounds, picks } = planYear(yearProgramme, year, { track, ruleNames: input.ruleNames });
+  const { fixed, candidates } = plannerYear(rounds, input.stats);
+  const picked = candidates.filter((c) => pickedKeys.includes(c.key));
+  const plan = [...fixed, ...picked];
+  const periods = periodsOf([...fixed, ...candidates]);
+  const period = periods.find((p) => p === shownPeriod) ?? firstOpenPeriod(periods, plan);
+  const dir = input.dir ?? defaultSortDir(sort);
+
+  const plans = [...new Set(years.map((y) => y.plan))];
+  const allPicks = [...otherPicks, ...picked.map((r) => ({ programme: yearProgramme.code, year, key: r.key }))];
+  const courses = plannedCourses(plans, allPicks, track);
+  const degreeRules = openRequirements(plans, track).map((requirement) => ({ requirement, ...requirementProgress(requirement, courses) }));
+  const marksOf = (round: PlannerRound): DegreeMark[] =>
+    degreeRules.flatMap((rule) => {
+      const amount = Math.max(...round.codes.map((code) => amountTowards(rule.requirement, { code, themes: round.themes })));
+      return amount > 0 ? { ...rule, amount } : [];
+    });
+  const warningsOf = (round: PlannerRound): RoundWarning[] => {
+    const clash = lectureClash(round, plan);
+    const exclusive = exclusiveWith(round, plan);
+    return [
+      ...(clash ? [{ kind: "sameLectures", name: clash.name, fixed: fixed.includes(clash) } as const] : []),
+      ...(exclusive ? [{ kind: "exclusive", name: exclusive.name } as const] : []),
+    ];
+  };
+
+  return {
+    fixed,
+    candidates,
+    picked,
+    plan,
+    periods,
+    /** The study period the list shows. None when the year has no courses. */
+    period,
+    sort,
+    dir,
+    survey: surveyColumn(sort, input.survey),
+    listed: (period ? candidatesIn(candidates, period, sort, dir) : []).map((round): ListedRound => ({
+      round,
+      picked: picked.includes(round),
+      elsewhere: findElsewhere(round, picked, otherPicks),
+      warnings: warningsOf(round),
+      marks: marksOf(round),
+    })),
+    /** Credits of the year's plan. */
+    planned: plan.reduce((sum, r) => sum + r.credits, 0),
+    /** The choices that ask for some of the year's courses, with how far the courses of every year go towards them. */
+    pickRules: picks.map((pick) => ({ pick, progress: pickProgress(pick, yearProgramme, courses) })),
+    degreeRules,
+    /** The codes of every course any year of the degree's plans offers. */
+    offered: new Set(plans.flatMap((p) => p.years.flatMap((y) => y.courses.map((c) => c.code)))),
+  };
 }
 
 const meanOf = (values: readonly (number | null)[]) => {
