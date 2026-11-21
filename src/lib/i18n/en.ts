@@ -85,6 +85,7 @@ export const en = {
     somethingWrong: "Something went wrong.",
     tryAgain: "Try again",
     noSuchCourse: "No such course",
+    noSuchPage: "No such page",
   },
 
   metrics: {

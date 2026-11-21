@@ -141,14 +141,24 @@ export function ErrorState({ error, reset }: ErrorComponentProps) {
   );
 }
 
-export function NotFoundState() {
+function NotFoundState({ message }: { message: string }) {
   const t = useMessages();
   return (
     <div className="flex flex-col items-start gap-3 py-16">
-      <h1 className="text-xl font-semibold">{t.layout.noSuchCourse}</h1>
+      <h1 className="text-xl font-semibold">{message}</h1>
       <Button variant="outline" asChild>
         <Link to="/">{t.allCourses}</Link>
       </Button>
     </div>
   );
+}
+
+export function PageNotFound() {
+  const t = useMessages();
+  return <NotFoundState message={t.layout.noSuchPage} />;
+}
+
+export function CourseNotFound() {
+  const t = useMessages();
+  return <NotFoundState message={t.layout.noSuchCourse} />;
 }

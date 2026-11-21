@@ -1,7 +1,7 @@
 import { createRootRouteWithContext, createRoute, createRouter, notFound } from "@tanstack/react-router";
 import type { QueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import { AppLayout, ErrorState, NotFoundState, PageSkeleton } from "@/components/app-layout";
+import { AppLayout, CourseNotFound, ErrorState, PageNotFound, PageSkeleton } from "@/components/app-layout";
 import { courseQuery, plansQuery, queryClient, snapshotQuery } from "@/data/queries";
 import { SORT_KEYS, toCatalogCourse } from "@/domain/catalog";
 import { PLANNER_SORT_KEYS } from "@/domain/planner";
@@ -59,6 +59,7 @@ const courseRoute = createRoute({
     return { course: toCatalogCourse(course, getLanguage()) };
   },
   head: ({ loaderData }) => ({ meta: loaderData ? [{ title: pageTitle(courseHeading(loaderData.course)) }] : [] }),
+  notFoundComponent: CourseNotFound,
   component: CoursePage,
 });
 
@@ -106,7 +107,7 @@ export const router = createRouter({
   scrollRestoration: true,
   defaultPendingComponent: PageSkeleton,
   defaultErrorComponent: ErrorState,
-  defaultNotFoundComponent: NotFoundState,
+  defaultNotFoundComponent: PageNotFound,
 });
 
 declare module "@tanstack/react-router" {
