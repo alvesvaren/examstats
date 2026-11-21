@@ -1,4 +1,4 @@
-import { summarizeCourse, type ResultsFile } from "../src/domain/course-stats.ts";
+import { hasEnded, summarizeCourse, type ResultsFile } from "../src/domain/course-stats.ts";
 import {
   compareRounds,
   ratedRounds,
@@ -60,15 +60,20 @@ export function buildSnapshot({ results, evaluations, plans, names, upcoming: up
     const allRounds = roundsOf(course.code);
     const rounds = ratedRounds(allRounds, latestSurveyYear);
     const coursePlacements = placements.get(course.code) ?? [];
+    const listed = courseNames.get(course.code);
     details.push({
       code: course.code,
       parts,
       evaluations: rounds,
       placements: coursePlacements,
-      hasSyllabus: courseNames.has(course.code),
+      hasSyllabus: listed !== undefined,
     });
+    const summary = summarizeCourse({ ...course, ...nameOf(listed, name) }, parts, today);
+    // A course that chalmers.se has not listed since 2021/2022 says nothing either way.
+    const discontinued = listed !== undefined && (listed.lastOffered === null || listed.lastOffered < planInfo.academicYear);
     courses.push({
-      ...summarizeCourse({ ...course, ...nameOf(courseNames.get(course.code), name) }, parts, today),
+      ...summary,
+      ended: hasEnded(summary.lastResult, { planned: coursePlacements.length > 0, discontinued }, today),
       surveyAnswers: surveyAnswersOf(rounds),
       trend: ratingTrend(allRounds),
       ...courseThisYear(coursePlacements),

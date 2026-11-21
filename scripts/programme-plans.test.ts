@@ -1,6 +1,16 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { courseSchema, programmeSchema, syllabusSchema, toChoices, toCourses, toRequirements, toRounds } from "./programme-plans.ts";
+import {
+  courseListSchema,
+  courseSchema,
+  programmeSchema,
+  syllabusSchema,
+  toChoices,
+  toCourseNames,
+  toCourses,
+  toRequirements,
+  toRounds,
+} from "./programme-plans.ts";
 
 const fixture = (name: string): unknown => JSON.parse(readFileSync(new URL(`fixtures/${name}`, import.meta.url), "utf8"));
 
@@ -282,5 +292,31 @@ describe("toRounds", () => {
     const [first, second] = tda357!.courseRounds;
     expect(toRounds({ ...tda357!, courseRounds: [{ ...first!, cancelled: 1 }, second!] }).map((r) => r.seats)).toEqual([165]);
     expect(toRounds(undefined)).toEqual([]);
+  });
+});
+
+describe("toCourseNames", () => {
+  const rows = courseListSchema.parse(fixture("chalmers-course-list.json")).results;
+
+  it("names each course as its newest syllabus does, and gives the newest academic year chalmers.se offers it in", () => {
+    expect(toCourseNames(rows)).toEqual([
+      // Renamed in 2024/2025.
+      {
+        code: "ACE550",
+        en: "Community architecture and urban design",
+        sv: "Arkitektur och stadsbyggnad för gemenskap",
+        lastOffered: "2026/2027",
+      },
+      { code: "DAT405", en: "Introduction to data science and AI", sv: "Introduktion till data science och AI", lastOffered: "2022/2023" },
+      // The syllabus of 2026/2027 discontinues the course.
+      { code: "MVE660", en: "Multivariable calculus", sv: "Flervariabelanalys", lastOffered: "2025/2026" },
+      // Its only syllabus discontinues it.
+      {
+        code: "TRA340",
+        en: "Design of sustainable infrastructure and urban transformation",
+        sv: "Design av hållbar infrastruktur och stadsomvandling",
+        lastOffered: null,
+      },
+    ]);
   });
 });

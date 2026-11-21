@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { averageGradeOf, emptyCounts, passRateOf, type GradeCounts } from "./grades.ts";
-import { academicYear, latestExam, orderParts, partsOf, summarizeCourse, type Part } from "./course-stats.ts";
+import { academicYear, hasEnded, latestExam, orderParts, partsOf, summarizeCourse, type Part } from "./course-stats.ts";
 
 const grades = (partial: Partial<GradeCounts>): GradeCounts => ({ ...emptyCounts(), ...partial });
 const sitting = (date: string, partial: Partial<GradeCounts>) => ({ date, grades: grades(partial) });
@@ -68,10 +68,10 @@ describe("summarizeCourse", () => {
     expect(summary.attemptsPerYear).toBe(101);
   });
 
-  it("marks a course as ended after 18 months without results", () => {
+  it("sums up the last academic years with results when the course has none since", () => {
     const old: Part = { type: "Tentamen", code: "0101", sittings: [sitting("2018-06-01", { U: 5, "3": 5 })] };
     const summary = summarizeCourse(course, [old], TODAY);
-    expect(summary).toMatchObject({ ended: true, lastResult: "2018-06-01", recentGrades: grades({ U: 5, "3": 5 }), attemptsPerYear: 10 });
+    expect(summary).toMatchObject({ lastResult: "2018-06-01", recentGrades: grades({ U: 5, "3": 5 }), attemptsPerYear: 10 });
   });
 
   it("gives no average grade when the course only has U and G", () => {
@@ -86,8 +86,34 @@ describe("summarizeCourse", () => {
       recentGrades: emptyCounts(),
       attemptsPerYear: 0,
       lastResult: null,
-      ended: true,
     });
+  });
+});
+
+describe("hasEnded", () => {
+  const offered = { planned: false, discontinued: false };
+
+  it("ends a course after 18 months without results, or without any", () => {
+    expect([hasEnded("2025-03-28", offered, TODAY), hasEnded("2025-03-27", offered, TODAY), hasEnded(null, offered, TODAY)]).toEqual([
+      false,
+      true,
+      true,
+    ]);
+  });
+
+  it("ends a course that chalmers.se no longer offers, however recent its re-exams", () => {
+    expect(hasEnded("2026-08-20", { planned: false, discontinued: true }, TODAY)).toBe(true);
+  });
+
+  it("keeps a course that a plan has this year, however old its results", () => {
+    expect([
+      hasEnded("2023-01-10", { planned: true, discontinued: false }, TODAY),
+      hasEnded(null, { planned: true, discontinued: false }, TODAY),
+    ]).toEqual([false, false]);
+  });
+
+  it("keeps a course whose last round a plan has in the year its syllabus discontinues it", () => {
+    expect(hasEnded("2026-03-19", { planned: true, discontinued: true }, TODAY)).toBe(false);
   });
 });
 
