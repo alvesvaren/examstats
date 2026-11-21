@@ -78,6 +78,7 @@ export const sv: Messages = {
     somethingWrong: "Något gick fel.",
     tryAgain: "Försök igen",
     noSuchCourse: "Kursen finns inte",
+    noSuchPage: "Sidan finns inte",
   },
 
   metrics: {

@@ -9,6 +9,9 @@ export type StudyPeriod = (typeof STUDY_PERIODS)[number];
 export const THEMES = ["mts", "environment"] as const;
 export type Theme = (typeof THEMES)[number];
 
+/** Credits come in tenths, and summing them in floating point drifts. */
+export const tenths = (credits: number) => Math.round(credits * 10) / 10;
+
 export const planCourseSchema = z.object({
   code: z.string(),
   name: z.string(),
@@ -371,14 +374,6 @@ export function courseThisYear(placements: readonly CoursePlacement[]) {
     examiners: [...new Set(placements.flatMap((p) => p.examiners))],
   };
 }
-
-/** The English course syllabus page on chalmers.se. */
-export const syllabusUrl = (code: string) =>
-  `https://www.chalmers.se/en/education/your-studies/find-course-and-programme-syllabi/course-syllabus/${encodeURIComponent(code)}/`;
-
-/** The programme's overview on chalmers.se: its syllabus and plan of this year. */
-export const programmeUrl = (code: string) =>
-  `https://www.chalmers.se/en/education/your-studies/find-course-and-programme-syllabi/programme-overview/${encodeURIComponent(code)}/`;
 
 /** An academic year by its first calendar year, such as 2026 for "2026/2027". */
 export const startYearOf = (academicYear: string) => Number(academicYear.slice(0, 4));

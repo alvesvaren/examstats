@@ -1,6 +1,5 @@
 import { z } from "zod";
-import { normalize } from "./catalog.ts";
-import type { Names } from "./names.ts";
+import { normalize, type Names } from "./names.ts";
 import {
   comparePeriods,
   type DatedPlan,

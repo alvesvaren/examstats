@@ -6,7 +6,7 @@ import { GRADE_STYLE } from "@/components/grade-style";
 import type { CatalogCourse } from "@/domain/catalog";
 import { GRADES, attemptsOf, passRateOf, sumCounts } from "@/domain/grades";
 import type { InLanguage } from "@/domain/names";
-import type { Part } from "@/domain/snapshot";
+import type { Part } from "@/domain/course-stats";
 import { useMessages } from "@/hooks/use-messages";
 
 const MAX_LISTED = 8;

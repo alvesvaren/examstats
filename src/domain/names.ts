@@ -1,5 +1,8 @@
 import { z } from "zod";
-import type { Named } from "./snapshot.ts";
+
+/** Names in English and Swedish. Each is the other when Chalmers names only one, and both are the source's name when Chalmers names neither. */
+export const namedSchema = z.object({ name: z.string(), swedishName: z.string() });
+export type Named = z.infer<typeof namedSchema>;
 
 const namesSchema = z.object({ en: z.string(), sv: z.string() });
 
@@ -25,6 +28,19 @@ export type Language = z.infer<typeof languageSchema>;
 export interface InLanguage {
   name: string;
   otherName: string;
+}
+
+/** `text` in lower case without diacritics, for comparing names and matching them against a query. */
+export const normalize = (text: string) =>
+  text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+/** A programme's name in the language not shown, or undefined when Chalmers names it the same in both languages. */
+export function otherNameOf(names: Readonly<Record<string, InLanguage>>, code: string) {
+  const named = names[code];
+  return named && normalize(named.otherName) !== normalize(named.name) ? named.otherName : undefined;
 }
 
 /** `named` with `name` in `language`. Its `swedishName` stays Swedish. */

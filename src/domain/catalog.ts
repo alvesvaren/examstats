@@ -1,8 +1,16 @@
-import { isOtherQuestion, meanAnswer, OTHER_QUESTIONS, QUESTIONS, type OtherQuestion, type Question } from "./evaluation.ts";
+import {
+  isOtherQuestion,
+  meanAnswer,
+  OTHER_QUESTIONS,
+  QUESTIONS,
+  type OtherQuestion,
+  type Question,
+  type TrendPoint,
+} from "./evaluation.ts";
 import { averageGradeOf, passRateOf } from "./grades.ts";
-import { inLanguage, type InLanguage, type Language } from "./names.ts";
+import { inLanguage, normalize, type InLanguage, type Language } from "./names.ts";
 import type { StudyPeriod } from "./programme-plans.ts";
-import type { CourseSummary, Snapshot, TrendPoint } from "./snapshot.ts";
+import type { CourseSummary, Snapshot } from "./snapshot.ts";
 
 export const SORT_KEYS = [
   "name",
@@ -21,6 +29,9 @@ export type SortDir = "asc" | "desc";
 /** Text starts A to Z, and workload with the lightest, since 5 is too high. */
 const ASCENDING_SORTS: readonly SortKey[] = ["name", "programme", "workload"];
 
+/** The other direction. */
+export const flip = (dir: SortDir): SortDir => (dir === "asc" ? "desc" : "asc");
+
 /** The direction a sort starts in: the rest start with the largest. */
 export const defaultSortDir = (key: SortKey): SortDir => (ASCENDING_SORTS.includes(key) ? "asc" : "desc");
 
@@ -37,12 +48,6 @@ const TREND_BASELINE_YEARS = 3;
 const MIN_PROGRAMME_QUERY = 2;
 /** Shorter queries match too many names to suggest examiners. */
 const MIN_EXAMINER_QUERY = 3;
-
-export const normalize = (text: string) =>
-  text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
 
 const SEARCH_SEPARATOR = ";";
 
@@ -90,9 +95,11 @@ export type CatalogCourse = ReturnType<typeof toCatalogCourse>;
 export function toCatalog(snapshot: Snapshot, language: Language) {
   const withResults = new Set(snapshot.courses.map((c) => c.programme));
   const programmes = Object.entries(snapshot.programmes).map(([code, named]) => [code, inLanguage(named, language)] as const);
+  const courses = snapshot.courses.map((course) => toCatalogCourse(course, language));
   return {
     ...snapshot,
-    courses: snapshot.courses.map((course) => toCatalogCourse(course, language)),
+    courses,
+    byCode: new Map(courses.map((course) => [course.code, course])),
     programmes: Object.fromEntries(programmes),
     /** Programmes with courses with results, which the course list can show. */
     listedProgrammes: Object.fromEntries(programmes.filter(([code]) => withResults.has(code))),
@@ -209,32 +216,3 @@ const matchesName = (name: string, searches: readonly string[][]) => {
   const normalized = normalize(name);
   return searches.some((terms) => terms.length > 0 && terms.every((t) => normalized.includes(t)));
 };
-
-const PART_WORDS: readonly [sv: string, en: string][] = [
-  ["Muntlig tentamen", "Oral exam"],
-  ["Hemtentamen", "Take-home exam"],
-  ["Tentamen", "Exam"],
-  ["Laborationer", "Labs"],
-  ["Laboration", "Lab"],
-  ["Projektarbete", "Project"],
-  ["Projekt", "Project"],
-  ["Inlämningsuppgifter", "Assignments"],
-  ["Inlämningsuppgift", "Assignment"],
-  ["Examensarbete", "Thesis"],
-  ["Duggor", "Quizzes"],
-  ["Dugga", "Quiz"],
-  ["Övningar", "Exercises"],
-  ["Övning", "Exercise"],
-  ["Seminarier", "Seminars"],
-  ["Seminarium", "Seminar"],
-  ["Konstruktionsövning", "Design exercise"],
-  ["Kontrollskrivning", "Midterm"],
-  ["Förberedande kurs i matematik", "Preparatory maths"],
-];
-
-/** English label for a Swedish part type. Unknown types keep their Swedish name. */
-export function partLabel(type: string): string {
-  const match = PART_WORDS.find(([sv]) => new RegExp(`^${sv}(?=$|[ ,+])`).test(type));
-  const translated = match ? match[1] + type.slice(match[0].length) : type;
-  return translated.replace(", del ", ", part ");
-}

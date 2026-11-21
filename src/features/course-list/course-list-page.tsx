@@ -1,11 +1,11 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import { ArrowLeftIcon, SearchIcon } from "lucide-react";
-import { cn } from "cn";
+import { ArrowLeftIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { FieldSelect } from "@/components/field-select";
+import { NativeSelectOption } from "@/components/ui/native-select";
+import { SearchField } from "@/components/search-field";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { catalogQuery } from "@/data/queries";
@@ -40,8 +40,6 @@ const DEFAULT_SORT: SortKey = "attemptsPerYear";
 const EXAMINER_SUGGESTIONS = 3;
 /** Typing shows at once. The URL, and the list that follows it, update when typing pauses. */
 const SEARCH_DELAY_MS = 150;
-/** 16px text on phones, because iOS zooms into focused fields with smaller text. */
-const FIELD_SIZE = "[&_select]:h-10 [&_select]:text-base md:[&_select]:text-sm";
 
 export function CourseListPage() {
   const search = route.useSearch();
@@ -101,20 +99,14 @@ export function CourseListPage() {
       {/* The negative margin cancels the padding the filters need when stuck, so the top of this box is where they stick. */}
       <div ref={resultsRef} className="-mt-2 flex flex-col gap-2">
         <div ref={filtersRef} className="sticky top-0 z-30 flex flex-wrap gap-2 bg-background py-2">
-          <div className="relative min-w-60 flex-1 basis-full sm:basis-0">
-            <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              key={programme ?? examiner ?? ALL_PROGRAMMES}
-              type="search"
-              defaultValue={q}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={t.list.searchPlaceholder}
-              aria-label={t.list.search}
-              autoComplete="off"
-              spellCheck={false}
-              className="h-10 pl-9 text-base"
-            />
-          </div>
+          <SearchField
+            key={programme ?? examiner ?? ALL_PROGRAMMES}
+            defaultValue={q}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t.list.searchPlaceholder}
+            aria-label={t.list.search}
+            className="min-w-60 flex-1 basis-full sm:basis-0"
+          />
           <ProgrammeSelect programme={programme} programmes={snapshot.listedProgrammes} onChange={setProgramme} />
           <PeriodFilter periods={periods} academicYear={snapshot.plans.academicYear} onChange={setPeriods} />
         </div>
@@ -223,25 +215,23 @@ interface ProgrammeSelectProps {
 
 function ProgrammeSelect({ programme, programmes, onChange }: ProgrammeSelectProps) {
   const t = useMessages();
-  const options = Object.entries(programmes)
-    .map(([code, { name }]) => [code, name] as const)
-    .toSorted(([, a], [, b]) => a.localeCompare(b, "sv"));
+  const byName = Object.entries(programmes).toSorted(([, a], [, b]) => a.name.localeCompare(b.name, "sv"));
   return (
-    <NativeSelect
+    <FieldSelect
       value={programme ?? ALL_PROGRAMMES}
       onChange={(event) => {
         const { value } = event.target;
         onChange(value === ALL_PROGRAMMES ? undefined : value);
       }}
       aria-label={t.list.programme}
-      className={cn("min-w-0 flex-1 sm:w-72 sm:flex-none", FIELD_SIZE)}
+      className="min-w-0 flex-1 sm:w-72 sm:flex-none"
     >
       <NativeSelectOption value={ALL_PROGRAMMES}>{t.allProgrammes}</NativeSelectOption>
-      {options.map(([code, name]) => (
+      {byName.map(([code, { name }]) => (
         <NativeSelectOption key={code} value={code}>
           {name === code ? code : `${name} · ${code}`}
         </NativeSelectOption>
       ))}
-    </NativeSelect>
+    </FieldSelect>
   );
 }

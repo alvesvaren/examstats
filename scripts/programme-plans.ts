@@ -17,6 +17,7 @@ import {
   roundOf,
   startYearOf,
   STUDY_PERIODS,
+  tenths,
   type CourseRound,
   type PlanChoice,
   type PlanCourse,
@@ -41,18 +42,20 @@ function currentAcademicYear(today: Date) {
   return `${year}/${year + 1}`;
 }
 
-const env = z
-  .object({
-    API_URL: z.url().default("https://www.chalmers.se/api"),
-    OUT_FILE: z.string().default("data/programme-plans.json"),
-    NAMES_FILE: z.string().default("data/names.json"),
-    ACADEMIC_YEAR: z
-      .string()
-      .regex(/^\d{4}\/\d{4}$/)
-      .default(currentAcademicYear(new Date())),
-    CONCURRENCY: z.coerce.number().int().positive().default(4),
-  })
-  .parse(process.env);
+const parseEnv = () =>
+  z
+    .object({
+      API_URL: z.url().default("https://www.chalmers.se/api"),
+      OUT_FILE: z.string().default("data/programme-plans.json"),
+      NAMES_FILE: z.string().default("data/names.json"),
+      ACADEMIC_YEAR: z
+        .string()
+        .regex(/^\d{4}\/\d{4}$/)
+        .default(currentAcademicYear(new Date())),
+      CONCURRENCY: z.coerce.number().int().positive().default(4),
+    })
+    .parse(process.env);
+type Env = ReturnType<typeof parseEnv>;
 
 const RETRIES = 6;
 /**
@@ -71,8 +74,6 @@ const MIN_PROGRAMMES = 40;
 const MIN_COURSE_NAMES = 1500;
 /** More failed syllabi than this means the API is down or changed, and the file keeps its last good contents. */
 const MAX_FAILED_SHARE = 0.02;
-/** Credits come in tenths, and summing them in floating point drifts. */
-const tenths = (credits: number) => Math.round(credits * 10) / 10;
 
 const PERIOD_CODES: Record<string, StudyPeriod> = { LP1: "LP1", LP2: "LP2", LP3: "LP3", LP4: "LP4", LP5: "Summer" };
 const periodOf = (code: string | null) => PERIOD_CODES[code ?? ""] ?? "Other";
@@ -119,7 +120,7 @@ const momentSchema = z.object({
 });
 type Moment = z.infer<typeof momentSchema>;
 
-const programmeSchema = z.object({
+export const programmeSchema = z.object({
   search: z.object({
     results: z.array(
       z.object({
@@ -134,7 +135,7 @@ const programmeSchema = z.object({
   }),
 });
 
-const syllabusSchema = z.object({
+export const syllabusSchema = z.object({
   search: z.object({
     results: z.array(
       z.object({
@@ -151,7 +152,7 @@ const syllabusSchema = z.object({
 });
 type Syllabus = z.infer<typeof syllabusSchema>["search"]["results"][number];
 
-const courseSchema = z.object({
+export const courseSchema = z.object({
   search: z.object({
     results: z.array(
       z.object({
@@ -177,8 +178,8 @@ const courseSchema = z.object({
   }),
 });
 
-async function get<T>(endpoint: string, variables: object, schema: z.ZodType<T>): Promise<T> {
-  const url = `${env.API_URL}/${endpoint}/?variables=${encodeURIComponent(JSON.stringify(variables))}`;
+async function get<T>(apiUrl: string, endpoint: string, variables: object, schema: z.ZodType<T>): Promise<T> {
+  const url = `${apiUrl}/${endpoint}/?variables=${encodeURIComponent(JSON.stringify(variables))}`;
   for (let attempt = 1; ; attempt++) {
     try {
       const response = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(60_000) });
@@ -198,7 +199,7 @@ async function get<T>(endpoint: string, variables: object, schema: z.ZodType<T>)
 
 const trackOf = (moment: Moment) => moment.momentSpecialisation?.concName?.trim() || null;
 
-function toChoices(moments: readonly Moment[]): PlanChoice[] {
+export function toChoices(moments: readonly Moment[]): PlanChoice[] {
   const groupings = new Map(moments.flatMap((m) => m.momentGroupings.map((g) => [g.varId, g] as const)));
   return [...groupings.values()]
     .map((g) => ({
@@ -219,7 +220,7 @@ function toChoices(moments: readonly Moment[]): PlanChoice[] {
 }
 
 /** One course per plan entry. A plan lists each module of a course as its own row, once per study period it has credits in. */
-function toCourses(moments: readonly Moment[]): Omit<PlanCourse, "examiners" | "modules" | "seats">[] {
+export function toCourses(moments: readonly Moment[]): Omit<PlanCourse, "examiners" | "modules" | "seats">[] {
   const groups = Map.groupBy(
     moments.filter((m) => !m.cancelled),
     (m) => m.ppId,
@@ -263,7 +264,7 @@ function toCourses(moments: readonly Moment[]): Omit<PlanCourse, "examiners" | "
 }
 
 /** A programme can lead to several degrees that ask the same. Each theme keeps its largest demand, and each list of courses shows once. */
-function toRequirements(syllabus: Syllabus): PlanRequirement[] {
+export function toRequirements(syllabus: Syllabus): PlanRequirement[] {
   const themeCredits = Map.groupBy(
     (syllabus.degreeWithDegreeRequirements ?? []).filter((r) => THEME_REQUIREMENTS[r.reqCode] && r.reqCredit),
     (r) => THEME_REQUIREMENTS[r.reqCode]!,
@@ -282,10 +283,14 @@ function toRequirements(syllabus: Syllabus): PlanRequirement[] {
  * The degree requirements of a programme, the master's programmes it leads on to, and its prerequisites, from its
  * syllabus for `academicYear` or the newest one before it. Empty when it has none.
  */
-async function syllabusOf(code: string, academicYear: string): Promise<Pick<ProgrammePlan, "requirements" | "masters" | "prerequisites">> {
+async function syllabusOf(
+  apiUrl: string,
+  code: string,
+  academicYear: string,
+): Promise<Pick<ProgrammePlan, "requirements" | "masters" | "prerequisites">> {
   const start = startYearOf(academicYear);
   for (let year = start; year >= start - SYLLABUS_YEARS_BACK; year--) {
-    const { search } = await get("Syllabuses", { language: "en", acYear: `${year}/${year + 1}`, pCode: code }, syllabusSchema);
+    const { search } = await get(apiUrl, "Syllabuses", { language: "en", acYear: `${year}/${year + 1}`, pCode: code }, syllabusSchema);
     const [syllabus] = search.results;
     if (!syllabus) continue;
     const masters = (syllabus.accreditations?.forMastersProgramme ?? []).map((m) => m.masterCode);
@@ -300,12 +305,11 @@ async function syllabusOf(code: string, academicYear: string): Promise<Pick<Prog
 
 type SyllabusRound = CourseRound & Pick<PlanCourse, "modules" | "seats">;
 
-/** The rounds of a course this academic year, from its syllabus. Empty when it has none. */
-async function roundsOf(code: string): Promise<SyllabusRound[]> {
-  const filter = { acYear: { _eq: env.ACADEMIC_YEAR }, courseCode: { _eq: code } };
-  const { search } = await get("PewCourses", { language: "en", filter }, courseSchema);
-  const course = search.results.find((c) => c.courseCode === code);
-  return (course?.courseRounds ?? [])
+type CourseSyllabus = z.infer<typeof courseSchema>["search"]["results"][number];
+
+/** The rounds of a course that run, as the planner reads them. */
+export const toRounds = (course: CourseSyllabus | undefined): SyllabusRound[] =>
+  (course?.courseRounds ?? [])
     .filter((r) => !r.cancelled)
     .map((round) => {
       const periods = new Set(round.moments.flatMap((m) => m.distribution.filter((d) => d.credit).map((d) => periodOf(d.code))));
@@ -317,13 +321,24 @@ async function roundsOf(code: string): Promise<SyllabusRound[]> {
         seats: round.maxAmount > 0 ? round.maxAmount : null,
       };
     });
+
+/** The rounds of a course this academic year, from its syllabus. Empty when it has none. */
+async function roundsOf(env: Env, code: string): Promise<SyllabusRound[]> {
+  const filter = { acYear: { _eq: env.ACADEMIC_YEAR }, courseCode: { _eq: code } };
+  const { search } = await get(env.API_URL, "PewCourses", { language: "en", filter }, courseSchema);
+  return toRounds(search.results.find((c) => c.courseCode === code));
 }
 
 /** Every row of a list index, over all academic years the API holds, a page at a time. */
-async function listAll<T>(index: string, row: z.ZodType<T>) {
+async function listAll<T>(apiUrl: string, index: string, row: z.ZodType<T>) {
   const rows: T[] = [];
   for (;;) {
-    const { info, results } = await get("list", { size: LIST_SIZE, from: rows.length, language: "en", indexes: [index] }, pageSchema(row));
+    const { info, results } = await get(
+      apiUrl,
+      "list",
+      { size: LIST_SIZE, from: rows.length, language: "en", indexes: [index] },
+      pageSchema(row),
+    );
     rows.push(...results);
     if (!results.length || rows.length >= info.count) return rows;
   }
@@ -337,10 +352,10 @@ function newestNames(rows: readonly (z.infer<typeof nameRowSchema> & { code: str
     .toSorted((a, b) => a.code.localeCompare(b.code));
 }
 
-async function fetchNames(): Promise<NamesFile> {
+async function fetchNames(apiUrl: string): Promise<NamesFile> {
   const [courses, programmes] = await Promise.all([
-    listAll("PewCourses", courseNameRowSchema),
-    listAll("PewStudyprogrammes", programmeNameRowSchema),
+    listAll(apiUrl, "PewCourses", courseNameRowSchema),
+    listAll(apiUrl, "PewStudyprogrammes", programmeNameRowSchema),
   ]);
   const names: NamesFile = {
     programmes: Object.fromEntries(newestNames(programmes.map((p) => ({ ...p, code: p.programCode }))).map(({ code, ...n }) => [code, n])),
@@ -351,8 +366,9 @@ async function fetchNames(): Promise<NamesFile> {
 }
 
 /** Every programme plan of `academicYear` with its syllabus, without examiners. Records the name of each rule in `ruleNames`. */
-async function plansOf(academicYear: string, ruleNames: Map<string, string>) {
+async function plansOf(env: Env, academicYear: string, ruleNames: Map<string, string>) {
   const { results } = await get(
+    env.API_URL,
     "list",
     { size: LIST_SIZE, language: "en", indexes: ["PewStudyprogrammes"], filter: { acYear: { _eq: academicYear } } },
     listSchema,
@@ -364,8 +380,8 @@ async function plansOf(academicYear: string, ruleNames: Map<string, string>) {
   const programmes = await mapConcurrent(listed, env.CONCURRENCY, async ({ programCode, name }) => {
     const filter = { acYear: { _eq: academicYear }, programCode: { _eq: programCode } };
     const [{ search }, syllabus] = await Promise.all([
-      get("PewStudyprogrammes", { language: "en", filter }, programmeSchema),
-      syllabusOf(programCode, academicYear),
+      get(env.API_URL, "PewStudyprogrammes", { language: "en", filter }, programmeSchema),
+      syllabusOf(env.API_URL, programCode, academicYear),
     ]);
     const plan = search.results.find((r) => r.programCode === programCode);
     if (!plan) throw new Error(`No plan for ${programCode} in ${academicYear}`);
@@ -387,12 +403,13 @@ async function plansOf(academicYear: string, ruleNames: Map<string, string>) {
 }
 
 async function main() {
-  const names = fetchNames();
+  const env = parseEnv();
+  const names = fetchNames(env.API_URL);
   const ruleNames = new Map<string, string>();
   const plans = [];
   // One academic year at a time, so the API sees no more than `CONCURRENCY` requests at once.
   for (let start = FIRST_START_YEAR; start <= startYearOf(env.ACADEMIC_YEAR); start++) {
-    plans.push(...(await plansOf(academicYearOf(start), ruleNames)));
+    plans.push(...(await plansOf(env, academicYearOf(start), ruleNames)));
   }
 
   const current = plans.filter((p) => p.academicYear === env.ACADEMIC_YEAR);
@@ -402,7 +419,7 @@ async function main() {
   const rounds = new Map(
     await mapConcurrent(codes, env.CONCURRENCY, async (code): Promise<[string, SyllabusRound[]]> => {
       try {
-        return [code, await roundsOf(code)];
+        return [code, await roundsOf(env, code)];
       } catch (error) {
         failed++;
         console.warn(`${code}: ${error instanceof Error ? error.message : String(error)}`);
@@ -445,4 +462,4 @@ async function main() {
   );
 }
 
-await main();
+if (import.meta.main) await main();

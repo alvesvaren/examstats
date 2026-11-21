@@ -1,36 +1,11 @@
 import { z } from "zod";
-import { evaluationRoundSchema, surveyAnswersSchema } from "./evaluation.ts";
+import { evaluationRoundSchema, surveyAnswersSchema, trendPointSchema } from "./evaluation.ts";
 import { gradeCountsSchema } from "./grades.ts";
+import { partSchema } from "./course-stats.ts";
+import { namedSchema } from "./names.ts";
 import { coursePlacementSchema, publishedPlanInfoSchema, STUDY_PERIODS } from "./programme-plans.ts";
 
 const isoDate = z.iso.date();
-
-export const sittingSchema = z.object({
-  date: isoDate,
-  grades: gradeCountsSchema,
-});
-
-export const partSchema = z.object({
-  /** Swedish part type from the source, such as "Tentamen" or "Laboration, del A". */
-  type: z.string(),
-  code: z.string(),
-  sittings: z.array(sittingSchema),
-});
-
-/** The committed file that `pnpm fetch-results` writes and `pnpm snapshot` reads. */
-export const resultsFileSchema = z.object({
-  /** Programme names by code. */
-  programmes: z.record(z.string(), z.string()),
-  courses: z.array(
-    z.object({
-      code: z.string(),
-      name: z.string(),
-      programme: z.string().nullable(),
-      /** Main part first, then the rest by attempts. */
-      parts: z.array(partSchema),
-    }),
-  ),
-});
 
 export const courseDetailSchema = z.object({
   code: z.string(),
@@ -41,12 +16,6 @@ export const courseDetailSchema = z.object({
   /** Where this academic year's programme plans place the course, compulsory first. Empty when no plan has it. */
   placements: z.array(coursePlacementSchema),
 });
-
-/** A rating in one academic year. A tuple, since the list loads thousands of them. */
-const trendPointSchema = z.tuple([z.number().int(), z.number()]);
-
-/** Names in English and Swedish. Each is the other when Chalmers names only one, and both are the source's name when Chalmers names neither. */
-const namedSchema = z.object({ name: z.string(), swedishName: z.string() });
 
 export const courseSummarySchema = namedSchema.extend({
   code: z.string(),
@@ -77,11 +46,6 @@ export const snapshotSchema = z.object({
   courses: z.array(courseSummarySchema),
 });
 
-export type Sitting = z.infer<typeof sittingSchema>;
-export type Part = z.infer<typeof partSchema>;
 export type CourseDetail = z.infer<typeof courseDetailSchema>;
 export type CourseSummary = z.infer<typeof courseSummarySchema>;
-export type TrendPoint = z.infer<typeof trendPointSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
-export type Named = z.infer<typeof namedSchema>;
-export type ResultsFile = z.infer<typeof resultsFileSchema>;

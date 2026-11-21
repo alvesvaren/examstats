@@ -4,7 +4,6 @@ import {
   examinerNamed,
   matchExaminers,
   matchProgrammes,
-  partLabel,
   queryCourses,
   surveyColumn,
   toCatalog,
@@ -12,7 +11,8 @@ import {
   trendDelta,
 } from "./catalog.ts";
 import { emptyCounts } from "./grades.ts";
-import type { CourseSummary, TrendPoint } from "./snapshot.ts";
+import type { TrendPoint } from "./evaluation.ts";
+import type { CourseSummary } from "./snapshot.ts";
 
 const row = (code: string, name: string, extra: Partial<CourseSummary> = {}) =>
   toCatalogCourse({
@@ -146,7 +146,7 @@ describe("queryCourses filters", () => {
   });
 });
 
-describe("examiners", () => {
+describe("toCatalog", () => {
   const catalog = toCatalog(
     {
       generatedAt: "",
@@ -219,16 +219,5 @@ describe("trendDelta", () => {
 
   it("is null without history", () => {
     expect(trendDelta([[2025, 3.5]])).toBeNull();
-  });
-});
-
-describe("partLabel", () => {
-  it("translates the part type and keeps the part letter", () => {
-    expect(["Tentamen", "Laboration, del A", "Muntlig tentamen", "Okänd typ"].map(partLabel)).toEqual([
-      "Exam",
-      "Lab, part A",
-      "Oral exam",
-      "Okänd typ",
-    ]);
   });
 });

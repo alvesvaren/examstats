@@ -3,7 +3,7 @@ import { cn } from "cn";
 import { GradeTally } from "@/components/grade";
 import { GRADE_STYLE } from "@/components/grade-style";
 import { attemptsOf, passRateOf, type GradeCounts } from "@/domain/grades";
-import type { Part } from "@/domain/snapshot";
+import type { Part } from "@/domain/course-stats";
 import { layoutColumns, stackSegments } from "@/domain/timeline";
 import { useElementSize } from "@/hooks/use-element-size";
 import { useMessages } from "@/hooks/use-messages";

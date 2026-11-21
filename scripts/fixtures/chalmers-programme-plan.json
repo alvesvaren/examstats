@@ -1,0 +1,357 @@
+{
+  "search": {
+    "results": [
+      {
+        "programCode": "TKITE",
+        "yearClasses": [
+          {
+            "grade": 1,
+            "courseMoments": [
+              {
+                "courseCode": "TDA548",
+                "courseName": "Fundamentals of program development",
+                "cancelled": false,
+                "moduleCode": "0116",
+                "momentCredit": 3,
+                "rule": "O",
+                "ruleName": "Compulsory courses",
+                "studyPerodId": "LP1",
+                "blockSchedule": null,
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 86061,
+                "momentGroupings": []
+              },
+              {
+                "courseCode": "TDA548",
+                "courseName": "Fundamentals of program development",
+                "cancelled": false,
+                "moduleCode": "0216",
+                "momentCredit": 4.5,
+                "rule": "O",
+                "ruleName": "Compulsory courses",
+                "studyPerodId": "LP1",
+                "blockSchedule": null,
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 86061,
+                "momentGroupings": []
+              },
+              {
+                "courseCode": "DAT216",
+                "courseName": "Design and implementation of graphical interfaces",
+                "cancelled": false,
+                "moduleCode": "0114",
+                "momentCredit": 3.5,
+                "rule": "O",
+                "ruleName": "Compulsory courses",
+                "studyPerodId": "LP4",
+                "blockSchedule": null,
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [
+                  {
+                    "theme": "MTS",
+                    "themeCredit": 3
+                  }
+                ],
+                "ppId": 84896,
+                "momentGroupings": []
+              },
+              {
+                "courseCode": "DAT216",
+                "courseName": "Design and implementation of graphical interfaces",
+                "cancelled": false,
+                "moduleCode": "0214",
+                "momentCredit": 4,
+                "rule": "O",
+                "ruleName": "Compulsory courses",
+                "studyPerodId": "LP4",
+                "blockSchedule": null,
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [
+                  {
+                    "theme": "MTS",
+                    "themeCredit": 3
+                  }
+                ],
+                "ppId": 84896,
+                "momentGroupings": []
+              }
+            ]
+          },
+          {
+            "grade": 2,
+            "courseMoments": [
+              {
+                "courseCode": "LSP530",
+                "courseName": "Fiction for engineers",
+                "cancelled": false,
+                "moduleCode": "0199",
+                "momentCredit": 3.5,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP1",
+                "blockSchedule": null,
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [
+                  {
+                    "theme": "MTS",
+                    "themeCredit": 7.5
+                  }
+                ],
+                "ppId": 84363,
+                "momentGroupings": []
+              },
+              {
+                "courseCode": "LSP530",
+                "courseName": "Fiction for engineers",
+                "cancelled": false,
+                "moduleCode": "0199",
+                "momentCredit": 4,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP2",
+                "blockSchedule": null,
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [
+                  {
+                    "theme": "MTS",
+                    "themeCredit": 7.5
+                  }
+                ],
+                "ppId": 84363,
+                "momentGroupings": []
+              },
+              {
+                "courseCode": "MVE655",
+                "courseName": "Multivariable analysis",
+                "cancelled": false,
+                "moduleCode": "0121",
+                "momentCredit": 7.5,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP2",
+                "blockSchedule": null,
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 86538,
+                "momentGroupings": [
+                  {
+                    "varId": 5182,
+                    "cl": "REC",
+                    "benamning": "Prerequisite for MPDSC and MPENM",
+                    "req_Courses": 0,
+                    "req_Cred": 0
+                  }
+                ]
+              },
+              {
+                "courseCode": "SJO955",
+                "courseName": "Introduction to law",
+                "cancelled": false,
+                "moduleCode": "0117",
+                "momentCredit": 7.5,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP2",
+                "blockSchedule": "A",
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 84859,
+                "momentGroupings": []
+              },
+              {
+                "courseCode": "TDA567",
+                "courseName": "Testing, debugging and verification",
+                "cancelled": false,
+                "moduleCode": "0114",
+                "momentCredit": 2.5,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP2",
+                "blockSchedule": "C",
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 84726,
+                "momentGroupings": [
+                  {
+                    "varId": 5156,
+                    "cl": "OVER",
+                    "benamning": "Only one of the marked courses can be included in the degree",
+                    "req_Courses": 0,
+                    "req_Cred": 0
+                  }
+                ]
+              },
+              {
+                "courseCode": "TDA567",
+                "courseName": "Testing, debugging and verification",
+                "cancelled": false,
+                "moduleCode": "0214",
+                "momentCredit": 5,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP2",
+                "blockSchedule": "C",
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 84726,
+                "momentGroupings": [
+                  {
+                    "varId": 5156,
+                    "cl": "OVER",
+                    "benamning": "Only one of the marked courses can be included in the degree",
+                    "req_Courses": 0,
+                    "req_Cred": 0
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "grade": 3,
+            "courseMoments": [
+              {
+                "courseCode": "MVE370",
+                "courseName": "Mathematics and society",
+                "cancelled": false,
+                "moduleCode": "0111",
+                "momentCredit": 0,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP2",
+                "blockSchedule": null,
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [
+                  {
+                    "theme": "MTS",
+                    "themeCredit": 7.5
+                  }
+                ],
+                "ppId": 86662,
+                "momentGroupings": []
+              },
+              {
+                "courseCode": "TDA507",
+                "courseName": "Computational methods in bioinformatics",
+                "cancelled": true,
+                "moduleCode": "0113",
+                "momentCredit": 7.5,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP2",
+                "blockSchedule": null,
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 84979,
+                "momentGroupings": []
+              },
+              {
+                "courseCode": "MVE370",
+                "courseName": "Mathematics and society",
+                "cancelled": false,
+                "moduleCode": "0111",
+                "momentCredit": 3,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP3",
+                "blockSchedule": null,
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [
+                  {
+                    "theme": "MTS",
+                    "themeCredit": 7.5
+                  }
+                ],
+                "ppId": 86662,
+                "momentGroupings": []
+              },
+              {
+                "courseCode": "DATX11",
+                "courseName": "Bachelor's thesis in Computer science and engineering",
+                "cancelled": false,
+                "moduleCode": "0122",
+                "momentCredit": 7.5,
+                "rule": "X",
+                "ruleName": "Diploma thesis",
+                "studyPerodId": "LP3",
+                "blockSchedule": null,
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 83756,
+                "momentGroupings": []
+              },
+              {
+                "courseCode": "MVE370",
+                "courseName": "Mathematics and society",
+                "cancelled": false,
+                "moduleCode": "0111",
+                "momentCredit": 4.5,
+                "rule": "V",
+                "ruleName": "Elective courses",
+                "studyPerodId": "LP4",
+                "blockSchedule": null,
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [
+                  {
+                    "theme": "MTS",
+                    "themeCredit": 7.5
+                  }
+                ],
+                "ppId": 86662,
+                "momentGroupings": []
+              },
+              {
+                "courseCode": "DATX11",
+                "courseName": "Bachelor's thesis in Computer science and engineering",
+                "cancelled": false,
+                "moduleCode": "0122",
+                "momentCredit": 7.5,
+                "rule": "X",
+                "ruleName": "Diploma thesis",
+                "studyPerodId": "LP4",
+                "blockSchedule": null,
+                "momentSpecialisation": {
+                  "concName": ""
+                },
+                "momentThemes": [],
+                "ppId": 83756,
+                "momentGroupings": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

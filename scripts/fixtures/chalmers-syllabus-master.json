@@ -1,0 +1,43 @@
+{
+  "search": {
+    "results": [
+      {
+        "degreeWithDegreeRequirements": [
+          {
+            "reqCode": "CRED_ADV_LEV_INC",
+            "reqCredit": 90
+          },
+          {
+            "reqCode": "CRED_DEGREE_PROJ",
+            "reqCredit": 30
+          },
+          {
+            "reqCode": "CRED_TOT",
+            "reqCredit": 120
+          },
+          {
+            "reqCode": "CRED_MAIN_FIELD",
+            "reqCredit": 60
+          },
+          {
+            "reqCode": "COURSES_IN_PLAN",
+            "reqCredit": 0
+          },
+          {
+            "reqCode": "CRED_ADV_CTH_INC",
+            "reqCredit": 45
+          },
+          {
+            "reqCode": "BACHELOR_DEGREE",
+            "reqCredit": 0
+          }
+        ],
+        "degreeWithDegreeSpecRequirements": [],
+        "accreditations": {
+          "forMastersProgramme": []
+        },
+        "prerequisites": "Mathematics (at least 15cr including Calculus (at least 6 cr.) and Linear Algebra (at least 6 cr.)), Programming in a General-Purpose Language (at least 7,5 cr.) (e.g. C/C++/Java/Haskell or similar), Algorithms and/or Data Structures (at least 5 cr.) and one of the following courses: Discrete Mathematics or Mathematical Statistics or Probability Theory\r\nPreferable course experience: Finite Automata Theory and Formal Languages, Mathematical Modelling and Problem Solving, Functional Programming, Multivariable Analysis.\r\n"
+      }
+    ]
+  }
+}

@@ -1,18 +1,20 @@
-import { compareSortValues, defaultSortDir, normalize, sortValueOf, type CatalogCourse, type SortDir } from "./catalog.ts";
-import { OTHER_QUESTIONS } from "./evaluation.ts";
-import type { InLanguage } from "./names.ts";
+import { compareSortValues, defaultSortDir, sortValueOf, surveyColumn, type CatalogCourse, type SortDir } from "./catalog.ts";
+import { degreeRulesOf, marksOf, pickProgress, type DegreeRuleMark } from "./degree.ts";
+import { OTHER_QUESTIONS, type OtherQuestion } from "./evaluation.ts";
+import { normalize, type InLanguage } from "./names.ts";
 import {
   isElective,
   plannedCourses,
+  planYear,
   STUDY_PERIODS,
+  tenths,
   tracksOf,
-  type PlanChoice,
-  type PlanCourse,
-  type PlanRequirement,
   type PlanRound,
   type ProgrammePlan,
   type StudyPeriod,
   type StudyPick,
+  type StudyYear,
+  type UpcomingMasters,
 } from "./programme-plans.ts";
 
 export const PLANNER_SORT_KEYS = ["rating", "passRate", ...OTHER_QUESTIONS] as const;
@@ -24,7 +26,6 @@ export const PERIOD_CREDITS = 15;
 /** A round in the planner with its course's exam results and ratings. None for a new course or a round of several courses. */
 export type PlannerRound = PlanRound & { stats: CatalogCourse | undefined };
 
-const tenths = (credits: number) => Math.round(credits * 10) / 10;
 const sameCourse = (a: PlanRound, b: PlanRound) => a.codes.some((code) => b.codes.includes(code));
 const sharesPeriod = (a: PlanRound, b: PlanRound) => a.periods.some((p) => b.periods.includes(p));
 const isStudyPeriod = (p: string): p is StudyPeriod => (STUDY_PERIODS as readonly string[]).includes(p);
@@ -138,40 +139,127 @@ export function exclusiveWith<R extends PlanRound>(round: PlanRound, plan: reado
   return plan.find((other) => !sameCourse(other, round) && other.choices.some((c) => ids.includes(c.id)));
 }
 
-/**
- * How far the courses of a whole plan go towards a choice of `programme` that asks for some of its courses, in courses
- * or in credits as the choice counts. A course of the choice counts in any year, also one whose plan lists it there
- * outside the choice.
- */
-export function pickProgress(pick: PlanChoice, programme: ProgrammePlan, courses: readonly PlanCourse[]) {
-  const members = new Set(programme.years.flatMap((y) => y.courses.filter((c) => c.choices.includes(pick.id)).map((c) => c.code)));
-  const mine = courses.filter((c) => members.has(c.code));
-  const inCourses = pick.minCourses !== null;
-  const have = inCourses ? mine.length : tenths(mine.reduce((sum, r) => sum + r.credits, 0));
-  const need = pick.minCourses ?? pick.minCredits;
-  return { have, need, unit: inCourses ? "courses" : "credits", done: need !== null && have >= need } as const;
+/** Something to tell about a round that sits badly with the rest of the plan. */
+export type RoundWarning =
+  /** Another course has lectures at the same times. `fixed` tells whether every student takes it. */
+  | { kind: "sameLectures"; name: string; fixed: boolean }
+  /** Another course shares a choice where only one course counts towards the degree. */
+  | { kind: "exclusive"; name: string };
+
+/** A round the list shows, with everything the list says about it. */
+export interface ListedRound {
+  round: PlannerRound;
+  picked: boolean;
+  /** Where another round of the same course is in the plan. It greys this round out. */
+  elsewhere: PlanElsewhere | undefined;
+  warnings: RoundWarning[];
+  /** What the course gives towards the degree requirements the student has to choose courses for. */
+  marks: DegreeRuleMark[];
 }
 
-/** What a course gives towards a degree requirement, in the requirement's unit: its credits in the theme, or one course. */
-export const amountTowards = (requirement: PlanRequirement, { code, themes }: Pick<PlanCourse, "code" | "themes">) =>
-  requirement.kind === "theme"
-    ? (themes.find((t) => t.theme === requirement.theme)?.credits ?? 0)
-    : Number(requirement.courses.includes(code));
+const DEFAULT_PLANNER_SORT: PlannerSortKey = "rating";
 
-/** How far the courses of a whole plan go towards a degree requirement. */
-export function requirementProgress(requirement: PlanRequirement, courses: readonly Pick<PlanCourse, "code" | "themes">[]) {
-  const have = tenths(courses.reduce((sum, course) => sum + amountTowards(requirement, course), 0));
-  const [need, unit] =
-    requirement.kind === "theme" ? ([requirement.minCredits, "credits"] as const) : ([requirement.minCourses, "courses"] as const);
-  return { have, need, unit, done: have >= need };
+interface YearViewInput {
+  /** Every year of study of the degree, the master's programme's included. The requirements count them all. */
+  years: readonly StudyYear[];
+  /** The year of study to show. */
+  current: StudyYear;
+  track: string | undefined;
+  /** The round keys picked in the current year. */
+  pickedKeys: readonly string[];
+  /** The picks of the other years of study. */
+  otherPicks: readonly StudyPick[];
+  /** What the list shows. By default the first study period the plan leaves room in, the best rated first. */
+  period?: StudyPeriod;
+  sort?: PlannerSortKey;
+  dir?: SortDir;
+  survey?: OtherQuestion;
+  stats: ReadonlyMap<string, CatalogCourse>;
+  /** Chalmers' names of the rule codes, in the language shown. */
+  ruleNames: Readonly<Record<string, string>>;
 }
 
 /**
- * The degree requirements a student has to choose courses for: those of each plan that its own compulsory courses do
- * not meet. A requirement that a master's programme's compulsory courses meet stays, so the plan shows it met.
+ * A year of study as the planner shows it: what every student takes, the rounds picked and the ones to choose
+ * between, the study period the list shows and its rounds in order, and how far the courses of the whole degree go
+ * towards its rules. The degree's requirements count the compulsory courses and the picks of every year of every plan.
  */
-export const openRequirements = (plans: readonly ProgrammePlan[], track?: string) =>
-  plans.flatMap((plan) => plan.requirements.filter((r) => !requirementProgress(r, plannedCourses([plan], [], track)).done));
+export function yearView({
+  years,
+  current,
+  track,
+  pickedKeys,
+  otherPicks,
+  period: shownPeriod,
+  sort = DEFAULT_PLANNER_SORT,
+  dir = defaultSortDir(sort),
+  survey,
+  stats,
+  ruleNames,
+}: YearViewInput) {
+  // The programme whose plan holds this year: the master's programme in years 4 and 5.
+  const { plan: yearProgramme, year } = current;
+  const { rounds, picks } = planYear(yearProgramme, year, { track, ruleNames });
+  const { fixed, candidates } = plannerYear(rounds, stats);
+  const picked = candidates.filter((c) => pickedKeys.includes(c.key));
+  const plan = [...fixed, ...picked];
+  const periods = periodsOf([...fixed, ...candidates]);
+  const period = periods.find((p) => p === shownPeriod) ?? firstOpenPeriod(periods, plan);
+
+  const plans = [...new Set(years.map((y) => y.plan))];
+  const allPicks = [...otherPicks, ...picked.map((r) => ({ programme: yearProgramme.code, year, key: r.key }))];
+  const courses = plannedCourses(plans, allPicks, track);
+  const degreeRules = degreeRulesOf(plans, courses, track);
+  const warningsOf = (round: PlannerRound): RoundWarning[] => {
+    const clash = lectureClash(round, plan);
+    const exclusive = exclusiveWith(round, plan);
+    return [
+      ...(clash ? [{ kind: "sameLectures", name: clash.name, fixed: fixed.includes(clash) } as const] : []),
+      ...(exclusive ? [{ kind: "exclusive", name: exclusive.name } as const] : []),
+    ];
+  };
+
+  return {
+    fixed,
+    candidates,
+    picked,
+    plan,
+    periods,
+    /** The year's study periods with what is in each, its credits, and whether two of its courses have lectures at the same times. */
+    periodCards: periods.map((p) => {
+      const inPeriod = (round: PlannerRound) => round.periods.includes(p);
+      const fixedIn = fixed.filter(inPeriod);
+      const pickedIn = picked.filter(inPeriod);
+      const inPeriodRounds = [...fixedIn, ...pickedIn];
+      return {
+        period: p,
+        fixed: fixedIn,
+        picked: pickedIn,
+        credits: creditsIn(inPeriodRounds, p),
+        clashing: inPeriodRounds.some((round) => lectureClash(round, inPeriodRounds)),
+      };
+    }),
+    /** The study period the list shows. None when the year has no courses. */
+    period,
+    sort,
+    dir,
+    survey: surveyColumn(sort, survey),
+    listed: (period ? candidatesIn(candidates, period, sort, dir) : []).map((round): ListedRound => ({
+      round,
+      picked: picked.includes(round),
+      elsewhere: findElsewhere(round, picked, otherPicks),
+      warnings: warningsOf(round),
+      marks: marksOf(degreeRules, round),
+    })),
+    /** Credits of the year's plan. */
+    planned: plan.reduce((sum, r) => sum + r.credits, 0),
+    /** The choices that ask for some of the year's courses, with how far the courses of every year go towards them. */
+    pickRules: picks.map((pick) => ({ pick, progress: pickProgress(pick, yearProgramme, courses) })),
+    degreeRules,
+    /** The codes of every course any year of the degree's plans offers. */
+    offered: new Set(plans.flatMap((p) => p.years.flatMap((y) => y.courses.map((c) => c.code)))),
+  };
+}
 
 const meanOf = (values: readonly (number | null)[]) => {
   const known = values.filter((value) => value !== null);
@@ -196,10 +284,27 @@ export function masterSummary(master: ProgrammePlan, stats: ReadonlyMap<string, 
   };
 }
 
-/** A programme's name in the language not shown, or undefined when Chalmers names it the same in both languages. */
-export function otherNameOf(names: Readonly<Record<string, InLanguage>>, code: string) {
-  const named = names[code];
-  return named && normalize(named.otherName) !== normalize(named.name) ? named.otherName : undefined;
+/** What it takes for a master's programme to complete a programme's degree. */
+export interface Accreditation {
+  /** Specialisations of the master's programme that the degree needs one of. Empty when any will do. */
+  specialisations: readonly string[];
+  /** The course list of a master's programme Chalmers has announced but not planned yet. */
+  courseList: string | null;
+}
+
+/**
+ * The master's programmes that complete `programme`'s degree, by code. Upcoming master's programmes come with their
+ * own accreditations, since the programme syllabus names the current ones.
+ */
+export function accreditedMasters(programme: ProgrammePlan, upcoming: UpcomingMasters | null): Map<string, Accreditation> {
+  return new Map(
+    upcoming
+      ? (upcoming.accreditations[programme.code] ?? []).map(({ code, specialisations }) => [
+          code,
+          { specialisations, courseList: upcoming.masters[code]?.courseList ?? null },
+        ])
+      : programme.masters.map((code) => [code, { specialisations: [], courseList: null }]),
+  );
 }
 
 /** Programmes whose code or name in either language holds every word of `query`, by name. Every programme without a query. */
