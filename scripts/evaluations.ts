@@ -20,13 +20,12 @@ import {
 } from "./evaluation-pages.ts";
 import { toJsonLines } from "./json-lines.ts";
 
-const env = z
-  .object({
-    EVAL_URL: z.url().default("https://course-eval.portal.chalmers.se"),
-    OUT_FILE: z.string().default("data/evaluations.json"),
-    YEARS: z.coerce.number().int().positive().default(EVALUATION_YEARS),
-  })
-  .parse(process.env);
+const envSchema = z.object({
+  EVAL_URL: z.url().default("https://course-eval.portal.chalmers.se"),
+  OUT_FILE: z.string().default("data/evaluations.json"),
+  YEARS: z.coerce.number().int().positive().default(EVALUATION_YEARS),
+});
+type Env = z.infer<typeof envSchema>;
 
 /** Report pages linked from chalmers.se: bachelor programmes and other courses, then master programmes. */
 const REPORT_IDS = [4257, 4248];
@@ -52,7 +51,7 @@ const MAX_MISSING_QUESTION_SHARE = 0.1;
 const MAX_REDIRECTS = 10;
 const PROGRESS_EVERY = 250;
 
-type Round = EvaluationFile["rounds"][number];
+export type Round = EvaluationFile["rounds"][number];
 
 /**
  * A browser-like session. The site checks for cookies with a redirect loop, ties searches and report tokens to a
@@ -61,10 +60,16 @@ type Round = EvaluationFile["rounds"][number];
 class Session {
   private cookies = new Map<string, string>();
 
+  private readonly baseUrl: string;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+
   text = async (url: string, form?: Record<string, string>) => (await this.request(url, form)).text();
 
   private async request(url: string, form?: Record<string, string>): Promise<Response> {
-    let target = new URL(url, env.EVAL_URL);
+    let target = new URL(url, this.baseUrl);
     let body = form && new URLSearchParams(form);
     for (let redirect = 0; redirect < MAX_REDIRECTS; redirect++) {
       const response = await fetch(target, {
@@ -92,8 +97,8 @@ class Session {
 }
 
 /** A session on one report's search form. The site only serves the form to sessions that have visited its start page. */
-async function openReport(reportId: number) {
-  const session = new Session();
+async function openReport(baseUrl: string, reportId: number) {
+  const session = new Session(baseUrl);
   await session.text("/SR/");
   const form = parseSearchForm(await session.text(`/sr/ar/${reportId}/sv`));
 
@@ -148,10 +153,10 @@ function limiter(limit: number) {
 const chartSlot = limiter(CHART_CONCURRENCY);
 
 /** Downloads a chart without a session, since any request may fetch any chart by its address. */
-async function fetchChart(url: string): Promise<Buffer> {
+async function fetchChart(baseUrl: string, url: string): Promise<Buffer> {
   for (let attempt = 1; ; attempt++) {
     try {
-      const response = await fetch(new URL(url, env.EVAL_URL), { headers: HEADERS, signal: AbortSignal.timeout(60_000) });
+      const response = await fetch(new URL(url, baseUrl), { headers: HEADERS, signal: AbortSignal.timeout(60_000) });
       if (!response.ok || response.headers.get("content-type") !== "image/png") throw new Error(`${response.status} for ${url}`);
       return Buffer.from(await response.arrayBuffer());
     } catch (error) {
@@ -164,13 +169,13 @@ async function fetchChart(url: string): Promise<Buffer> {
 type Rendered = Awaited<ReturnType<Awaited<ReturnType<typeof openReport>>["report"]>>;
 
 /** How many gave each answer to every standard question whose chart reads cleanly. */
-async function readAnswerCounts({ base, charts, answers, means }: Rendered): Promise<Round["answerCounts"]> {
+async function readAnswerCounts(baseUrl: string, { base, charts, answers, means }: Rendered): Promise<Round["answerCounts"]> {
   const read = async (question: Question) => {
     const chart = charts[question];
     const mean = means[question];
     if (!chart || mean === undefined) return [];
     try {
-      const png = await chartSlot(() => fetchChart(`${base}/getreportchart.png${chart}&w=${CHART_WIDTH}`));
+      const png = await chartSlot(() => fetchChart(baseUrl, `${base}/getreportchart.png${chart}&w=${CHART_WIDTH}`));
       const counts = parseAnswerChart(png, answers, mean);
       return counts ? [[question, counts] as const] : [];
     } catch (error) {
@@ -181,8 +186,8 @@ async function readAnswerCounts({ base, charts, answers, means }: Rendered): Pro
   return Object.fromEntries((await Promise.all(QUESTIONS.map(read))).flat());
 }
 
-async function crawlReport(reportId: number): Promise<Round[]> {
-  let report = await openReport(reportId);
+async function crawlReport(env: Env, reportId: number): Promise<Round[]> {
+  let report = await openReport(env.EVAL_URL, reportId);
   const years = report.years.toSorted((a, b) => a.label.localeCompare(b.label)).slice(-env.YEARS);
   console.log(`Report ${reportId}: ${report.programmes.length} programmes, ${years.map((y) => y.label).join(", ")}`);
 
@@ -205,7 +210,7 @@ async function crawlReport(reportId: number): Promise<Round[]> {
         if (attempt >= RETRIES) throw error;
         // Sessions expire during long crawls, so retry in a fresh one.
         await sleep(attempt * RETRY_DELAY_MS);
-        report = await openReport(reportId);
+        report = await openReport(env.EVAL_URL, reportId);
       }
     }
   };
@@ -217,7 +222,7 @@ async function crawlReport(reportId: number): Promise<Round[]> {
     try {
       const rendered = await fetchRound(id);
       const { respondents, answers, minutes, means } = rendered;
-      const round = readAnswerCounts(rendered).then((answerCounts) => {
+      const round = readAnswerCounts(env.EVAL_URL, rendered).then((answerCounts) => {
         rounds.push({ ...course, respondents, answers, minutes, means, answerCounts });
       });
       downloading.push(round);
@@ -234,11 +239,11 @@ async function crawlReport(reportId: number): Promise<Round[]> {
 }
 
 /** Positive when `a` is the better copy of a round: one with more questions' answer counts, then more answers. */
-const compareCopies = (a: Round, b: Round) =>
+export const compareCopies = (a: Round, b: Round) =>
   Object.keys(a.answerCounts).length - Object.keys(b.answerCounts).length || a.answers - b.answers;
 
 /** A round can show up in both reports, or twice in one. Keep the best copy. */
-function dedupe(rounds: readonly Round[]): Round[] {
+export function dedupe(rounds: readonly Round[]): Round[] {
   const byKey = new Map<string, Round>();
   for (const round of rounds) {
     const key = `${round.code} ${round.academicYear} ${round.periods}`;
@@ -251,8 +256,9 @@ function dedupe(rounds: readonly Round[]): Round[] {
 }
 
 async function main() {
+  const env = envSchema.parse(process.env);
   const crawled: Round[] = [];
-  for (const reportId of REPORT_IDS) crawled.push(...(await crawlReport(reportId)));
+  for (const reportId of REPORT_IDS) crawled.push(...(await crawlReport(env, reportId)));
   const rounds = dedupe(crawled);
   const missing = missingQuestions(rounds, MAX_MISSING_QUESTION_SHARE);
   if (missing.length) {
@@ -271,4 +277,4 @@ async function main() {
   }
 }
 
-await main();
+if (import.meta.main) await main();
