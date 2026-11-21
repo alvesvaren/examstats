@@ -20,12 +20,15 @@ import {
 } from "./evaluation-pages.ts";
 import { toJsonLines } from "./json-lines.ts";
 
-const envSchema = z.object({
-  EVAL_URL: z.url().default("https://course-eval.portal.chalmers.se"),
-  OUT_FILE: z.string().default("data/evaluations.json"),
-  YEARS: z.coerce.number().int().positive().default(EVALUATION_YEARS),
-});
-type Env = z.infer<typeof envSchema>;
+const parseEnv = () =>
+  z
+    .object({
+      EVAL_URL: z.url().default("https://course-eval.portal.chalmers.se"),
+      OUT_FILE: z.string().default("data/evaluations.json"),
+      YEARS: z.coerce.number().int().positive().default(EVALUATION_YEARS),
+    })
+    .parse(process.env);
+type Env = ReturnType<typeof parseEnv>;
 
 /** Report pages linked from chalmers.se: bachelor programmes and other courses, then master programmes. */
 const REPORT_IDS = [4257, 4248];
@@ -256,7 +259,7 @@ export function dedupe(rounds: readonly Round[]): Round[] {
 }
 
 async function main() {
-  const env = envSchema.parse(process.env);
+  const env = parseEnv();
   const crawled: Round[] = [];
   for (const reportId of REPORT_IDS) crawled.push(...(await crawlReport(env, reportId)));
   const rounds = dedupe(crawled);

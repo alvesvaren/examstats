@@ -12,11 +12,14 @@ import type { Part, ResultsFile } from "../src/domain/course-stats.ts";
 import { toJsonLines } from "./json-lines.ts";
 import { mapConcurrent } from "./map-concurrent.ts";
 
-const envSchema = z.object({
-  API_URL: z.url().default("https://stats.ftek.se"),
-  OUT_FILE: z.string().default("data/results.json"),
-  CONCURRENCY: z.coerce.number().int().positive().default(10),
-});
+const parseEnv = () =>
+  z
+    .object({
+      API_URL: z.url().default("https://stats.ftek.se"),
+      OUT_FILE: z.string().default("data/results.json"),
+      CONCURRENCY: z.coerce.number().int().positive().default(10),
+    })
+    .parse(process.env);
 
 const PAGE_SIZE = 1000;
 const RETRIES = 3;
@@ -88,7 +91,7 @@ export const toProgrammes = (upstream: readonly UpstreamCourse[]) =>
   );
 
 async function main() {
-  const env = envSchema.parse(process.env);
+  const env = parseEnv();
   const upstream = (await listCourses(env.API_URL)).toSorted((a, b) => a.courseCode.localeCompare(b.courseCode));
   console.log(`Fetched ${upstream.length} courses`);
 
