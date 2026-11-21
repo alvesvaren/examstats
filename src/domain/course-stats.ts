@@ -93,7 +93,7 @@ export function latestExam(sittings: readonly Sitting[]) {
 export interface CourseYear {
   /** A programme plans the course. */
   planned: boolean;
-  /** chalmers.se offered the course in an earlier academic year, but offers it in neither this one nor a later one. */
+  /** chalmers.se lists the course, but no syllabus of this academic year or a later one offers it. */
   discontinued: boolean;
 }
 
