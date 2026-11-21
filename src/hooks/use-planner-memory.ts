@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { parsePlannerMemory, type PlannerMemory } from "@/domain/planner-memory";
+import { parsePlannerMemory, type PlannerMemory } from "@/domain/planner-state";
 
 const STORAGE_KEY = "u345-planner";
 /** Tells this tab about its own writes. The browser's `storage` event only reaches other tabs. */

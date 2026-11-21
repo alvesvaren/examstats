@@ -23,7 +23,7 @@ import {
   type PlannerRound,
   type PlannerSortKey,
 } from "@/domain/planner";
-import { otherPicks, rememberedPicks, withPicks } from "@/domain/planner-memory";
+import { otherPicks, rememberedPicks, withPicks } from "@/domain/planner-state";
 import {
   plannedCourses,
   planYear,

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { catalogQuery, plansQuery } from "@/data/queries";
 import { otherNameOf } from "@/domain/names";
-import { rememberedPicks, withMaster, withStart } from "@/domain/planner-memory";
+import { rememberedPicks, withMaster, withStart } from "@/domain/planner-state";
 import { academicYearOf, cohortOf, MASTER_START_YEAR, studyYears, tracksOf, type StudyYear } from "@/domain/programme-plans";
 import { useLanguage } from "@/hooks/use-language";
 import { useMessages } from "@/hooks/use-messages";

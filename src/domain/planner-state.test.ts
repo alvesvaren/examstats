@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { otherPicks, parsePlannerMemory, rememberedPicks, withMaster, withPicks, withStart } from "./planner-memory.ts";
+import { otherPicks, parsePlannerMemory, rememberedPicks, withMaster, withPicks, withStart } from "./planner-state.ts";
 import { studyYears, type ProgrammePlan } from "./programme-plans.ts";
 
 describe("parsePlannerMemory", () => {
