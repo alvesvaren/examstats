@@ -4,6 +4,8 @@ import { inLanguage, type Language } from "./names.ts";
 /** Study periods in calendar order. Summer and "outside study periods" come after the four regular ones. */
 export const STUDY_PERIODS = ["LP1", "LP2", "LP3", "LP4", "Summer", "Other"] as const;
 export type StudyPeriod = (typeof STUDY_PERIODS)[number];
+/** The four study periods of the academic year, without summer and outside study periods. */
+export const REGULAR_PERIODS = ["LP1", "LP2", "LP3", "LP4"] as const satisfies readonly StudyPeriod[];
 
 /** Chalmers' themes that a degree asks for credits in: "Human, technology and society", and "Environment and sustainable development". */
 export const THEMES = ["mts", "environment"] as const;
@@ -37,6 +39,13 @@ export const planCourseSchema = z.object({
   modules: z.array(z.object({ code: z.string(), credits: z.number().nonnegative() })),
   /** Places on the course round when it limits them. Null when it takes everyone who qualifies, or the round is unknown. */
   seats: z.number().int().positive().nullable(),
+  /**
+   * On an upcoming master's programme's course list, but no current plan gives a course of that name. Only its name is
+   * known, so it has a made-up code and no study periods or credits.
+   */
+  pending: z.literal(true).optional(),
+  /** The upcoming master's programme's course list marks the course as preliminary. */
+  preliminary: z.literal(true).optional(),
 });
 
 /**
@@ -123,14 +132,8 @@ export const upcomingMastersSchema = z.object({
       }),
     ),
   ),
-  /** Each master's programme's course list on chalmers.se, and the courses on it that the current plans do not give, by year. */
-  masters: z.record(
-    z.string(),
-    z.object({
-      courseList: z.url().nullable(),
-      unplanned: z.array(z.object({ year: z.number().int().positive(), names: z.array(z.string()) })),
-    }),
-  ),
+  /** Each master's programme's course list on chalmers.se. */
+  masters: z.record(z.string(), z.object({ courseList: z.url().nullable() })),
 });
 export type UpcomingMasters = z.infer<typeof upcomingMastersSchema>;
 
@@ -180,7 +183,8 @@ export function roundOf<R extends CourseRound>(entry: Pick<PlanCourse, "periods"
 
 const COMPULSORY = "O";
 const ELECTIVE = "V";
-const THESIS = "X";
+/** Chalmers' rule code of a thesis. */
+export const THESIS_RULE = "X";
 
 /**
  * How much a plan asks of a student for a course, as a kind, a label and a rank, compulsory first. Elective courses in
@@ -193,12 +197,13 @@ export function requirementOf(rule: string, choices: readonly Pick<PlanChoice, "
   }
   if (rule === ELECTIVE) return { kind: "elective", rank: 2, label: "Elective" } as const;
   const label = (ruleNames[rule] ?? rule).replace(/ courses$/i, "");
-  return { kind: rule === THESIS ? "thesis" : "other", rank: 3, label } as const;
+  return { kind: rule === THESIS_RULE ? "thesis" : "other", rank: 3, label } as const;
 }
 export type Requirement = ReturnType<typeof requirementOf>;
 
 /** Whether a plan lists a course as one to choose, as opposed to a compulsory course or a thesis. */
 export const isElective = ({ rule }: Pick<PlanCourse, "rule">) => rule === ELECTIVE;
+export const isThesis = ({ rule }: Pick<PlanCourse, "rule">) => rule === THESIS_RULE;
 
 const periodRank = (periods: readonly StudyPeriod[]) => STUDY_PERIODS.indexOf(periods[0] ?? "Other");
 
@@ -279,9 +284,23 @@ export function planYear(
   );
   const rounds = [...Map.groupBy(entries, (c) => roundKey(c.code, c.periods))]
     .map(([key, group]) => {
-      const { code, name, credits, periods, periodCredits, block, seats, themes } = group[0]!;
+      const { code, name, credits, periods, periodCredits, block, seats, themes, pending = false } = group[0]!;
+      const preliminary = group.some((c) => c.preliminary);
       /** `codes` holds one course. The planner joins thesis courses that fill the year alike into one round. */
-      return { key, codes: [code], name, credits, periods, periodCredits, block, seats, themes, ...courses.get(code)! };
+      return {
+        key,
+        codes: [code],
+        name,
+        credits,
+        periods,
+        periodCredits,
+        block,
+        seats,
+        themes,
+        pending,
+        preliminary,
+        ...courses.get(code)!,
+      };
     })
     .toSorted((a, b) => comparePeriods(a.periods, b.periods) || byName(a, b));
   return {

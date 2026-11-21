@@ -6,6 +6,7 @@ import {
   isElective,
   plannedCourses,
   planYear,
+  REGULAR_PERIODS,
   STUDY_PERIODS,
   tenths,
   tracksOf,
@@ -22,6 +23,12 @@ export type PlannerSortKey = (typeof PLANNER_SORT_KEYS)[number];
 
 /** Credits of full-time study in one study period. */
 export const PERIOD_CREDITS = 15;
+
+/** The lane of the courses whose study periods are not known yet: those that only an upcoming master's course list names. */
+export const UNSCHEDULED = "Unscheduled";
+/** What the planner lists courses by: a study period, or the courses without one. */
+export const LANES = [...STUDY_PERIODS, UNSCHEDULED] as const;
+export type Lane = (typeof LANES)[number];
 
 /** A round in the planner with its course's exam results and ratings. None for a new course or a round of several courses. */
 export type PlannerRound = PlanRound & { stats: CatalogCourse | undefined };
@@ -44,7 +51,8 @@ function thesisRounds(rounds: readonly PlanRound[]): PlanRound[] {
 
 /**
  * A year as the planner shows it: the rounds every student takes, and the ones to choose between. A year with one
- * way to do the thesis has it fixed. With several, such as a thesis of 30 or of 60 credits, the student chooses.
+ * way to do the thesis has it fixed. With several, such as a thesis of 30 or of 60 credits, the student chooses. So
+ * do they between the rounds of a compulsory course given in several study periods, since they take it once.
  */
 export function plannerYear(rounds: readonly PlanRound[], stats: ReadonlyMap<string, CatalogCourse>) {
   const withStats = (round: PlanRound): PlannerRound => ({
@@ -54,38 +62,53 @@ export function plannerYear(rounds: readonly PlanRound[], stats: ReadonlyMap<str
   const theses = thesisRounds(rounds);
   const fixedThesis = theses.length === 1;
   const compulsory = rounds.filter((r) => r.requirement.kind === "compulsory");
+  const roundsOfCourse = Map.groupBy(compulsory, (r) => r.codes.join());
+  const givenOnce = (r: PlanRound) => roundsOfCourse.get(r.codes.join())?.length === 1;
   const optional = rounds.filter((r) => r.requirement.kind !== "compulsory" && r.requirement.kind !== "thesis");
   return {
-    fixed: [...compulsory, ...(fixedThesis ? theses : [])].map(withStats),
-    candidates: [...optional, ...(fixedThesis ? [] : theses)].map(withStats),
+    fixed: [...compulsory.filter(givenOnce), ...(fixedThesis ? theses : [])].map(withStats),
+    candidates: [...compulsory.filter((r) => !givenOnce(r)), ...optional, ...(fixedThesis ? [] : theses)].map(withStats),
   };
 }
 
-/** Study periods that some round runs in, in calendar order. */
-export const periodsOf = (rounds: readonly PlanRound[]): StudyPeriod[] =>
-  STUDY_PERIODS.filter((p) => rounds.some((r) => r.periods.includes(p)));
+/** Whether a round runs in a study period, or, in the unscheduled lane, has no study period. */
+const inLane = (round: Pick<PlanRound, "periods">, lane: Lane) =>
+  lane === UNSCHEDULED ? round.periods.length === 0 : round.periods.includes(lane);
+
+/** The lanes that some round is in, and those in `always`, in calendar order with the unscheduled lane last. */
+export const lanesOf = (rounds: readonly PlanRound[], always: readonly Lane[] = []): Lane[] =>
+  LANES.filter((lane) => always.includes(lane) || rounds.some((r) => inLane(r, lane)));
 
 /** Credits the rounds give in a study period. A round over several periods counts what it gives in this one. */
 export const creditsIn = (rounds: readonly PlanRound[], period: StudyPeriod) =>
   tenths(rounds.reduce((sum, r) => sum + (r.periodCredits[r.periods.indexOf(period)] ?? 0), 0));
 
-/** The first study period that `plan` does not fill, or the first of all when it fills every one. */
-export const firstOpenPeriod = (periods: readonly StudyPeriod[], plan: readonly PlanRound[]) =>
-  periods.find((p) => creditsIn(plan, p) < PERIOD_CREDITS) ?? periods[0];
+/**
+ * The lane the planner opens on: the first study period that `plan` does not fill and that has courses to choose from,
+ * else the first lane with courses to choose from, else the first lane.
+ */
+export function firstOpenLane(lanes: readonly Lane[], plan: readonly PlanRound[], candidates: readonly PlanRound[]) {
+  const choosable = (lane: Lane) => candidates.some((r) => inLane(r, lane));
+  return (
+    lanes.find((lane) => lane !== UNSCHEDULED && creditsIn(plan, lane) < PERIOD_CREDITS && choosable(lane)) ??
+    lanes.find(choosable) ??
+    lanes[0]
+  );
+}
 
 /**
- * The rounds that run in `period`, ordered by `sort` in `dir`, by default as the course list starts it: the best first,
- * and the lightest workload first. Rounds without the value go last, ties by name.
+ * The rounds in `lane`, ordered by `sort` in `dir`, by default as the course list starts it: the best first, and the
+ * lightest workload first. Rounds without the value go last, ties by name.
  */
-export function candidatesIn(
-  candidates: readonly PlannerRound[],
-  period: StudyPeriod,
+export function roundsIn(
+  rounds: readonly PlannerRound[],
+  lane: Lane,
   sort: PlannerSortKey,
   dir: SortDir = defaultSortDir(sort),
 ): PlannerRound[] {
   const value = (round: PlannerRound) => (round.stats ? sortValueOf(round.stats, sort) : null);
-  return candidates
-    .filter((r) => r.periods.includes(period))
+  return rounds
+    .filter((r) => inLane(r, lane))
     .toSorted((a, b) => compareSortValues(value(a), value(b), dir) || a.name.localeCompare(b.name, "sv"));
 }
 
@@ -155,6 +178,8 @@ export type MarkedDegreeRule = DegreeRuleProgress & { marker: number };
 /** A round the list shows, with everything the list says about it. */
 export interface ListedRound {
   round: PlannerRound;
+  /** Every student takes it, so it is in the year and cannot be removed. */
+  fixed: boolean;
   picked: boolean;
   /** Where another round of the same course is in the plan. It greys this round out. */
   elsewhere: PlanElsewhere | undefined;
@@ -177,8 +202,8 @@ interface YearViewInput {
   pickedKeys: readonly string[];
   /** The picks of the other years of study. */
   otherPicks: readonly StudyPick[];
-  /** What the list shows. By default the first study period the plan leaves room in, the best rated first. */
-  period?: StudyPeriod;
+  /** What the list shows. By default the first study period with room and courses to choose from, the best rated first. */
+  period?: Lane;
   sort?: PlannerSortKey;
   dir?: SortDir;
   survey?: OtherQuestion;
@@ -189,8 +214,8 @@ interface YearViewInput {
 
 /**
  * A year of study as the planner shows it: what every student takes, the rounds picked and the ones to choose
- * between, the study period the list shows and its rounds in order, and how far the courses of the whole degree go
- * towards its rules. The degree's requirements count the compulsory courses and the picks of every year of every plan.
+ * between, the lane the list shows and its rounds in order, and how far the courses of the whole degree go towards its
+ * rules. The degree's requirements count the compulsory courses and the picks of every year of every plan.
  */
 export function yearView({
   years,
@@ -211,8 +236,10 @@ export function yearView({
   const { fixed, candidates } = plannerYear(rounds, stats);
   const picked = candidates.filter((c) => pickedKeys.includes(c.key));
   const plan = [...fixed, ...picked];
-  const periods = periodsOf([...fixed, ...candidates]);
-  const period = periods.find((p) => p === shownPeriod) ?? firstOpenPeriod(periods, plan);
+  const yearRounds = [...fixed, ...candidates];
+  // A course whose study periods are not known yet can run in any of them, so the year shows them all.
+  const lanes = lanesOf(yearRounds, yearRounds.some((r) => r.pending) ? REGULAR_PERIODS : []);
+  const lane = lanes.find((l) => l === shownPeriod) ?? firstOpenLane(lanes, plan, candidates);
 
   const plans = [...new Set(years.map((y) => y.plan))];
   const allPicks = [...otherPicks, ...picked.map((r) => ({ programme: yearProgramme.code, year, key: r.key }))];
@@ -236,38 +263,48 @@ export function yearView({
     candidates,
     picked,
     plan,
-    periods,
-    /** The year's study periods with what is in each, its credits, and whether two of its courses have lectures at the same times. */
-    periodCards: periods.map((p) => {
-      const inPeriod = (round: PlannerRound) => round.periods.includes(p);
-      const fixedIn = fixed.filter(inPeriod);
-      const pickedIn = picked.filter(inPeriod);
-      const inPeriodRounds = [...fixedIn, ...pickedIn];
+    lanes,
+    /**
+     * The year's lanes with what is in each, its credits, and whether two of its courses have lectures at the same
+     * times. The courses without a study period have no credits yet, so their lane's are null.
+     */
+    laneCards: lanes.map((l) => {
+      const inThisLane = (round: PlannerRound) => inLane(round, l);
+      const fixedIn = fixed.filter(inThisLane);
+      const pickedIn = picked.filter(inThisLane);
+      const laneRounds = [...fixedIn, ...pickedIn];
       return {
-        period: p,
+        lane: l,
         fixed: fixedIn,
         picked: pickedIn,
-        credits: creditsIn(inPeriodRounds, p),
-        clashing: inPeriodRounds.some((round) => lectureClash(round, inPeriodRounds)),
+        credits: l === UNSCHEDULED ? null : creditsIn(laneRounds, l),
+        clashing: laneRounds.some((round) => lectureClash(round, laneRounds)),
       };
     }),
-    /** The study period the list shows. None when the year has no courses. */
-    period,
+    /** The lane the list shows. None when the year has no courses. */
+    lane,
     sort,
     dir,
     survey: surveyColumn(sort, survey),
-    listed: (period ? candidatesIn(candidates, period, sort, dir) : []).map((round): ListedRound => ({
-      round,
-      picked: picked.includes(round),
-      elsewhere: findElsewhere(round, picked, otherPicks),
-      warnings: warningsOf(round),
-      picks: pickRules
-        .filter(({ pick }) => round.choices.some((choice) => choice.id === pick.id))
-        .map(({ marker, progress }) => ({ marker, done: progress.done })),
-      marks: marksOf(degreeRules, round),
-    })),
+    /** The lane's rounds in order: those every student takes, locked, among those to choose. */
+    listed: (lane ? roundsIn(yearRounds, lane, sort, dir) : []).map((round): ListedRound => {
+      const isFixed = fixed.includes(round);
+      return {
+        round,
+        fixed: isFixed,
+        picked: picked.includes(round),
+        elsewhere: isFixed ? undefined : findElsewhere(round, picked, otherPicks),
+        warnings: warningsOf(round),
+        picks: pickRules
+          .filter(({ pick }) => round.choices.some((choice) => choice.id === pick.id))
+          .map(({ marker, progress }) => ({ marker, done: progress.done })),
+        marks: marksOf(degreeRules, round),
+      };
+    }),
     /** Credits of the year's plan. */
     planned: plan.reduce((sum, r) => sum + r.credits, 0),
+    /** Courses of the year's plan whose credits are not known yet. */
+    pendingCourses: plan.filter((r) => r.pending).length,
     /**
      * The choices that ask for some of the year's courses, with how far the courses of every year go towards them.
      * `marker` is each one's place among the year's rules, which tells its courses apart from those of the others.

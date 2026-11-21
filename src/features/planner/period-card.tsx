@@ -1,55 +1,66 @@
 import { LockIcon, XIcon } from "lucide-react";
 import { cn } from "cn";
-import { PERIOD_CREDITS, type PlannerRound } from "@/domain/planner";
-import type { StudyPeriod } from "@/domain/programme-plans";
+import { PERIOD_CREDITS, type Lane, type PlannerRound } from "@/domain/planner";
 import { useMessages } from "@/hooks/use-messages";
+import { laneLabel } from "./lane-label";
 
 interface PeriodCardProps {
-  period: StudyPeriod;
-  /** Rounds in this study period that every student takes. */
+  lane: Lane;
+  /** Rounds in this lane that every student takes. */
   fixed: PlannerRound[];
   picked: PlannerRound[];
-  /** Credits of the study period's plan. */
-  credits: number;
+  /** Credits of the study period's plan. Null for the courses without a study period, whose credits are not known yet. */
+  credits: number | null;
   /** Whether two of the period's courses have lectures at the same times. */
   clashing: boolean;
   active: boolean;
   onFocus: () => void;
   onRemove: (round: PlannerRound) => void;
+  className?: string;
 }
 
-/** A study period of the year with what is in it, how full it is, and whether two of its courses meet. */
-export function PeriodCard({ period, fixed, picked, credits, clashing, active, onFocus, onRemove }: PeriodCardProps) {
+/**
+ * A study period of the year with what is in it, how full it is, and whether two of its courses meet. The courses
+ * without a study period get a card too, which counts courses, since their credits are not known either.
+ */
+export function PeriodCard({ lane, fixed, picked, credits, clashing, active, onFocus, onRemove, className }: PeriodCardProps) {
   const t = useMessages();
-  const free = PERIOD_CREDITS - credits;
-  const pace = credits > PERIOD_CREDITS ? ` (${t.format.percent(credits / PERIOD_CREDITS)})` : "";
-  const fill = `${t.of(t.format.number(credits), t.credits(PERIOD_CREDITS))}${pace}`;
+  const label = laneLabel(lane, t);
+  const free = credits === null ? 0 : PERIOD_CREDITS - credits;
+  const pace = credits !== null && credits > PERIOD_CREDITS ? ` (${t.format.percent(credits / PERIOD_CREDITS)})` : "";
+  const fill =
+    credits === null ? t.courses(fixed.length + picked.length) : `${t.of(t.format.number(credits), t.credits(PERIOD_CREDITS))}${pace}`;
   return (
     <div
       className={cn(
         "relative flex flex-col gap-1.5 rounded-xl border-2 p-2.5 transition-colors",
         active ? "border-primary bg-card shadow-md" : "border-transparent bg-muted/60 hover:bg-muted",
+        className,
       )}
     >
       <button
         type="button"
         onClick={onFocus}
         aria-pressed={active}
-        aria-label={`${t.periods([period])}, ${fill}`}
+        aria-label={`${label}, ${fill}`}
         className="flex flex-col gap-1 text-left outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-ring"
       >
         <span className="flex items-baseline justify-between gap-2">
-          <span className="text-lg leading-none font-semibold">{t.periods([period])}</span>
+          <span className="text-lg leading-none font-semibold">{label}</span>
           <span className={cn("text-right text-xs tabular-nums", free < 0 ? "font-semibold text-grade-u" : "text-muted-foreground")}>
             {fill}
           </span>
         </span>
-        <span className="h-1.5 overflow-hidden rounded-full bg-border">
-          <span
-            className={cn("block h-full rounded-full", free < 0 ? "bg-grade-u" : "bg-primary")}
-            style={{ width: `${Math.min(1, credits / PERIOD_CREDITS) * 100}%` }}
-          />
-        </span>
+        {credits === null ? (
+          <span className="text-xs text-muted-foreground">{t.planner.notScheduledHint}</span>
+        ) : (
+          <span className="h-1.5 overflow-hidden rounded-full bg-border">
+            <span
+              className={cn("block h-full rounded-full", free < 0 ? "bg-grade-u" : "bg-primary")}
+              style={{ width: `${Math.min(1, credits / PERIOD_CREDITS) * 100}%` }}
+            />
+          </span>
+        )}
       </button>
       {fixed.map((round) => (
         <span key={round.key} className="pointer-events-none flex items-center gap-1.5 text-sm text-muted-foreground">

@@ -118,15 +118,7 @@ const UPCOMING = upcomingMastersSchema.parse({
   academicYear: "2027/2028",
   matrix: "https://example.com/matrix.pdf",
   accreditations: { TKITE: [{ code: "MPALG", specialisations: ["Algorithms"] }] },
-  masters: {
-    MPALG: {
-      courseList: "https://example.com/mpalg.pdf",
-      unplanned: [
-        { year: 1, names: ["New course"] },
-        { year: 2, names: ["Newer course"] },
-      ],
-    },
-  },
+  masters: { MPALG: { courseList: "https://example.com/mpalg.pdf" } },
 });
 
 /** What this device remembers: picks in years of both the programme and a master's programme, and no choices of degree. */
@@ -267,16 +259,11 @@ describe("resolvePlanner", () => {
       expect(state.masterAccreditation).toEqual({ specialisations: ["Algorithms"], courseList: "https://example.com/mpalg.pdf" });
     });
 
-    it("lists the courses of the master's programme's year that no plan gives", () => {
-      const first = planned({ programme: "TKITE", start: 2024, master: "MPALG", year: 4 }, MEMORY, info);
-      const second = planned({ programme: "TKITE", start: 2024, master: "MPALG", year: 5 }, MEMORY, info);
+    it("links the new courses of the master's programme's years to its course list, and those of the programme's own years nowhere", () => {
+      const inMaster = planned({ programme: "TKITE", start: 2024, master: "MPALG", year: 5 }, MEMORY, info);
+      const inProgramme = planned({ programme: "TKITE", start: 2024, master: "MPALG", year: 3 }, MEMORY, info);
 
-      expect(first.unplanned).toEqual(["New course"]);
-      expect(second.unplanned).toEqual(["Newer course"]);
-    });
-
-    it("lists none in a year of the programme itself", () => {
-      expect(planned({ programme: "TKITE", start: 2024, master: "MPALG", year: 3 }, MEMORY, info).unplanned).toBeUndefined();
+      expect([inMaster.courseList, inProgramme.courseList]).toEqual(["https://example.com/mpalg.pdf", null]);
     });
   });
 });

@@ -2,16 +2,14 @@ import { z } from "zod";
 import { OTHER_QUESTIONS } from "./evaluation.ts";
 import type { InLanguage } from "./names.ts";
 import { otherNameOf } from "./names.ts";
-import { accreditedMasters, PLANNER_SORT_KEYS } from "./planner.ts";
+import { accreditedMasters, LANES, PLANNER_SORT_KEYS, type Lane } from "./planner.ts";
 import {
   cohortOf,
   MASTER_START_YEAR,
-  STUDY_PERIODS,
   studyYears,
   tracksOf,
   type ProgrammePlan,
   type PublishedPlanInfo,
-  type StudyPeriod,
   type StudyPick,
   type StudyYear,
 } from "./programme-plans.ts";
@@ -26,8 +24,8 @@ export const plannerSearchSchema = z.object({
   /** The master's programme after the programme, as its code. */
   master: z.string().optional().catch(undefined),
   track: z.string().optional().catch(undefined),
-  /** The study period whose courses are listed. */
-  period: z.enum(STUDY_PERIODS).optional().catch(undefined),
+  /** The study period whose courses are listed, or the courses without one. */
+  period: z.enum(LANES).optional().catch(undefined),
   sort: z.enum(PLANNER_SORT_KEYS).optional().catch(undefined),
   dir: z.enum(["asc", "desc"]).optional().catch(undefined),
   /** The course survey question the survey column shows, when not the overall impression. */
@@ -164,11 +162,8 @@ export function resolvePlanner({ search, memory, cohort, plans, masterPlans, nam
     pickedKeys: current ? (search.picked ?? rememberedPicks(memory, current.plan.code, current.year) ?? []) : [],
     /** The picks remembered for the other years of study. */
     otherPicks: current ? otherPicks(memory, years, current.number) : [],
-    /** Courses of an upcoming master's programme's current year that no plan gives. */
-    unplanned:
-      master && current?.plan === master
-        ? cohort.upcomingMasters?.masters[master.code]?.unplanned.find((u) => u.year === current.year)?.names
-        : undefined,
+    /** The course list of the upcoming master's programme the current year belongs to, which its new courses link to. */
+    courseList: master && current?.plan === master ? (accredited.get(master.code)?.courseList ?? null) : null,
   };
 }
 type PlannerState = ReturnType<typeof resolvePlanner>;
@@ -180,8 +175,8 @@ export type PlannerAction =
   /** Without a master's programme, the degree is the programme's years alone. */
   | { type: "chooseMaster"; master: string | undefined }
   | { type: "showStart"; start: number }
-  /** The picks of the current year. `period` keeps the list on that study period. */
-  | { type: "setPicks"; keys: readonly string[]; period?: StudyPeriod }
+  /** The picks of the current year. `period` keeps the list on that lane. */
+  | { type: "setPicks"; keys: readonly string[]; period?: Lane }
   /** What the year's list shows. It touches the URL only. */
   | { type: "view"; changes: Pick<PlannerSearch, "period" | "sort" | "dir" | "survey"> };
 

@@ -3,17 +3,18 @@ import { toCatalogCourse } from "./catalog.ts";
 import type { SurveyAnswers } from "./evaluation.ts";
 import { emptyCounts } from "./grades.ts";
 import {
-  candidatesIn,
   creditsIn,
   exclusiveWith,
   findElsewhere,
-  firstOpenPeriod,
+  firstOpenLane,
+  lanesOf,
   lectureClash,
   masterSummary,
-  periodsOf,
   plannerYear,
+  roundsIn,
   searchProgrammes,
   togglePick,
+  UNSCHEDULED,
   yearView,
 } from "./planner.ts";
 import {
@@ -65,7 +66,7 @@ const planOf = (code: string, years: Record<number, PlanCourse[]>, overrides: Pa
 
 const RULE_NAMES = { X: "Diploma thesis" };
 
-interface RoundSpec extends Partial<Pick<PlanCourse, "credits" | "periodCredits" | "block" | "seats">> {
+interface RoundSpec extends Partial<Pick<PlanCourse, "credits" | "periodCredits" | "block" | "seats" | "pending">> {
   /** Chalmers' rule code. Elective by default. */
   rule?: string;
   choices?: PlanChoice[];
@@ -129,6 +130,14 @@ describe("plannerYear", () => {
     ]);
   });
 
+  it("leaves the rounds of a compulsory course given twice to choose between, since a student takes it once", () => {
+    const again = round("EDA322", ["LP3"], { rule: "O" });
+    const { fixed, candidates } = plannerYear([compulsory, again, elective], new Map());
+
+    expect(keys(fixed)).toEqual([]);
+    expect(keys(candidates)).toEqual(["EDA322.LP1", "EDA322.LP3", "TDA357.LP2"]);
+  });
+
   it("keeps a single thesis course under its own name, with its seats", () => {
     const { fixed } = plannerYear([thesis("DATX11", ["LP3", "LP4"], 15, 60)], new Map());
     expect(fixed.map((r) => [r.name, r.seats])).toEqual([["DATX11 name", 60]]);
@@ -158,20 +167,42 @@ describe("creditsIn", () => {
   });
 });
 
-describe("periodsOf and firstOpenPeriod", () => {
+describe("lanesOf and firstOpenLane", () => {
   const plan = [round("A", ["LP1"]), round("B", ["LP1"]), round("C", ["LP3", "LP4"])];
+  const pending = round("new-ai-project", [], { credits: 0, pending: true });
 
   it("lists the study periods some round runs in, in calendar order", () => {
-    expect(periodsOf(plan.toReversed())).toEqual(["LP1", "LP3", "LP4"]);
+    expect(lanesOf(plan.toReversed())).toEqual(["LP1", "LP3", "LP4"]);
   });
 
-  it("starts in the first study period with room, or the first of all in a full year", () => {
-    expect(firstOpenPeriod(["LP1", "LP2", "LP3"], plan)).toBe("LP2");
-    expect(firstOpenPeriod(["LP1"], plan)).toBe("LP1");
+  it("puts the rounds without study periods in a lane of their own, last", () => {
+    expect(lanesOf([pending, ...plan])).toEqual(["LP1", "LP3", "LP4", UNSCHEDULED]);
+  });
+
+  it("keeps the lanes asked for, even without rounds in them", () => {
+    expect(lanesOf([pending], ["LP1", "LP2"])).toEqual(["LP1", "LP2", UNSCHEDULED]);
+  });
+
+  it("starts in the first study period with room and courses to choose from", () => {
+    const candidates = [round("D", ["LP2"]), round("E", ["LP3"]), pending];
+
+    expect(firstOpenLane(["LP1", "LP2", "LP3"], plan, candidates)).toBe("LP2");
+    expect(firstOpenLane(["LP1", "LP2", "LP3", UNSCHEDULED], [...plan, round("F", ["LP2"], { credits: 15 })], candidates)).toBe("LP3");
+  });
+
+  it("starts on the courses without study periods when no study period has courses to choose from", () => {
+    expect(firstOpenLane(["LP1", "LP2", "LP3", "LP4", UNSCHEDULED], [], [pending])).toBe(UNSCHEDULED);
+  });
+
+  it("starts in the first lane with courses to choose from in a full year, or the first lane of all without any", () => {
+    const full = [round("A", ["LP1"], { credits: 15 }), round("C", ["LP3"], { credits: 15 })];
+
+    expect(firstOpenLane(["LP1", "LP3"], full, [round("E", ["LP3"])])).toBe("LP3");
+    expect(firstOpenLane(["LP1", "LP3"], full, [])).toBe("LP1");
   });
 });
 
-describe("candidatesIn", () => {
+describe("roundsIn", () => {
   const candidates = [round("NEW", ["LP3", "LP4"]), round("EASY", ["LP3"]), round("LIKED", ["LP3"]), round("EARLY", ["LP1"])].map((r) => ({
     ...r,
     stats: {
@@ -181,17 +212,22 @@ describe("candidatesIn", () => {
   }));
 
   it("lists the rounds that run in the study period, the best first, with rounds without results last", () => {
-    expect(keys(candidatesIn(candidates, "LP3", "rating"))).toEqual(["LIKED.LP3", "EASY.LP3", "NEW.LP3-LP4"]);
-    expect(keys(candidatesIn(candidates, "LP3", "passRate"))).toEqual(["EASY.LP3", "LIKED.LP3", "NEW.LP3-LP4"]);
-    expect(keys(candidatesIn(candidates, "LP4", "rating"))).toEqual(["NEW.LP3-LP4"]);
+    expect(keys(roundsIn(candidates, "LP3", "rating"))).toEqual(["LIKED.LP3", "EASY.LP3", "NEW.LP3-LP4"]);
+    expect(keys(roundsIn(candidates, "LP3", "passRate"))).toEqual(["EASY.LP3", "LIKED.LP3", "NEW.LP3-LP4"]);
+    expect(keys(roundsIn(candidates, "LP4", "rating"))).toEqual(["NEW.LP3-LP4"]);
   });
 
   it("lists the lightest workload first", () => {
-    expect(keys(candidatesIn(candidates, "LP3", "workload"))).toEqual(["LIKED.LP3", "EASY.LP3", "NEW.LP3-LP4"]);
+    expect(keys(roundsIn(candidates, "LP3", "workload"))).toEqual(["LIKED.LP3", "EASY.LP3", "NEW.LP3-LP4"]);
   });
 
   it("flips the order and keeps rounds without results last", () => {
-    expect(keys(candidatesIn(candidates, "LP3", "rating", "asc"))).toEqual(["EASY.LP3", "LIKED.LP3", "NEW.LP3-LP4"]);
+    expect(keys(roundsIn(candidates, "LP3", "rating", "asc"))).toEqual(["EASY.LP3", "LIKED.LP3", "NEW.LP3-LP4"]);
+  });
+
+  it("lists the rounds without study periods in the lane of their own", () => {
+    const pending = { ...round("new-ai-project", [], { credits: 0, pending: true }), stats: undefined };
+    expect(keys(roundsIn([...candidates, pending], UNSCHEDULED, "rating"))).toEqual(["new-ai-project."]);
   });
 });
 
@@ -371,18 +407,32 @@ describe("yearView", () => {
 
     expect(keys(view.fixed)).toEqual(["DAT100.LP1"]);
     expect(keys(view.candidates)).toEqual(["DAT200.LP1", "DAT300.LP2", "DAT310.LP2", "DAT320.LP2", "MVE055.LP3"]);
-    expect(view.periods).toEqual(["LP1", "LP2", "LP3"]);
+    expect(view.lanes).toEqual(["LP1", "LP2", "LP3"]);
     expect(view.planned).toBe(7.5);
+    expect(view.pendingCourses).toBe(0);
   });
 
   it("lists the first study period the plan has room in, the best rated course first", () => {
     const view = viewOf(2);
 
-    expect(view.period).toBe("LP1");
+    expect(view.lane).toBe("LP1");
     expect(view.sort).toBe("rating");
     expect(view.dir).toBe("desc");
     expect(view.survey).toBe("overall");
-    expect(listedKeys(view)).toEqual(["DAT200.LP1"]);
+    expect(listedKeys(view)).toEqual(["DAT100.LP1", "DAT200.LP1"]);
+  });
+
+  it("lists what every student takes in the study period among the courses to choose, sorted with them and locked", () => {
+    const byCode = new Map([
+      ["DAT100", stats("DAT100", 1, 1)],
+      ["DAT200", stats("DAT200", 3, 1)],
+    ]);
+    const view = viewOf(2, { period: "LP1", sort: "passRate", stats: byCode, pickedKeys: ["DAT200.LP1"] });
+
+    expect(view.listed.map((l) => [l.round.key, l.fixed, l.picked])).toEqual([
+      ["DAT200.LP1", false, true],
+      ["DAT100.LP1", true, false],
+    ]);
   });
 
   it("lists the study period asked for, ordered by the sort and its direction, with the courses without results last", () => {
@@ -408,14 +458,14 @@ describe("yearView", () => {
   });
 
   it("falls back to the first open period when the one asked for has no courses", () => {
-    expect(viewOf(2, { period: "LP4" }).period).toBe("LP1");
+    expect(viewOf(2, { period: "LP4" }).lane).toBe("LP1");
   });
 
   it("has no period, and lists nothing, for a year without courses", () => {
     const years = studyYears(planOf("EMPTY", { 1: [] }));
     const view = yearView({ years, current: years[0]!, track: undefined, pickedKeys: [], otherPicks: [], stats: new Map(), ruleNames: {} });
 
-    expect(view.period).toBeUndefined();
+    expect(view.lane).toBeUndefined();
     expect(view.listed).toEqual([]);
     expect(view.planned).toBe(0);
   });
@@ -424,7 +474,7 @@ describe("yearView", () => {
     const view = viewOf(2, { pickedKeys: ["DAT200.LP1", "DAT310.LP2"] });
 
     expect(
-      view.periodCards.map(({ period, fixed, picked, credits, clashing }) => [period, keys(fixed), keys(picked), credits, clashing]),
+      view.laneCards.map(({ lane, fixed, picked, credits, clashing }) => [lane, keys(fixed), keys(picked), credits, clashing]),
     ).toEqual([
       ["LP1", ["DAT100.LP1"], ["DAT200.LP1"], 15, true],
       ["LP2", [], ["DAT310.LP2"], 7.5, false],
@@ -442,9 +492,12 @@ describe("yearView", () => {
 
   describe("warnings", () => {
     it("warns about lectures at the same times as a course every student takes", () => {
-      const [dat200] = viewOf(2).listed;
+      const listed = viewOf(2).listed.map((l) => [l.round.key, l.warnings]);
 
-      expect(dat200?.warnings).toEqual([{ kind: "sameLectures", name: "DAT100 name", fixed: true }]);
+      expect(listed).toEqual([
+        ["DAT100.LP1", []],
+        ["DAT200.LP1", [{ kind: "sameLectures", name: "DAT100 name", fixed: true }]],
+      ]);
     });
 
     it("warns about lectures at the same times as a picked course, which the student can drop", () => {
@@ -580,7 +633,10 @@ describe("yearView", () => {
     it("marks the courses of a master's programme's year towards the master's rule", () => {
       const view = viewOf(4);
 
-      expect(view.listed.map((l) => [l.round.key, l.marks.map((m) => m.requirement)])).toEqual([["DAT600.LP1", [masterRule]]]);
+      expect(view.listed.map((l) => [l.round.key, l.marks.map((m) => m.requirement)])).toEqual([
+        ["DAT550.LP1", []],
+        ["DAT600.LP1", [masterRule]],
+      ]);
     });
   });
 
@@ -588,7 +644,54 @@ describe("yearView", () => {
     const inThisYear = viewOf(3, { period: "LP1", pickedKeys: ["DAT300.LP1"] });
     const inOtherYear = viewOf(3, { period: "LP1", otherPicks: [{ number: 2, programme: "TKITE", year: 2, key: "DAT300.LP2" }] });
 
-    expect(inThisYear.listed.map((l) => [l.picked, l.elsewhere])).toEqual([[true, undefined]]);
-    expect(inOtherYear.listed.map((l) => [l.picked, l.elsewhere])).toEqual([[false, { year: 2, periods: ["LP2"] }]]);
+    expect(inThisYear.listed.map((l) => [l.round.key, l.picked, l.elsewhere])).toEqual([
+      ["DAT300.LP1", true, undefined],
+      ["DAT400.LP1", false, undefined],
+    ]);
+    expect(inOtherYear.listed.map((l) => [l.round.key, l.picked, l.elsewhere])).toEqual([
+      ["DAT300.LP1", false, { year: 2, periods: ["LP2"] }],
+      ["DAT400.LP1", false, undefined],
+    ]);
+  });
+
+  describe("courses whose study periods are not known yet", () => {
+    const upcoming = planOf("MPNEW", {
+      1: [
+        entry("DAT550", "O"),
+        entry("new-ai-ethics", "O", { periods: [], periodCredits: [], credits: 0, pending: true }),
+        entry("new-ai-project", "V", { periods: [], periodCredits: [], credits: 0, pending: true }),
+      ],
+    });
+    const years = studyYears(upcoming);
+    const view = (input: Partial<Parameters<typeof yearView>[0]> = {}) =>
+      yearView({ years, current: years[0]!, track: undefined, pickedKeys: [], otherPicks: [], stats: new Map(), ruleNames: {}, ...input });
+
+    it("shows every regular study period, and a lane of their own after them", () => {
+      expect(view().lanes).toEqual(["LP1", "LP2", "LP3", "LP4", UNSCHEDULED]);
+    });
+
+    it("opens on them when no study period has courses to choose from, listing what every student takes first", () => {
+      const opened = view();
+
+      expect(opened.lane).toBe(UNSCHEDULED);
+      expect(opened.listed.map((l) => [l.round.key, l.fixed])).toEqual([
+        ["new-ai-ethics.", true],
+        ["new-ai-project.", false],
+      ]);
+    });
+
+    it("counts them in their own lane without credits, and counts how many the plan holds", () => {
+      const picked = view({ pickedKeys: ["new-ai-project."] });
+
+      expect(picked.laneCards.at(-1)).toEqual({
+        lane: UNSCHEDULED,
+        fixed: [expect.objectContaining({ key: "new-ai-ethics." })],
+        picked: [expect.objectContaining({ key: "new-ai-project." })],
+        credits: null,
+        clashing: false,
+      });
+      expect(picked.planned).toBe(7.5);
+      expect(picked.pendingCourses).toBe(2);
+    });
   });
 });

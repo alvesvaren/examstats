@@ -331,17 +331,18 @@ describe("buildSnapshot", () => {
       expect(published.get(2027)!.map((p) => ({ code: p.code, name: p.name, swedishName: p.swedishName }))).toEqual([
         { code: "MPNEW", name: "New master", swedishName: "New master" },
       ]);
-      expect(published.get(2027)![0]!.years.map((y) => y.courses.map((c) => [c.code, c.name, c.periods, c.rule]))).toEqual([
+      expect(published.get(2027)![0]!.years.map((y) => y.courses.map((c) => [c.code, c.name, c.periods, c.rule, c.pending]))).toEqual([
         [
-          ["TDA357", "Databases", ["LP2"], "O"],
-          ["TDA357", "Databases", ["LP3"], "O"],
+          ["TDA357", "Databases", ["LP2"], "O", undefined],
+          ["TDA357", "Databases", ["LP3"], "O", undefined],
+          ["new-unknown-course", "Unknown course", [], "V", true],
         ],
       ]);
       expect(index.plans.upcomingMasters).toEqual({
         academicYear: "2027/2028",
         matrix: "https://example.com/matrix.xlsx",
         accreditations: { TKITE: [{ code: "MPNEW", specialisations: [] }] },
-        masters: { MPNEW: { courseList: null, unplanned: [{ year: 1, names: ["Unknown course (preliminary)"] }] } },
+        masters: { MPNEW: { courseList: null } },
       });
       // Only programmes with plans of their own have start years.
       expect(index.plans.starts).toEqual({ TKITE: [2025, 2026], MPALG: [2026] });

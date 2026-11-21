@@ -136,27 +136,3 @@ export function MastersNotPublished({ year, shown, upcoming }: MastersNotPublish
     </Note>
   );
 }
-
-interface UnplannedCoursesProps {
-  master: string;
-  /** Courses on the master's programme's course list for the year shown that no current plan gives. */
-  names: readonly string[];
-  /** The academic year of the current plans. */
-  shown: string;
-  courseList: string | null;
-}
-
-/** The courses of an upcoming master's programme's year that the planner cannot place, since none of this year's plans gives them. */
-export function UnplannedCourses({ master, names, shown, courseList }: UnplannedCoursesProps) {
-  const t = useMessages();
-  return (
-    <Note>
-      {t.planner.unplanned(master, names, shown)}{" "}
-      {courseList && (
-        <a href={courseList} target="_blank" rel="noreferrer" className={linkClass}>
-          {t.planner.courseList}
-        </a>
-      )}
-    </Note>
-  );
-}

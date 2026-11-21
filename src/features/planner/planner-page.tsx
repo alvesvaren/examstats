@@ -7,7 +7,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { academicYearOf, MASTER_START_YEAR } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
 import { ChalmersLink, CourseListLink, Prerequisites, Specialisations } from "./master-details";
-import { MasterPicker, MastersNotPublished, UnplannedCourses } from "./master-picker";
+import { MasterPicker, MastersNotPublished } from "./master-picker";
 import { ProgrammeSearch } from "./programme-search";
 import { usePlanner } from "./use-planner";
 import { YearPlanner } from "./year-planner";
@@ -123,14 +123,6 @@ export function PlannerPage() {
       {state.showsMasters && !cohort.mastersPublished && (
         <MastersNotPublished year={cohort.masterStart} shown={catalog.plans.academicYear} upcoming={cohort.upcomingMasters} />
       )}
-      {master && state.unplanned && (
-        <UnplannedCourses
-          master={master.code}
-          names={state.unplanned}
-          shown={catalog.plans.academicYear}
-          courseList={masterAccreditation?.courseList ?? null}
-        />
-      )}
 
       {choosingMaster ? (
         <MasterPicker programme={programme} masters={masters} accredited={state.accredited} catalog={catalog} onChoose={chooseMaster} />
@@ -144,6 +136,7 @@ export function PlannerPage() {
           search={state.search}
           pickedKeys={state.pickedKeys}
           otherPicks={state.otherPicks}
+          courseList={state.courseList}
           catalog={catalog}
           dispatch={dispatch}
         />

@@ -4,7 +4,7 @@
  */
 import { RECENT_YEARS } from "../../domain/course-stats.ts";
 import { ANSWER_SCALE, BALANCED_WORKLOAD, EVALUATION_YEARS, RATING_YEARS, type Question } from "../../domain/evaluation.ts";
-import type { Requirement, Theme } from "../../domain/programme-plans.ts";
+import type { Requirement, StudyPeriod, Theme } from "../../domain/programme-plans.ts";
 import type { TrendPoint } from "../../domain/evaluation.ts";
 import type { Spread } from "../../domain/spread.ts";
 import { FORMATS, periodsWith } from "../format.ts";
@@ -45,11 +45,16 @@ const REQUIREMENTS: Partial<Record<Requirement["kind"], string>> = {
 
 const HINTS: Partial<Record<Question, string>> = { overall: QUESTIONS.overall.short, workload: `${ANSWER_SCALE.max} is too high` };
 
+/** The planner's lane of courses whose study periods are not known yet. */
+const NOT_SCHEDULED = "Not scheduled";
+
+const formatPeriods = periodsWith({ LP1: "LP1", LP2: "LP2", LP3: "LP3", LP4: "LP4", Summer: "Summer", Other: "Outside study periods" });
+
 export const en = {
   format: f,
   credits,
   courses,
-  periods: periodsWith({ LP1: "LP1", LP2: "LP2", LP3: "LP3", LP4: "LP4", Summer: "Summer", Other: "Outside study periods" }),
+  periods: formatPeriods,
   /** "3 of 15 credits". */
   of: (have: string, total: string) => `${have} of ${total}`,
   spread: ({ mean, median, sd }: Pick<Spread, "mean" | "median" | "sd">) =>
@@ -64,6 +69,7 @@ export const en = {
   allCourses: "All courses",
   allProgrammes: "All programmes",
   noResultsYet: "No results yet",
+  newCourse: "New course",
   chalmers: {
     syllabus: (code: string) =>
       `https://www.chalmers.se/en/education/your-studies/find-course-and-programme-syllabi/course-syllabus/${encodeURIComponent(code)}/`,
@@ -200,17 +206,21 @@ export const en = {
     mastersNotPublished: (year: string, shown: string) =>
       `Preliminary: Chalmers has not published the master's programmes of ${year} yet. These are those of ${shown}.`,
     upcomingMasters: (year: string, announced: string, shown: string) =>
-      `Preliminary: Chalmers has not planned the master's programmes of ${year} yet.${announced === year ? "" : ` These are those of ${announced}.`} Courses keep their study periods from ${shown}.`,
-    unplanned: (master: string, names: readonly string[], shown: string) =>
-      `The course list of ${master} also names ${names.join(", ")}. They are new or not given in ${shown}, so the plan has no study periods for them.`,
+      `Preliminary: Chalmers has not planned the master's programmes of ${year} yet.${announced === year ? "" : ` These are those of ${announced}.`} Courses keep their study periods from ${shown}, and new ones wait under ${NOT_SCHEDULED}.`,
 
     noCoursesThisYear: "The plan has no courses for this year.",
     yourYear: "Your year",
-    inYourYear: (value: number) => `${credits(value)} in your year`,
+    inYourYear: (value: number, pending: number) =>
+      `${credits(value)} in your year${pending > 0 ? `, and ${courses(pending)} with credits not known yet` : ""}`,
     clearPicks: "Clear my picks",
     toChooseFrom: (count: number) => `${f.count(count)} to choose from`,
     allInYear: "Every course in this study period is already in your year.",
     noCoursesInPeriod: "The plan has no courses in this study period.",
+    notScheduled: NOT_SCHEDULED,
+    notScheduledHint: "New courses, without study periods or credits yet",
+    inProgrammePlan: (name: string) => `${name} is part of the programme plan`,
+    creditsNotKnown: "Credits not known yet",
+    preliminary: "Preliminary",
     sameLectures: (name: string, compulsory: boolean) => `Same lecture times as ${name}${compulsory ? ", which is compulsory" : ""}`,
     exclusive: (name: string) => `Only one of this and ${name} counts towards the degree`,
     shareLectures: "Two of these share lecture times",
@@ -231,7 +241,9 @@ export const en = {
     removeFromYear: (name: string) => `Remove ${name} from your year`,
     addToYear: (name: string) => `Add ${name} to your year`,
     runs: (periods: string) => `Runs ${periods}`,
-    elsewhereInYear: (year: number, periods: string) => `In year ${year} in ${periods}.`,
+    /** Where a course is picked in another year. A course whose study periods are not known yet is only in the year. */
+    elsewhereInYear: (year: number, inPeriods: readonly StudyPeriod[]) =>
+      `In year ${year}${inPeriods.length > 0 ? ` in ${formatPeriods(inPeriods)}` : ""}.`,
     elsewhereInThisYear: (periods: string) => `In your year in ${periods}. Adding it here moves it.`,
   },
 };
