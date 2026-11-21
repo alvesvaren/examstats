@@ -6,7 +6,7 @@ import { partLabel } from "../../domain/catalog.ts";
 import { RECENT_YEARS } from "../../domain/course-stats.ts";
 import { ANSWER_SCALE, BALANCED_WORKLOAD, EVALUATION_YEARS, RATING_YEARS, type Question } from "../../domain/evaluation.ts";
 import type { Requirement, Theme } from "../../domain/programme-plans.ts";
-import type { TrendPoint } from "../../domain/snapshot.ts";
+import type { TrendPoint } from "../../domain/evaluation.ts";
 import type { Spread } from "../../domain/spread.ts";
 import { FORMATS, periodsWith } from "../format.ts";
 

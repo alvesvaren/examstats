@@ -1,8 +1,16 @@
-import { isOtherQuestion, meanAnswer, OTHER_QUESTIONS, QUESTIONS, type OtherQuestion, type Question } from "./evaluation.ts";
+import {
+  isOtherQuestion,
+  meanAnswer,
+  OTHER_QUESTIONS,
+  QUESTIONS,
+  type OtherQuestion,
+  type Question,
+  type TrendPoint,
+} from "./evaluation.ts";
 import { averageGradeOf, passRateOf } from "./grades.ts";
 import { inLanguage, type InLanguage, type Language } from "./names.ts";
 import type { StudyPeriod } from "./programme-plans.ts";
-import type { CourseSummary, Snapshot, TrendPoint } from "./snapshot.ts";
+import type { CourseSummary, Snapshot } from "./snapshot.ts";
 
 export const SORT_KEYS = [
   "name",

@@ -1,7 +1,7 @@
 import { cn } from "cn";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ANSWER_SCALE } from "@/domain/evaluation";
-import type { TrendPoint } from "@/domain/snapshot";
+import type { TrendPoint } from "@/domain/evaluation";
 import type { Frequencies } from "@/domain/spread";
 import { distributionMark } from "@/lib/distribution-mark";
 import { useMessages } from "@/hooks/use-messages";

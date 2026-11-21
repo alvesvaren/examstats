@@ -1,6 +1,9 @@
 import { z } from "zod";
-import type { TrendPoint } from "./snapshot.ts";
 import { spreadOf, type Frequencies } from "./spread.ts";
+
+/** A rating in one academic year. A tuple, since the list loads thousands of them. */
+export const trendPointSchema = z.tuple([z.number().int(), z.number()]);
+export type TrendPoint = z.infer<typeof trendPointSchema>;
 
 /** The standard questions besides the overall impression, which is the rating. */
 export const OTHER_QUESTIONS = [

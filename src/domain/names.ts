@@ -1,5 +1,8 @@
 import { z } from "zod";
-import type { Named } from "./snapshot.ts";
+
+/** Names in English and Swedish. Each is the other when Chalmers names only one, and both are the source's name when Chalmers names neither. */
+export const namedSchema = z.object({ name: z.string(), swedishName: z.string() });
+export type Named = z.infer<typeof namedSchema>;
 
 const namesSchema = z.object({ en: z.string(), sv: z.string() });
 

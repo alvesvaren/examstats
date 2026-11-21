@@ -12,7 +12,8 @@ import {
   trendDelta,
 } from "./catalog.ts";
 import { emptyCounts } from "./grades.ts";
-import type { CourseSummary, TrendPoint } from "./snapshot.ts";
+import type { TrendPoint } from "./evaluation.ts";
+import type { CourseSummary } from "./snapshot.ts";
 
 const row = (code: string, name: string, extra: Partial<CourseSummary> = {}) =>
   toCatalogCourse({
