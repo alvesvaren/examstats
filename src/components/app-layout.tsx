@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { HeadContent, Link, Outlet, useRouter, type ErrorComponentProps } from "@tanstack/react-router";
 import { ArrowUpIcon, MoonIcon, SunIcon } from "lucide-react";
 import { cn } from "cn";
@@ -106,14 +107,26 @@ export function AppLayout() {
       <main className="flex-1 pb-16">
         <Outlet />
       </main>
-      <footer className="border-t py-6 text-sm text-muted-foreground">
-        {t.layout.dataFrom}{" "}
-        <a href="https://stats.ftek.se" className="underline underline-offset-4 hover:text-foreground">
-          stats.ftek.se
-        </a>
+      <footer className="flex flex-col gap-2 border-t py-6 text-sm text-muted-foreground">
+        <p>
+          {t.layout.dataFrom} <FooterLink href="https://stats.ftek.se">stats.ftek.se</FooterLink>,{" "}
+          <FooterLink href="https://www.chalmers.se">chalmers.se</FooterLink> {t.layout.and}{" "}
+          <FooterLink href="https://course-eval.portal.chalmers.se">{t.layout.surveys}</FooterLink>
+        </p>
+        <p>
+          <FooterLink href="https://github.com/alvesvaren/examstats">{t.layout.sourceCode}</FooterLink>
+        </p>
       </footer>
       <ScrollToTop />
     </div>
+  );
+}
+
+function FooterLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <a href={href} className="underline underline-offset-4 hover:text-foreground">
+      {children}
+    </a>
   );
 }
 
