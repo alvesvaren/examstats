@@ -89,6 +89,23 @@ export function latestExam(sittings: readonly Sitting[]) {
   return { date: sitting.date, passRate: passRateOf(sitting.grades) ?? 0, attempts: attemptsOf(sitting.grades) };
 }
 
+/** What the programme plans and chalmers.se say of a course this academic year. */
+export interface CourseYear {
+  /** A programme plans the course. */
+  planned: boolean;
+  /** chalmers.se lists the course, but no syllabus of this academic year or a later one offers it. */
+  discontinued: boolean;
+}
+
+/**
+ * Whether a course has ended: no plan has it this academic year, and chalmers.se no longer offers it or it has had no
+ * results for {@link ENDED_AFTER_DAYS} days. Re-exams give results for years after a course's last round.
+ */
+export function hasEnded(lastResult: string | null, { planned, discontinued }: CourseYear, today: Date) {
+  if (planned) return false;
+  return discontinued || !lastResult || (today.getTime() - Date.parse(lastResult)) / DAY_MS > ENDED_AFTER_DAYS;
+}
+
 /**
  * Builds the exam results of a course's list row from its parts.
  * Recent grades and size cover the main part's last {@link RECENT_YEARS} finished academic years with results.
@@ -97,7 +114,6 @@ export function summarizeCourse(course: Named & { code: string; programme: strin
   const [main] = orderParts(parts);
   const dates = parts.flatMap((p) => p.sittings.map((s) => s.date)).toSorted();
   const lastResult = dates.at(-1) ?? null;
-  const ended = !lastResult || (today.getTime() - Date.parse(lastResult)) / DAY_MS > ENDED_AFTER_DAYS;
 
   const sittings = (main?.sittings ?? []).toSorted((a, b) => a.date.localeCompare(b.date));
   const currentYear = academicYear(today.toISOString().slice(0, 10));
@@ -116,6 +132,5 @@ export function summarizeCourse(course: Named & { code: string; programme: strin
     recentGrades: recentCounts,
     attemptsPerYear: recentYears ? Math.round(attemptsOf(recentCounts) / recentYears) : 0,
     lastResult,
-    ended,
   };
 }

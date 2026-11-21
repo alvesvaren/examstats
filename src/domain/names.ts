@@ -6,10 +6,22 @@ export type Named = z.infer<typeof namedSchema>;
 
 const namesSchema = z.object({ en: z.string(), sv: z.string() });
 
-/** The committed file that `pnpm programme-plans` writes and `pnpm snapshot` reads: Chalmers' names since 2021/2022, the newest per code. */
+/**
+ * The committed file that `pnpm programme-plans` writes and `pnpm snapshot` reads: Chalmers' names since 2021/2022, the
+ * newest per code, and the newest academic year chalmers.se offers each course in.
+ */
 export const namesFileSchema = z.object({
   programmes: z.record(z.string(), namesSchema),
-  courses: z.array(namesSchema.extend({ code: z.string() })),
+  courses: z.array(
+    namesSchema.extend({
+      code: z.string(),
+      /**
+       * The newest academic year with a syllabus that does not discontinue the course, such as "2026/2027". Null when
+       * every syllabus since 2021/2022 discontinues it.
+       */
+      lastOffered: z.string().nullable(),
+    }),
+  ),
 });
 export type NamesFile = z.infer<typeof namesFileSchema>;
 export type Names = z.infer<typeof namesSchema>;
