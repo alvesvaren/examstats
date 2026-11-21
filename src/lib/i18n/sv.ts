@@ -74,6 +74,8 @@ export const sv: Messages = {
     toggleTheme: "Växla mörkt läge",
     backToTop: "Till toppen",
     dataFrom: "Data från",
+    surveys: "Chalmers kursutvärderingar",
+    and: "och",
     loadError: "Kunde inte ladda datan",
     somethingWrong: "Något gick fel.",
     tryAgain: "Försök igen",

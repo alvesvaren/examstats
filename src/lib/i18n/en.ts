@@ -81,6 +81,8 @@ export const en = {
     toggleTheme: "Toggle dark mode",
     backToTop: "Back to top",
     dataFrom: "Data from",
+    surveys: "Chalmers course surveys",
+    and: "and",
     loadError: "Could not load the data",
     somethingWrong: "Something went wrong.",
     tryAgain: "Try again",
