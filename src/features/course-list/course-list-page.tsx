@@ -1,10 +1,10 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, Link } from "@tanstack/react-router";
-import { ArrowLeftIcon, SearchIcon } from "lucide-react";
+import { ArrowLeftIcon } from "lucide-react";
 import { cn } from "cn";
 import type { ReactNode } from "react";
+import { SearchField } from "@/components/search-field";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -101,20 +101,14 @@ export function CourseListPage() {
       {/* The negative margin cancels the padding the filters need when stuck, so the top of this box is where they stick. */}
       <div ref={resultsRef} className="-mt-2 flex flex-col gap-2">
         <div ref={filtersRef} className="sticky top-0 z-30 flex flex-wrap gap-2 bg-background py-2">
-          <div className="relative min-w-60 flex-1 basis-full sm:basis-0">
-            <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              key={programme ?? examiner ?? ALL_PROGRAMMES}
-              type="search"
-              defaultValue={q}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={t.list.searchPlaceholder}
-              aria-label={t.list.search}
-              autoComplete="off"
-              spellCheck={false}
-              className="h-10 pl-9 text-base"
-            />
-          </div>
+          <SearchField
+            key={programme ?? examiner ?? ALL_PROGRAMMES}
+            defaultValue={q}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t.list.searchPlaceholder}
+            aria-label={t.list.search}
+            className="min-w-60 flex-1 basis-full sm:basis-0"
+          />
           <ProgrammeSelect programme={programme} programmes={snapshot.listedProgrammes} onChange={setProgramme} />
           <PeriodFilter periods={periods} academicYear={snapshot.plans.academicYear} onChange={setPeriods} />
         </div>

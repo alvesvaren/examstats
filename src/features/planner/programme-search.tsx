@@ -1,7 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { SearchIcon } from "lucide-react";
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
+import { SearchField } from "@/components/search-field";
 import type { InLanguage } from "@/domain/names";
 import { otherNameOf } from "@/domain/names";
 import { searchProgrammes } from "@/domain/planner";
@@ -32,7 +31,6 @@ export function ProgrammeSearch({ programmes, names }: ProgrammeSearchProps) {
         <p className="text-muted-foreground">{t.planner.findProgramme}</p>
       </div>
       <form
-        className="relative"
         onSubmit={(event) => {
           event.preventDefault();
           if (!best) return;
@@ -40,16 +38,11 @@ export function ProgrammeSearch({ programmes, names }: ProgrammeSearchProps) {
           void navigate({ to: "/planner", search: { programme: best.code } });
         }}
       >
-        <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="search"
+        <SearchField
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={t.planner.searchPlaceholder}
           aria-label={t.planner.searchProgrammes}
-          autoComplete="off"
-          spellCheck={false}
-          className="h-10 pl-9 text-base"
         />
       </form>
       {matches.length === 0 && <p className="py-6 text-center text-muted-foreground">{t.planner.noProgrammeMatches}</p>}
