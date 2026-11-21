@@ -63,6 +63,7 @@ export const sv: Messages = {
   allProgrammes: "Alla program",
   noResultsYet: "Inga resultat än",
   newCourse: "Ny kurs",
+  onChalmers: (course) => `${course} på chalmers.se`,
   chalmers: {
     syllabus: (code) =>
       `https://www.chalmers.se/utbildning/dina-studier/hitta-kurs-och-programplaner/kursplaner/${encodeURIComponent(code)}/`,

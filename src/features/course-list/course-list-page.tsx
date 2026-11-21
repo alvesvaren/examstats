@@ -13,13 +13,14 @@ import {
   matchExaminers,
   matchProgrammes,
   queryCourses,
+  queryNewCourses,
   surveyColumn,
   surveySortKey,
   type SortDir,
   type SortKey,
 } from "@/domain/catalog";
 import type { Question } from "@/domain/evaluation";
-import type { StudyPeriod } from "@/domain/programme-plans";
+import { REGULAR_PERIODS, type StudyPeriod } from "@/domain/programme-plans";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { useElementSize } from "@/hooks/use-element-size";
 import { useLanguage } from "@/hooks/use-language";
@@ -31,7 +32,7 @@ const route = getRouteApi("/");
 type ListSearch = ReturnType<typeof route.useSearch>;
 
 /** The study periods the list filters on. Summer courses and those outside study periods are few. */
-const PERIOD_FILTERS = ["LP1", "LP2", "LP3", "LP4"] as const satisfies readonly StudyPeriod[];
+const PERIOD_FILTERS = REGULAR_PERIODS;
 const DEFAULT_SORT: SortKey = "attemptsPerYear";
 const EXAMINER_SUGGESTIONS = 3;
 /** Typing shows at once. The URL, and the list that follows it, update when typing pauses. */
@@ -50,16 +51,17 @@ export function CourseListPage() {
   // A new list can take long to render on a slow device, so it renders in the background and typing stays quick. The
   // render that the URL starts keeps the old query, and the memo spares it filtering again.
   const query = useDeferredValue(q);
-  const { active, ended } = useMemo(
-    () => queryCourses(snapshot.courses, { q: query, programme, examiner, periods, sort, dir }),
-    [snapshot.courses, query, programme, examiner, periods, sort, dir],
-  );
+  const { active, newCourses, ended } = useMemo(() => {
+    const filters = { q: query, programme, examiner, periods, sort, dir };
+    return { ...queryCourses(snapshot.courses, filters), newCourses: queryNewCourses(snapshot.newCourses, filters) };
+  }, [snapshot.courses, snapshot.newCourses, query, programme, examiner, periods, sort, dir]);
   const scoped = Boolean(programme ?? examiner);
   const programmeMatches = scoped ? [] : matchProgrammes(snapshot.listedProgrammes, query);
   const examinerMatches = scoped ? [] : matchExaminers(snapshot.examiners, query, EXAMINER_SUGGESTIONS);
   const survey = surveyColumn(sort, search.survey);
   // The heading counts the whole scope, whatever the other filters keep.
-  const scopeTotal = snapshot.courses.filter((c) => inScope(c, { programme, examiner })).length;
+  const inThisScope = (course: Parameters<typeof inScope>[0]) => inScope(course, { programme, examiner });
+  const scopeTotal = snapshot.courses.filter(inThisScope).length + snapshot.newCourses.filter(inThisScope).length;
   const maxAttempts = Math.max(...snapshot.courses.map((c) => c.attemptsPerYear));
   const coursesIn = (code: string) => snapshot.courses.filter((c) => c.programme === code).length;
 
@@ -127,6 +129,7 @@ export function CourseListPage() {
 
         <CourseTable
           active={active}
+          newCourses={newCourses}
           ended={ended}
           showEnded={search.ended ?? false}
           onToggleEnded={toggleEnded}

@@ -70,6 +70,8 @@ export const en = {
   allProgrammes: "All programmes",
   noResultsYet: "No results yet",
   newCourse: "New course",
+  /** A course without results, which links to chalmers.se instead of a page here. */
+  onChalmers: (course: string) => `${course} on chalmers.se`,
   chalmers: {
     syllabus: (code: string) =>
       `https://www.chalmers.se/en/education/your-studies/find-course-and-programme-syllabi/course-syllabus/${encodeURIComponent(code)}/`,

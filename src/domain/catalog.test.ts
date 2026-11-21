@@ -5,14 +5,17 @@ import {
   matchExaminers,
   matchProgrammes,
   queryCourses,
+  queryNewCourses,
   surveyColumn,
   toCatalog,
   toCatalogCourse,
+  toCatalogNewCourse,
   trendDelta,
 } from "./catalog.ts";
 import { emptyCounts } from "./grades.ts";
 import type { TrendPoint } from "./evaluation.ts";
-import type { CourseSummary } from "./snapshot.ts";
+import type { UpcomingMasters } from "./programme-plans.ts";
+import type { CourseSummary, NewCourse } from "./snapshot.ts";
 
 const row = (code: string, name: string, extra: Partial<CourseSummary> = {}) =>
   toCatalogCourse({
@@ -146,21 +149,75 @@ describe("queryCourses filters", () => {
   });
 });
 
+const UPCOMING: UpcomingMasters = {
+  academicYear: "2027/2028",
+  matrix: "https://example.com/matrix.xlsx",
+  accreditations: {},
+  masters: { MPAIN: { courseList: "https://example.com/mpain.pdf" }, MPDSC: { courseList: null } },
+};
+
+const newCourse = (name: string, extra: Partial<NewCourse> = {}): NewCourse => ({
+  code: null,
+  name,
+  swedishName: name,
+  periods: [],
+  examiners: [],
+  masters: [],
+  ...extra,
+});
+
+const newCourses = [
+  newCourse("Mathematics for AI", { masters: ["MPDSC", "MPAIN"] }),
+  newCourse("Advanced programming language theory", {
+    code: "DAT700",
+    swedishName: "Avancerad programspråksteori",
+    periods: ["LP4"],
+    examiners: ["Ada Lovelace"],
+  }),
+];
+
+describe("queryNewCourses", () => {
+  const catalogued = newCourses.map((c) => toCatalogNewCourse(c, "en", UPCOMING));
+  const found = (query: Parameters<typeof queryNewCourses>[1]) => queryNewCourses(catalogued, query).map((c) => c.code ?? c.name);
+
+  it("matches a course by its code, its name in either language, its examiner, or a master's programme whose list names it", () => {
+    expect(found({ q: "dat700" })).toEqual(["DAT700"]);
+    expect(found({ q: "programsprak" })).toEqual(["DAT700"]);
+    expect(found({ q: "lovelace" })).toEqual(["DAT700"]);
+    expect(found({ q: "mpain" })).toEqual(["Mathematics for AI"]);
+  });
+
+  it("lists them by name, and keeps those that run in the study periods or that the examiner examines", () => {
+    expect(found({})).toEqual(["DAT700", "Mathematics for AI"]);
+    expect(found({ periods: ["LP4"] })).toEqual(["DAT700"]);
+    expect(found({ examiner: "Ada Lovelace" })).toEqual(["DAT700"]);
+  });
+
+  it("leaves them out of a programme's scope, since stats.ftek.se gives them no programme", () => {
+    expect(found({ programme: "TKITE" })).toEqual([]);
+  });
+
+  it("links a course without a code to the first course list that names it", () => {
+    expect(catalogued.map((c) => c.courseList)).toEqual(["https://example.com/mpain.pdf", null]);
+  });
+});
+
 describe("toCatalog", () => {
   const catalog = toCatalog(
     {
       generatedAt: "",
       evaluationsFetchedAt: "",
-      plans: { academicYear: "", ruleNames: {}, starts: {}, upcomingMasters: null },
+      plans: { academicYear: "", ruleNames: {}, starts: {}, upcomingMasters: UPCOMING },
       programmes: {},
       courses,
+      newCourses,
     },
     "en",
   );
 
-  it("counts each examiner's courses", () => {
+  it("counts each examiner's courses, with or without results", () => {
     expect(catalog.examiners).toEqual([
-      { name: "Ada Lovelace", courses: 1 },
+      { name: "Ada Lovelace", courses: 2 },
       { name: "Åsa Lindqvist", courses: 2 },
     ]);
   });

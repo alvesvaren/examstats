@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronDownIcon } from "lucide-react";
+import { ArrowUpRightIcon, ChevronDownIcon } from "lucide-react";
 import { memo, type CSSProperties } from "react";
 import { cn } from "cn";
 import { AverageGradeCell, PassRateCell, StackedCell, SurveyCell } from "@/components/course-cells";
@@ -9,7 +9,16 @@ import { SortHeader } from "@/components/sort-header";
 import { SurveyColumnPicker } from "@/components/survey-column";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { defaultSortDir, examinerNamed, flip, surveySortKey, type CatalogCourse, type SortDir, type SortKey } from "@/domain/catalog";
+import {
+  defaultSortDir,
+  examinerNamed,
+  flip,
+  surveySortKey,
+  type CatalogCourse,
+  type CatalogNewCourse,
+  type SortDir,
+  type SortKey,
+} from "@/domain/catalog";
 import type { Question } from "@/domain/evaluation";
 import type { InLanguage } from "@/domain/names";
 import { useElementSize } from "@/hooks/use-element-size";
@@ -66,10 +75,19 @@ const BASE_COLUMNS = [
   { key: "lastResult", align: "end" },
 ] as const satisfies (Column & { key: keyof Messages["list"]["columns"] })[];
 
-type Item = { kind: "course"; course: CatalogCourse } | { kind: "ended"; count: number };
+type Item = { kind: "course"; course: CatalogCourse } | { kind: "new"; course: CatalogNewCourse } | { kind: "ended"; count: number };
+
+/** The virtual list's key of an item, unique across its kinds. */
+function itemKey(item: Item | undefined) {
+  if (item?.kind === "course") return item.course.code;
+  if (item?.kind === "new") return `new:${item.course.code ?? item.course.name}`;
+  return "ended";
+}
 
 interface CourseTableProps {
   active: CatalogCourse[];
+  /** Courses without results, which come after the active courses. */
+  newCourses: CatalogNewCourse[];
   ended: CatalogCourse[];
   showEnded: boolean;
   onToggleEnded: () => void;
@@ -89,13 +107,16 @@ interface CourseTableProps {
 
 export function CourseTable(props: CourseTableProps) {
   const t = useMessages();
-  if (!props.active.length && !props.ended.length) return <p className="py-10 text-center text-muted-foreground">{t.list.noMatch}</p>;
+  if (!props.active.length && !props.newCourses.length && !props.ended.length) {
+    return <p className="py-10 text-center text-muted-foreground">{t.list.noMatch}</p>;
+  }
   return <Table {...props} />;
 }
 
 /** The table, once some course matches. It mounts with its header, which it measures. */
 function Table({
   active,
+  newCourses,
   ended,
   showEnded,
   onToggleEnded,
@@ -115,6 +136,7 @@ function Table({
   const { ref: surveyHeaderRef, width: surveyHeaderWidth } = useElementSize<HTMLDivElement>();
   const items: Item[] = [
     ...active.map((course) => ({ kind: "course" as const, course })),
+    ...newCourses.map((course) => ({ kind: "new" as const, course })),
     ...(ended.length ? [{ kind: "ended" as const, count: ended.length }] : []),
     ...(showEnded ? ended.map((course) => ({ kind: "course" as const, course })) : []),
   ];
@@ -181,10 +203,7 @@ function VirtualRows({ items, survey, query, canHover, showEnded, onToggleEnded,
   const { listRef, virtualizer } = useWindowVirtualList({
     count: items.length,
     rowHeight: (index) => (items[index]?.kind === "ended" ? TOGGLE_ROW_HEIGHT : ROW_HEIGHT),
-    getItemKey: (index) => {
-      const item = items[index];
-      return item?.kind === "course" ? item.course.code : "ended";
-    },
+    getItemKey: (index) => itemKey(items[index]),
   });
 
   return (
@@ -210,6 +229,8 @@ function VirtualRows({ items, survey, query, canHover, showEnded, onToggleEnded,
                 programmeName={item.course.programme ? programmes[item.course.programme]?.name : undefined}
                 maxAttempts={maxAttempts}
               />
+            ) : item.kind === "new" ? (
+              <NewCourseRow course={item.course} examiner={query ? examinerNamed(item.course, query) : undefined} />
             ) : (
               <button
                 type="button"
@@ -311,6 +332,62 @@ const CourseRow = memo(function CourseRow({ course, survey, examiner, canHover, 
           <Sparkline trend={course.trend} interactive={canHover} className={cn(muted)} />
         </div>
         <div className="text-right tabular-nums">{t.format.month(course.lastResult)}</div>
+      </div>
+    </div>
+  );
+});
+
+interface NewCourseRowProps {
+  course: CatalogNewCourse;
+  /** The examiner the search matched the course by, if any. */
+  examiner: string | undefined;
+}
+
+/**
+ * A course without results. The whole row links to chalmers.se, since the course has no page here: to its syllabus, or
+ * for a course without a code, to the course list that names it. Such a course shows the master's programmes whose
+ * lists name it where others show their code, and leads with its name on phones too, since that is all that tells it
+ * apart. Below `lg` the note sits right after the course, where the table shows it before scrolling sideways.
+ */
+const NewCourseRow = memo(function NewCourseRow({ course, examiner }: NewCourseRowProps) {
+  const t = useMessages();
+  const { code } = course;
+  const href = code ? t.chalmers.syllabus(code) : (course.courseList ?? t.chalmers.masters);
+  return (
+    <div style={{ height: ROW_HEIGHT }} className="group relative border-b bg-background px-2 hover:bg-row-hover">
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className="absolute inset-0"
+        aria-label={t.onChalmers([code, course.name].filter(Boolean).join(" "))}
+      />
+      <div className={cn(GRID, "h-full")}>
+        <div
+          className={cn(
+            PINNED,
+            // Such a course has no programme, so its name takes that column too.
+            "pointer-events-none col-span-2 flex min-w-0 flex-col justify-center group-hover:bg-row-hover",
+            code ? "lg:flex-col-reverse" : "flex-col-reverse",
+          )}
+        >
+          <span
+            className={cn(
+              "truncate tabular-nums",
+              code ? "font-medium lg:text-xs lg:font-normal lg:text-muted-foreground" : "text-xs text-muted-foreground",
+            )}
+          >
+            {code ?? course.masters.join(" · ")}
+            {examiner && <span className="text-xs font-normal text-muted-foreground"> · {examiner}</span>}
+          </span>
+          <span
+            className={cn("truncate", code ? "text-xs text-muted-foreground lg:text-base lg:font-medium lg:text-inherit" : "font-medium")}
+          >
+            {course.name}
+            <ArrowUpRightIcon className="ml-0.5 inline size-3.5 align-[-0.125em] text-muted-foreground" />
+          </span>
+        </div>
+        <span className="col-span-6 text-xs text-muted-foreground lg:text-right">{code ? t.noResultsYet : t.newCourse}</span>
       </div>
     </div>
   );

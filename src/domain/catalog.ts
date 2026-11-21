@@ -9,8 +9,8 @@ import {
 } from "./evaluation.ts";
 import { averageGradeOf, passRateOf } from "./grades.ts";
 import { inLanguage, normalize, type InLanguage, type Language } from "./names.ts";
-import type { StudyPeriod } from "./programme-plans.ts";
-import type { CourseSummary, Snapshot } from "./snapshot.ts";
+import type { StudyPeriod, UpcomingMasters } from "./programme-plans.ts";
+import type { CourseSummary, NewCourse, Snapshot } from "./snapshot.ts";
 
 export const SORT_KEYS = [
   "name",
@@ -91,6 +91,24 @@ export function toCatalogCourse(summary: CourseSummary, language: Language = "en
 
 export type CatalogCourse = ReturnType<typeof toCatalogCourse>;
 
+/**
+ * A course without results named in `language`, with the values the list filters on. stats.ftek.se gives it no
+ * programme, so no programme's scope holds it. A course without a code links to the first course list that names it.
+ */
+export function toCatalogNewCourse(course: NewCourse, language: Language, upcoming: UpcomingMasters | null) {
+  const named = inLanguage(course, language);
+  return {
+    ...named,
+    programme: null,
+    courseList: course.masters.map((code) => upcoming?.masters[code]?.courseList).find(Boolean) ?? null,
+    searchText: normalize(
+      `${course.code ?? ""} ${named.name} ${named.otherName} ${course.masters.join(" ")} ${course.examiners.join(" ")}`,
+    ),
+  };
+}
+
+export type CatalogNewCourse = ReturnType<typeof toCatalogNewCourse>;
+
 /** The snapshot with every course and programme named in `language`. */
 export function toCatalog(snapshot: Snapshot, language: Language) {
   const withResults = new Set(snapshot.courses.map((c) => c.programme));
@@ -99,16 +117,17 @@ export function toCatalog(snapshot: Snapshot, language: Language) {
   return {
     ...snapshot,
     courses,
+    newCourses: snapshot.newCourses.map((course) => toCatalogNewCourse(course, language, snapshot.plans.upcomingMasters)),
     byCode: new Map(courses.map((course) => [course.code, course])),
     programmes: Object.fromEntries(programmes),
     /** Programmes with courses with results, which the course list can show. */
     listedProgrammes: Object.fromEntries(programmes.filter(([code]) => withResults.has(code))),
-    examiners: examinersOf(snapshot.courses),
+    examiners: examinersOf([...snapshot.courses, ...snapshot.newCourses]),
   };
 }
 
-/** Everyone who examines a course with results this year, by name, with how many such courses. */
-function examinersOf(courses: readonly CourseSummary[]) {
+/** Everyone who examines a course this year, by name, with how many such courses. */
+function examinersOf(courses: readonly Pick<CourseSummary, "examiners">[]) {
   return [
     ...Map.groupBy(
       courses.flatMap((c) => c.examiners),
@@ -147,9 +166,14 @@ function compareBy(key: SortKey, dir: SortDir) {
   return (a: CatalogCourse, b: CatalogCourse) => compareSortValues(sortValueOf(a, key), sortValueOf(b, key), dir);
 }
 
+/** What the list filters a course on, with or without results. */
+type Filterable = Pick<CatalogCourse, "programme" | "examiners" | "periods" | "searchText">;
+
 /** Whether the course is in the list's scope: its programme, or an examiner's courses. */
-export const inScope = (course: CatalogCourse, { programme, examiner }: Pick<CourseQuery, "programme" | "examiner">) =>
-  (!programme || course.programme === programme) && (!examiner || course.examiners.includes(examiner));
+export const inScope = (
+  course: Pick<Filterable, "programme" | "examiners">,
+  { programme, examiner }: Pick<CourseQuery, "programme" | "examiner">,
+) => (!programme || course.programme === programme) && (!examiner || course.examiners.includes(examiner));
 
 export interface CourseQuery {
   q?: string;
@@ -163,25 +187,40 @@ export interface CourseQuery {
 }
 
 /**
- * Filters and sorts the catalog. Each `;`-separated part of `q` is its own search, and a course matches if any part
- * matches all of its words. Courses whose code equals a part come first.
+ * Whether a course is in the scope, runs in one of the study periods, and matches the search. Each `;`-separated
+ * part of `q` is its own search, and a course matches if any part matches all of its words.
  */
-export function queryCourses(
-  courses: readonly CatalogCourse[],
-  { q = "", programme, examiner, periods = [], sort = "attemptsPerYear", dir = "desc" }: CourseQuery,
-) {
-  const parts = searchParts(q);
-  const searches = parts.map(words);
-  const exactCodes = new Set(parts.map((part) => part.toLowerCase()));
-  const isExact = (c: CatalogCourse) => exactCodes.has(c.code.toLowerCase());
-  const matchesSearch = (c: CatalogCourse) => !searches.length || searches.some((terms) => terms.every((t) => c.searchText.includes(t)));
-  const inPeriods = (c: CatalogCourse) => !periods.length || c.periods.some((p) => periods.includes(p));
-  const rows = courses
-    .filter((c) => inScope(c, { programme, examiner }) && inPeriods(c) && matchesSearch(c))
-    .toSorted(compareBy(sort, dir))
-    .toSorted((a, b) => Number(isExact(b)) - Number(isExact(a)));
+function matcherOf({ q = "", programme, examiner, periods = [] }: CourseQuery) {
+  const searches = searchParts(q).map(words);
+  return (c: Filterable) =>
+    inScope(c, { programme, examiner }) &&
+    (!periods.length || c.periods.some((p) => periods.includes(p))) &&
+    (!searches.length || searches.some((terms) => terms.every((t) => c.searchText.includes(t))));
+}
+
+/** Sorts courses whose code equals a part of the search first, and keeps the order otherwise. */
+function exactCodesFirst<C extends { code: string | null }>(rows: readonly C[], q = "") {
+  const exactCodes = new Set(searchParts(q).map((part) => part.toLowerCase()));
+  const isExact = (c: C) => exactCodes.has(c.code?.toLowerCase() ?? "");
+  return rows.toSorted((a, b) => Number(isExact(b)) - Number(isExact(a)));
+}
+
+/** Filters and sorts the courses with results, with those whose code equals a part of the search first. */
+export function queryCourses(courses: readonly CatalogCourse[], query: CourseQuery) {
+  const { sort = "attemptsPerYear", dir = "desc" } = query;
+  const rows = exactCodesFirst(courses.filter(matcherOf(query)).toSorted(compareBy(sort, dir)), query.q);
   return { active: rows.filter((c) => !c.ended), ended: rows.filter((c) => c.ended) };
 }
+
+/**
+ * Filters the courses without results, by name since they have no values to sort by, with those whose code equals a
+ * part of the search first.
+ */
+export const queryNewCourses = (courses: readonly CatalogNewCourse[], query: CourseQuery) =>
+  exactCodesFirst(
+    courses.filter(matcherOf(query)).toSorted((a, b) => a.name.localeCompare(b.name, "sv")),
+    query.q,
+  );
 
 /** Programmes whose code starts with a `;`-separated part of the query, or whose name in either language contains one. */
 export function matchProgrammes(programmes: Readonly<Record<string, InLanguage>>, query: string, limit = 4) {
@@ -207,7 +246,7 @@ export function matchExaminers(examiners: readonly Examiner[], query: string, li
 }
 
 /** The course's examiner that the query names, which explains why the course matched. */
-export function examinerNamed(course: CatalogCourse, query: string) {
+export function examinerNamed(course: Pick<CatalogCourse, "examiners">, query: string) {
   const searches = searchParts(query).map(words);
   return course.examiners.find((name) => matchesName(name, searches));
 }
