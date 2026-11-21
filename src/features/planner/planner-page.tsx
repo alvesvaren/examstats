@@ -1,8 +1,8 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { ArrowLeftIcon, PlusIcon, RepeatIcon } from "lucide-react";
+import { FieldSelect } from "@/components/field-select";
 import { Button } from "@/components/ui/button";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { catalogQuery, plansQuery } from "@/data/queries";
 import { otherNameOf } from "@/domain/names";
@@ -27,8 +27,6 @@ const route = getRouteApi("/planner");
 export type PlannerSearch = ReturnType<typeof route.useSearch>;
 
 const ALL_TRACKS = "";
-/** 16px text on phones, because iOS zooms into focused fields with smaller text. */
-const FIELD_SIZE = "[&_select]:h-10 [&_select]:text-base md:[&_select]:text-sm";
 
 export function PlannerPage() {
   const search = route.useSearch();
@@ -141,18 +139,12 @@ export function PlannerPage() {
 
       <div className="flex flex-wrap items-center gap-3">
         {cohort.admitted.length > 1 && (
-          <NativeSelect
+          <FieldSelect
             aria-label={t.planner.startYear}
-            className={FIELD_SIZE}
             value={String(start)}
             onChange={(event) => showStart(Number(event.target.value))}
-          >
-            {cohort.admitted.toReversed().map((year) => (
-              <NativeSelectOption key={year} value={String(year)}>
-                {t.planner.started(academicYearOf(year))}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+            options={cohort.admitted.toReversed().map((year) => ({ value: String(year), label: t.planner.started(academicYearOf(year)) }))}
+          />
         )}
         <div className="flex flex-wrap items-center gap-2">
           <ToggleGroup
@@ -187,19 +179,12 @@ export function PlannerPage() {
             ))}
         </div>
         {tracks.length > 0 && (
-          <NativeSelect
+          <FieldSelect
             aria-label={t.planner.track}
-            className={FIELD_SIZE}
             value={track ?? ALL_TRACKS}
             onChange={(event) => showTrack(event.target.value || undefined)}
-          >
-            <NativeSelectOption value={ALL_TRACKS}>{t.planner.allTracks}</NativeSelectOption>
-            {tracks.map((name) => (
-              <NativeSelectOption key={name} value={name}>
-                {name}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+            options={[{ value: ALL_TRACKS, label: t.planner.allTracks }, ...tracks.map((name) => ({ value: name, label: name }))]}
+          />
         )}
       </div>
 

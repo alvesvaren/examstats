@@ -1,11 +1,10 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { ArrowLeftIcon } from "lucide-react";
-import { cn } from "cn";
 import type { ReactNode } from "react";
+import { FieldSelect } from "@/components/field-select";
 import { SearchField } from "@/components/search-field";
 import { Button } from "@/components/ui/button";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { catalogQuery } from "@/data/queries";
@@ -40,8 +39,6 @@ const DEFAULT_SORT: SortKey = "attemptsPerYear";
 const EXAMINER_SUGGESTIONS = 3;
 /** Typing shows at once. The URL, and the list that follows it, update when typing pauses. */
 const SEARCH_DELAY_MS = 150;
-/** 16px text on phones, because iOS zooms into focused fields with smaller text. */
-const FIELD_SIZE = "[&_select]:h-10 [&_select]:text-base md:[&_select]:text-sm";
 
 export function CourseListPage() {
   const search = route.useSearch();
@@ -217,25 +214,22 @@ interface ProgrammeSelectProps {
 
 function ProgrammeSelect({ programme, programmes, onChange }: ProgrammeSelectProps) {
   const t = useMessages();
-  const options = Object.entries(programmes)
-    .map(([code, { name }]) => [code, name] as const)
-    .toSorted(([, a], [, b]) => a.localeCompare(b, "sv"));
+  const options = [
+    { value: ALL_PROGRAMMES, label: t.allProgrammes },
+    ...Object.entries(programmes)
+      .map(([code, { name }]) => ({ value: code, label: name === code ? code : `${name} · ${code}`, name }))
+      .toSorted((a, b) => a.name.localeCompare(b.name, "sv")),
+  ];
   return (
-    <NativeSelect
+    <FieldSelect
       value={programme ?? ALL_PROGRAMMES}
       onChange={(event) => {
         const { value } = event.target;
         onChange(value === ALL_PROGRAMMES ? undefined : value);
       }}
       aria-label={t.list.programme}
-      className={cn("min-w-0 flex-1 sm:w-72 sm:flex-none", FIELD_SIZE)}
-    >
-      <NativeSelectOption value={ALL_PROGRAMMES}>{t.allProgrammes}</NativeSelectOption>
-      {options.map(([code, name]) => (
-        <NativeSelectOption key={code} value={code}>
-          {name === code ? code : `${name} · ${code}`}
-        </NativeSelectOption>
-      ))}
-    </NativeSelect>
+      className="min-w-0 flex-1 sm:w-72 sm:flex-none"
+      options={options}
+    />
   );
 }
