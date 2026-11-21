@@ -23,6 +23,7 @@ export function PlannerPage() {
 
   const { programme, otherName, cohort, start, masters, master, masterAccreditation, years, choosingMaster, current, tracks, track } =
     state;
+  const startYears = cohort.admitted.toReversed();
   const chooseMaster = (code: string | undefined) => dispatch({ type: "chooseMaster", master: code });
 
   return (
@@ -60,7 +61,7 @@ export function PlannerPage() {
             value={String(start)}
             onChange={(event) => dispatch({ type: "showStart", start: Number(event.target.value) })}
           >
-            {cohort.admitted.toReversed().map((year) => (
+            {startYears.map((year) => (
               <NativeSelectOption key={year} value={String(year)}>
                 {t.planner.started(academicYearOf(year))}
               </NativeSelectOption>
