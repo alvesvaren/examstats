@@ -12,20 +12,18 @@ import type { Part, ResultsFile } from "../src/domain/course-stats.ts";
 import { toJsonLines } from "./json-lines.ts";
 import { mapConcurrent } from "./map-concurrent.ts";
 
-const env = z
-  .object({
-    API_URL: z.url().default("https://stats.ftek.se"),
-    OUT_FILE: z.string().default("data/results.json"),
-    CONCURRENCY: z.coerce.number().int().positive().default(10),
-  })
-  .parse(process.env);
+const envSchema = z.object({
+  API_URL: z.url().default("https://stats.ftek.se"),
+  OUT_FILE: z.string().default("data/results.json"),
+  CONCURRENCY: z.coerce.number().int().positive().default(10),
+});
 
 const PAGE_SIZE = 1000;
 const RETRIES = 3;
 /** The source writes "-" for a missing programme, and for some programmes' long names. */
 const NO_PROGRAMME = "-";
 
-const upstreamCourseSchema = z.object({
+export const upstreamCourseSchema = z.object({
   courseCode: z.string(),
   courseName: z.string(),
   programShort: z.string(),
@@ -37,7 +35,8 @@ const upstreamResultSchema = gradeCountsSchema.extend({
   type: z.string(),
   resultId: z.string(),
 });
-const upstreamResultsSchema = z.array(upstreamResultSchema);
+export const upstreamResultsSchema = z.array(upstreamResultSchema);
+type UpstreamCourse = z.infer<typeof upstreamCourseSchema>;
 
 async function fetchJson<T>(url: string, schema: z.ZodType<T>): Promise<T> {
   for (let attempt = 1; ; attempt++) {
@@ -53,35 +52,30 @@ async function fetchJson<T>(url: string, schema: z.ZodType<T>): Promise<T> {
 }
 
 /** Pages start at 0, not 1 as the upstream API docs suggest. */
-async function listCourses() {
-  const courses: z.infer<typeof upstreamCourseSchema>[] = [];
+async function listCourses(apiUrl: string) {
+  const courses: UpstreamCourse[] = [];
   for (let page = 0; ; page++) {
-    const { courses: batch } = await fetchJson(
-      `${env.API_URL}/courses?sort=courseCode_asc&items=${PAGE_SIZE}&page=${page}`,
-      upstreamPageSchema,
-    );
+    const { courses: batch } = await fetchJson(`${apiUrl}/courses?sort=courseCode_asc&items=${PAGE_SIZE}&page=${page}`, upstreamPageSchema);
     courses.push(...batch);
     if (batch.length < PAGE_SIZE) return courses;
   }
 }
 
-const toParts = (results: z.infer<typeof upstreamResultsSchema>): Part[] =>
+export const toParts = (results: z.infer<typeof upstreamResultsSchema>): Part[] =>
   partsOf(results.map(({ date, type, resultId, ...grades }) => ({ date, type, code: resultId, grades })));
 
 /** "INFORMATIONSTEKNIK, CIVILINGENJÖR" becomes "Informationsteknik, civilingenjör". */
-const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+export const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 
-async function main() {
-  const upstream = (await listCourses()).toSorted((a, b) => a.courseCode.localeCompare(b.courseCode));
-  console.log(`Fetched ${upstream.length} courses`);
+export const toCourseHead = (course: UpstreamCourse) => ({
+  code: course.courseCode,
+  name: course.courseName,
+  programme: course.programShort === NO_PROGRAMME ? null : course.programShort,
+});
 
-  const courses: ResultsFile["courses"] = await mapConcurrent(upstream, env.CONCURRENCY, async (course) => ({
-    code: course.courseCode,
-    name: course.courseName,
-    programme: course.programShort === NO_PROGRAMME ? null : course.programShort,
-    parts: toParts(await fetchJson(`${env.API_URL}/results/${encodeURIComponent(course.courseCode)}`, upstreamResultsSchema)),
-  }));
-  const programmes = Object.fromEntries(
+/** The programme codes of `upstream` with their names, sentence-cased from the long name when the source has one. */
+export const toProgrammes = (upstream: readonly UpstreamCourse[]) =>
+  Object.fromEntries(
     upstream
       .filter((c) => c.programShort !== NO_PROGRAMME)
       .map((c) => {
@@ -91,9 +85,20 @@ async function main() {
       .toSorted(([a], [b]) => a.localeCompare(b)),
   );
 
+async function main() {
+  const env = envSchema.parse(process.env);
+  const upstream = (await listCourses(env.API_URL)).toSorted((a, b) => a.courseCode.localeCompare(b.courseCode));
+  console.log(`Fetched ${upstream.length} courses`);
+
+  const courses: ResultsFile["courses"] = await mapConcurrent(upstream, env.CONCURRENCY, async (course) => ({
+    ...toCourseHead(course),
+    parts: toParts(await fetchJson(`${env.API_URL}/results/${encodeURIComponent(course.courseCode)}`, upstreamResultsSchema)),
+  }));
+  const programmes = toProgrammes(upstream);
+
   await mkdir(path.dirname(env.OUT_FILE), { recursive: true });
   await writeFile(env.OUT_FILE, toJsonLines({ programmes }, "courses", courses));
   console.log(`Wrote ${courses.length} courses and ${Object.keys(programmes).length} programmes to ${env.OUT_FILE}`);
 }
 
-await main();
+if (import.meta.main) await main();
