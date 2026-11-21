@@ -3,6 +3,7 @@ dist
 *.tsbuildinfo
 public/data
 public/data.tmp
+public/data.old
 mockups
 .claude/settings.local.json
 .vercel

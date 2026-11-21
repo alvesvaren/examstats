@@ -58,11 +58,12 @@ async function main() {
   ]);
   const { index, courses, plans: publishedPlans } = buildSnapshot({ results, evaluations, plans, names, upcoming }, new Date());
 
-  // Write beside the output and swap it in last, so a crash leaves the old data in place.
+  // Write beside the output and swap it in last, so a crash leaves either the old or the new data in place.
   const tmpDir = `${env.OUT_DIR}.tmp`;
+  const oldDir = `${env.OUT_DIR}.old`;
   const coursesDir = path.join(tmpDir, "courses");
   const plansDir = path.join(tmpDir, "plans");
-  await rm(tmpDir, { recursive: true, force: true });
+  await Promise.all([tmpDir, oldDir].map((dir) => rm(dir, { recursive: true, force: true })));
   await Promise.all([mkdir(coursesDir, { recursive: true }), mkdir(plansDir, { recursive: true })]);
   const files = [
     [path.join(tmpDir, "index.json"), JSON.stringify(index, roundNumbers)],
@@ -70,8 +71,11 @@ async function main() {
     ...[...publishedPlans].map(([start, cohort]) => [path.join(plansDir, `${start}.json`), JSON.stringify(cohort)] as const),
   ];
   await mapConcurrent(files, WRITE_CONCURRENCY, ([file, content]) => writeFile(file, content));
-  await rm(env.OUT_DIR, { recursive: true, force: true });
+  await rename(env.OUT_DIR, oldDir).catch((error: unknown) => {
+    if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
+  });
   await rename(tmpDir, env.OUT_DIR);
+  await rm(oldDir, { recursive: true, force: true });
   console.log(`Wrote ${courses.length} courses and ${Object.keys(index.programmes).length} programmes to ${env.OUT_DIR}`);
 }
 
