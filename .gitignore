@@ -2,6 +2,7 @@ node_modules
 dist
 *.tsbuildinfo
 public/data
+public/data.tmp
 mockups
 .claude/settings.local.json
 .vercel
