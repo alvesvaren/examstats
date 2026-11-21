@@ -140,12 +140,12 @@ export function exclusiveWith<R extends PlanRound>(round: PlanRound, plan: reado
 }
 
 /** A degree requirement the student has to choose courses for, with how far the whole plan goes towards it. */
-export interface DegreeRule extends ReturnType<typeof requirementProgress> {
+export interface DegreeRuleProgress extends ReturnType<typeof requirementProgress> {
   requirement: PlanRequirement;
 }
 
 /** What a course gives towards a degree requirement, in the requirement's unit. */
-export type DegreeMark = DegreeRule & { amount: number };
+export type DegreeRuleMark = DegreeRuleProgress & { amount: number };
 
 /** Something to tell about a round that sits badly with the rest of the plan. */
 export type RoundWarning =
@@ -162,7 +162,7 @@ export interface ListedRound {
   elsewhere: PlanElsewhere | undefined;
   warnings: RoundWarning[];
   /** What the course gives towards the degree requirements the student has to choose courses for. */
-  marks: DegreeMark[];
+  marks: DegreeRuleMark[];
 }
 
 export const DEFAULT_PLANNER_SORT: PlannerSortKey = "rating";
@@ -216,7 +216,7 @@ export function yearView({
   const allPicks = [...otherPicks, ...picked.map((r) => ({ programme: yearProgramme.code, year, key: r.key }))];
   const courses = plannedCourses(plans, allPicks, track);
   const degreeRules = openRequirements(plans, track).map((requirement) => ({ requirement, ...requirementProgress(requirement, courses) }));
-  const marksOf = (round: PlannerRound): DegreeMark[] =>
+  const marksOf = (round: PlannerRound): DegreeRuleMark[] =>
     degreeRules.flatMap((rule) => {
       const amount = Math.max(...round.codes.map((code) => amountTowards(rule.requirement, { code, themes: round.themes })));
       return amount > 0 ? { ...rule, amount } : [];

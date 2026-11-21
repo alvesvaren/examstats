@@ -6,39 +6,29 @@ import { MetricInfo } from "@/components/metric-label";
 import { SortHeader } from "@/components/sort-header";
 import { SurveyColumnPicker } from "@/components/survey-column";
 import { Badge } from "@/components/ui/badge";
-import { amountTowards, openRequirements, pickProgress, requirementProgress } from "@/domain/degree";
-import { defaultSortDir, flip, surveyColumn, surveySortKey, type Catalog } from "@/domain/catalog";
+import { pickProgress } from "@/domain/degree";
+import { flip, surveySortKey, type Catalog } from "@/domain/catalog";
 import {
-  candidatesIn,
   creditsIn,
-  exclusiveWith,
-  findElsewhere,
-  firstOpenPeriod,
   lectureClash,
   PERIOD_CREDITS,
-  periodsOf,
-  plannerYear,
   togglePick,
+  yearView,
+  type DegreeRuleMark,
+  type DegreeRuleProgress,
   type PlanElsewhere,
   type PlannerRound,
   type PlannerSortKey,
+  type RoundWarning,
 } from "@/domain/planner";
 import type { PlanState, PlannerAction } from "@/domain/planner-state";
-import {
-  plannedCourses,
-  planYear,
-  type PlanChoice,
-  type PlanRequirement,
-  type StudyPeriod,
-  type StudyYear,
-} from "@/domain/programme-plans";
+import type { PlanChoice, PlanRequirement, StudyPeriod, StudyYear } from "@/domain/programme-plans";
 import type { Question } from "@/domain/evaluation";
 import { useMessages } from "@/hooks/use-messages";
 import type { Messages } from "@/lib/i18n/en";
 
 /** Sort headers sit right-aligned over their numbers. */
 const HEADER = "justify-end text-xs text-muted-foreground";
-const DEFAULT_SORT: PlannerSortKey = "rating";
 /** The add button, the course, its pass rate and a course survey question. Phones get narrower numbers, so the name keeps its room. */
 const ROW = "grid grid-cols-[2rem_minmax(0,1fr)_4rem_6rem] items-center gap-x-2 sm:grid-cols-[2rem_minmax(0,1fr)_5.5rem_6.5rem] sm:gap-x-3";
 
@@ -55,43 +45,30 @@ interface YearPlannerProps {
  * to choose between for one study period at a time.
  */
 export function YearPlanner({ state, current, catalog, dispatch }: YearPlannerProps) {
-  const { years, track, search, pickedKeys, otherPicks: other } = state;
-  // The programme whose plan holds this year: the master's programme in years 4 and 5.
   const t = useMessages();
-  const { plan: yearProgramme, year } = current;
-  const { rounds, picks } = planYear(yearProgramme, year, { track, ruleNames: t.ruleNames(catalog.plans.ruleNames) });
-  const { fixed, candidates } = plannerYear(rounds, catalog.byCode);
-  const picked = candidates.filter((c) => pickedKeys.includes(c.key));
-  const plan = [...fixed, ...picked];
-  const periods = periodsOf([...fixed, ...candidates]);
-  const period = periods.find((p) => p === search.period) ?? firstOpenPeriod(periods, plan);
-  const sort = search.sort ?? DEFAULT_SORT;
+  const { years, track, search, pickedKeys, otherPicks } = state;
+  const view = yearView({
+    years,
+    current,
+    track,
+    pickedKeys,
+    otherPicks,
+    period: search.period,
+    sort: search.sort,
+    dir: search.dir,
+    survey: search.survey,
+    stats: catalog.byCode,
+    ruleNames: t.ruleNames(catalog.plans.ruleNames),
+  });
+  const { fixed, candidates, picked, plan, periods, period, sort, dir, survey, listed, planned, pickRules, degreeRules, offered } = view;
   if (!period) return <p className="text-muted-foreground">{t.planner.noCoursesThisYear}</p>;
 
-  const dir = search.dir ?? defaultSortDir(sort);
-  const listed = candidatesIn(candidates, period, sort, dir);
-  const survey = surveyColumn(sort, search.survey);
   // The active column flips its order. Another column starts in its own default order.
   const sortBy = (key: PlannerSortKey) => dispatch({ type: "view", changes: { sort: key, dir: key === sort ? flip(dir) : undefined } });
   const pickSurvey = (question: Question) =>
     dispatch({
       type: "view",
       changes: { sort: surveySortKey(question), dir: undefined, survey: question === "overall" ? undefined : question },
-    });
-  const planned = plan.reduce((sum, r) => sum + r.credits, 0);
-  // Degree requirements count the whole degree: the compulsory courses and the picks of every year of every plan.
-  const plans = [...new Set(years.map((y) => y.plan))];
-  const allPicks = [...other, ...picked.map((r) => ({ programme: yearProgramme.code, year, key: r.key }))];
-  const courses = plannedCourses(plans, allPicks, track);
-  const degreeRules = openRequirements(plans, track).map((requirement) => ({
-    requirement,
-    ...requirementProgress(requirement, courses),
-  }));
-  const offered = new Set(plans.flatMap((p) => p.years.flatMap((y) => y.courses.map((c) => c.code))));
-  const marksOf = (round: PlannerRound) =>
-    degreeRules.flatMap((rule) => {
-      const amount = Math.max(...round.codes.map((code) => amountTowards(rule.requirement, { code, themes: round.themes })));
-      return amount > 0 ? { ...rule, amount } : [];
     });
   const inPeriod = (round: PlannerRound) => round.periods.includes(period);
   const setPicks = (keys: string[], keepPeriod?: StudyPeriod) => dispatch({ type: "setPicks", keys, period: keepPeriod });
@@ -105,13 +82,6 @@ export function YearPlanner({ state, current, catalog, dispatch }: YearPlannerPr
       ),
       period,
     );
-  const warningsOf = (round: PlannerRound) => {
-    const clash = lectureClash(round, plan);
-    const exclusive = exclusiveWith(round, plan);
-    return [clash && t.planner.sameLectures(clash.name, fixed.includes(clash)), exclusive && t.planner.exclusive(exclusive.name)].filter(
-      (warning) => typeof warning === "string",
-    );
-  };
 
   return (
     <>
@@ -133,8 +103,8 @@ export function YearPlanner({ state, current, catalog, dispatch }: YearPlannerPr
           ))}
         </div>
         <div className="flex flex-col gap-1 text-sm">
-          {picks.map((pick) => (
-            <PickRule key={pick.id} progress={pickProgress(pick, yearProgramme, courses)} pick={pick} />
+          {pickRules.map(({ pick, progress }) => (
+            <PickRule key={pick.id} progress={progress} pick={pick} />
           ))}
           {degreeRules.map((rule) => (
             <DegreeRule key={requirementKey(rule.requirement)} rule={rule} offered={offered} />
@@ -173,16 +143,16 @@ export function YearPlanner({ state, current, catalog, dispatch }: YearPlannerPr
           </SortHeader>
         </div>
         <ul>
-          {listed.map((round) => (
+          {listed.map(({ round, picked: isPicked, elsewhere, warnings, marks }) => (
             <Candidate
               key={round.key}
               round={round}
               survey={survey}
               period={period}
-              picked={picked.includes(round)}
-              elsewhere={findElsewhere(round, picked, other)}
-              warnings={warningsOf(round)}
-              marks={marksOf(round)}
+              picked={isPicked}
+              elsewhere={elsewhere}
+              warnings={warnings}
+              marks={marks}
               onToggle={() => toggle(round)}
             />
           ))}
@@ -321,10 +291,9 @@ function PickRule({ pick, progress }: { pick: PlanChoice; progress: ReturnType<t
   );
 }
 
-/** A degree requirement the student has to choose courses for, with how far the whole plan goes towards it. */
-interface DegreeRuleProgress extends ReturnType<typeof requirementProgress> {
-  requirement: PlanRequirement;
-}
+/** The warning in words. */
+const warningText = (warning: RoundWarning, t: Messages) =>
+  warning.kind === "sameLectures" ? t.planner.sameLectures(warning.name, warning.fixed) : t.planner.exclusive(warning.name);
 
 const requirementKey = (requirement: PlanRequirement) => (requirement.kind === "theme" ? requirement.theme : requirement.courses.join());
 
@@ -366,7 +335,7 @@ function DegreeRule({ rule, offered }: { rule: DegreeRuleProgress; offered: Read
 }
 
 /** What a course gives towards a degree requirement. Faded once the plan meets the requirement. */
-function DegreeMark({ mark }: { mark: DegreeRuleProgress & { amount: number } }) {
+function DegreeMark({ mark }: { mark: DegreeRuleMark }) {
   const t = useMessages();
   const { requirement, done, amount } = mark;
   if (requirement.kind === "courses") {
@@ -413,9 +382,9 @@ interface CandidateProps {
   picked: boolean;
   /** Where another round of the same course is in the plan. It greys this round out. */
   elsewhere: PlanElsewhere | undefined;
-  warnings: string[];
+  warnings: RoundWarning[];
   /** What the course gives towards the degree requirements the student has to choose courses for. */
-  marks: (DegreeRuleProgress & { amount: number })[];
+  marks: DegreeRuleMark[];
   onToggle: () => void;
 }
 
@@ -473,11 +442,14 @@ function Candidate({ round, survey, period, picked, elsewhere, warnings, marks, 
           ))}
         </span>
         <span className="text-xs text-muted-foreground">{details}</span>
-        {warnings.map((warning) => (
-          <span key={warning} className="text-xs font-medium text-grade-u">
-            {warning}
-          </span>
-        ))}
+        {warnings.map((warning) => {
+          const text = warningText(warning, t);
+          return (
+            <span key={text} className="text-xs font-medium text-grade-u">
+              {text}
+            </span>
+          );
+        })}
         {elsewhere && (
           <span className="text-xs text-muted-foreground">
             {elsewhere.year
