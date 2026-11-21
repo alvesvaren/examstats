@@ -6,7 +6,7 @@ import { NativeSelectOption } from "@/components/ui/native-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { academicYearOf, MASTER_START_YEAR } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
-import { ChalmersLink, Prerequisites, Specialisations } from "./master-details";
+import { ChalmersLink, CourseListLink, Prerequisites, Specialisations } from "./master-details";
 import { MasterPicker, MastersNotPublished, UnplannedCourses } from "./master-picker";
 import { ProgrammeSearch } from "./programme-search";
 import { usePlanner } from "./use-planner";
@@ -36,12 +36,17 @@ export function PlannerPage() {
         </Button>
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h1 className="text-2xl font-semibold">{programme.name}</h1>
-          <span className="text-muted-foreground">{[programme.code, otherName].filter(Boolean).join(" · ")}</span>
+          <CourseListLink code={programme.code} listed={catalog.listedProgrammes} className="text-muted-foreground">
+            {[programme.code, otherName].filter(Boolean).join(" · ")}
+          </CourseListLink>
           <ChalmersLink code={programme.code} />
         </div>
         {master && (
           <p className="text-muted-foreground">
-            {t.planner.mastersYears} <span className="font-medium text-foreground">{master.name}</span> · {master.code}{" "}
+            {t.planner.mastersYears}{" "}
+            <CourseListLink code={master.code} listed={catalog.listedProgrammes}>
+              <span className="font-medium text-foreground">{master.name}</span> · {master.code}
+            </CourseListLink>{" "}
             <ChalmersLink code={master.code} courseList={masterAccreditation?.courseList} />
           </p>
         )}
