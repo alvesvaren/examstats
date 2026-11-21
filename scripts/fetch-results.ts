@@ -61,12 +61,14 @@ async function listCourses(apiUrl: string) {
   }
 }
 
+/** The results of a course as parts, with the upstream result id as the part's code. */
 export const toParts = (results: z.infer<typeof upstreamResultsSchema>): Part[] =>
   partsOf(results.map(({ date, type, resultId, ...grades }) => ({ date, type, code: resultId, grades })));
 
 /** "INFORMATIONSTEKNIK, CIVILINGENJÖR" becomes "Informationsteknik, civilingenjör". */
 export const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 
+/** What a course entry holds besides its parts: the code, the name, and the programme, null when the source has none. */
 export const toCourseHead = (course: UpstreamCourse) => ({
   code: course.courseCode,
   name: course.courseName,
