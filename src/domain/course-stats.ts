@@ -1,6 +1,38 @@
-import { attemptsOf, passRateOf, sumCounts } from "./grades.ts";
+import { z } from "zod";
+import { attemptsOf, gradeCountsSchema, passRateOf, sumCounts } from "./grades.ts";
 import type { GradeCounts } from "./grades.ts";
-import type { CourseSummary, Part, Sitting } from "./snapshot.ts";
+import type { CourseSummary } from "./snapshot.ts";
+
+export const sittingSchema = z.object({
+  date: z.iso.date(),
+  grades: gradeCountsSchema,
+});
+
+export const partSchema = z.object({
+  /** Swedish part type from the source, such as "Tentamen" or "Laboration, del A". */
+  type: z.string(),
+  code: z.string(),
+  sittings: z.array(sittingSchema),
+});
+
+/** The committed file that `pnpm fetch-results` writes and `pnpm snapshot` reads. */
+export const resultsFileSchema = z.object({
+  /** Programme names by code. */
+  programmes: z.record(z.string(), z.string()),
+  courses: z.array(
+    z.object({
+      code: z.string(),
+      name: z.string(),
+      programme: z.string().nullable(),
+      /** Main part first, then the rest by attempts. */
+      parts: z.array(partSchema),
+    }),
+  ),
+});
+
+export type Sitting = z.infer<typeof sittingSchema>;
+export type Part = z.infer<typeof partSchema>;
+export type ResultsFile = z.infer<typeof resultsFileSchema>;
 
 /** Academic years start in September, so an August retake belongs to the year before. */
 const ACADEMIC_YEAR_START_MONTH = 9;

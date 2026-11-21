@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { averageGradeOf, emptyCounts, passRateOf, type GradeCounts } from "./grades.ts";
-import { academicYear, latestExam, orderParts, partsOf, summarizeCourse } from "./course-stats.ts";
-import type { Part } from "./snapshot.ts";
+import { academicYear, latestExam, orderParts, partsOf, summarizeCourse, type Part } from "./course-stats.ts";
 
 const grades = (partial: Partial<GradeCounts>): GradeCounts => ({ ...emptyCounts(), ...partial });
 const sitting = (date: string, partial: Partial<GradeCounts>) => ({ date, grades: grades(partial) });

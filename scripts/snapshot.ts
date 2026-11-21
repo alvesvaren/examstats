@@ -16,7 +16,8 @@ import {
   surveyAnswersOf,
   type EvaluationRound,
 } from "../src/domain/evaluation.ts";
-import { resultsFileSchema, type CourseDetail, type Snapshot } from "../src/domain/snapshot.ts";
+import { resultsFileSchema } from "../src/domain/course-stats.ts";
+import type { CourseDetail, Snapshot } from "../src/domain/snapshot.ts";
 import {
   cohortPlans,
   courseThisYear,

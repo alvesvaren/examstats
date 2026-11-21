@@ -8,7 +8,7 @@ import path from "node:path";
 import { z } from "zod";
 import { partsOf } from "../src/domain/course-stats.ts";
 import { gradeCountsSchema } from "../src/domain/grades.ts";
-import type { Part, ResultsFile } from "../src/domain/snapshot.ts";
+import type { Part, ResultsFile } from "../src/domain/course-stats.ts";
 import { toJsonLines } from "./json-lines.ts";
 import { mapConcurrent } from "./map-concurrent.ts";
 
