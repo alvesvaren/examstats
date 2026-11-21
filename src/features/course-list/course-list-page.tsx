@@ -3,6 +3,7 @@ import { getRouteApi, Link } from "@tanstack/react-router";
 import { ArrowLeftIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { FieldSelect } from "@/components/field-select";
+import { NativeSelectOption } from "@/components/ui/native-select";
 import { SearchField } from "@/components/search-field";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -214,12 +215,7 @@ interface ProgrammeSelectProps {
 
 function ProgrammeSelect({ programme, programmes, onChange }: ProgrammeSelectProps) {
   const t = useMessages();
-  const options = [
-    { value: ALL_PROGRAMMES, label: t.allProgrammes },
-    ...Object.entries(programmes)
-      .map(([code, { name }]) => ({ value: code, label: name === code ? code : `${name} · ${code}`, name }))
-      .toSorted((a, b) => a.name.localeCompare(b.name, "sv")),
-  ];
+  const byName = Object.entries(programmes).toSorted(([, a], [, b]) => a.name.localeCompare(b.name, "sv"));
   return (
     <FieldSelect
       value={programme ?? ALL_PROGRAMMES}
@@ -229,7 +225,13 @@ function ProgrammeSelect({ programme, programmes, onChange }: ProgrammeSelectPro
       }}
       aria-label={t.list.programme}
       className="min-w-0 flex-1 sm:w-72 sm:flex-none"
-      options={options}
-    />
+    >
+      <NativeSelectOption value={ALL_PROGRAMMES}>{t.allProgrammes}</NativeSelectOption>
+      {byName.map(([code, { name }]) => (
+        <NativeSelectOption key={code} value={code}>
+          {name === code ? code : `${name} · ${code}`}
+        </NativeSelectOption>
+      ))}
+    </FieldSelect>
   );
 }

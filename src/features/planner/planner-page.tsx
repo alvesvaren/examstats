@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowLeftIcon, PlusIcon, RepeatIcon } from "lucide-react";
 import { FieldSelect } from "@/components/field-select";
 import { Button } from "@/components/ui/button";
+import { NativeSelectOption } from "@/components/ui/native-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { academicYearOf, MASTER_START_YEAR } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
@@ -58,8 +59,13 @@ export function PlannerPage() {
             aria-label={t.planner.startYear}
             value={String(start)}
             onChange={(event) => dispatch({ type: "showStart", start: Number(event.target.value) })}
-            options={cohort.admitted.toReversed().map((year) => ({ value: String(year), label: t.planner.started(academicYearOf(year)) }))}
-          />
+          >
+            {cohort.admitted.toReversed().map((year) => (
+              <NativeSelectOption key={year} value={String(year)}>
+                {t.planner.started(academicYearOf(year))}
+              </NativeSelectOption>
+            ))}
+          </FieldSelect>
         )}
         <div className="flex flex-wrap items-center gap-2">
           <ToggleGroup
@@ -98,8 +104,14 @@ export function PlannerPage() {
             aria-label={t.planner.track}
             value={track ?? ALL_TRACKS}
             onChange={(event) => dispatch({ type: "showTrack", track: event.target.value || undefined })}
-            options={[{ value: ALL_TRACKS, label: t.planner.allTracks }, ...tracks.map((name) => ({ value: name, label: name }))]}
-          />
+          >
+            <NativeSelectOption value={ALL_TRACKS}>{t.planner.allTracks}</NativeSelectOption>
+            {tracks.map((name) => (
+              <NativeSelectOption key={name} value={name}>
+                {name}
+              </NativeSelectOption>
+            ))}
+          </FieldSelect>
         )}
       </div>
 
