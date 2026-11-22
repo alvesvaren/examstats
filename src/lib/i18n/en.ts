@@ -204,6 +204,8 @@ export const en = {
     chooseTrackHint: (kind: TrackKind, plan: string) =>
       `${plan} has ${TRACKS[kind].many} with courses of their own. You can change it later.`,
     everyTrack: "Shows the courses of all of them",
+    /** Marks the specialisations that the master's programme does not give the student's degree with. */
+    withoutDegree: "Not for your degree",
 
     chooseMaster: "Choose your master's programme",
     mastersIntro: (count: number, programme: string) =>

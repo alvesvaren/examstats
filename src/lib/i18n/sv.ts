@@ -191,6 +191,7 @@ export const sv: Messages = {
     chooseTrack: (kind) => `Vilken ${TRACKS[kind].one} läser du?`,
     chooseTrackHint: (kind, plan) => `${plan} har ${TRACKS[kind].many} med egna kurser. Du kan byta senare.`,
     everyTrack: "Visar kurserna i alla",
+    withoutDegree: "Ger inte din examen",
 
     chooseMaster: "Välj ditt masterprogram",
     mastersIntro: (count, programme) => `${counted(count, "masterprogram", "masterprogram")} kan bli år 4 och 5 i ${programme}.`,

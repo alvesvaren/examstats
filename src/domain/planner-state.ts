@@ -159,6 +159,10 @@ export function resolvePlanner({ search, memory, cohort, plans, masterPlans, nam
   // A track in the URL is a shared plan and wins. Without one, it is the one this device chose in the plan, which a
   // master's programme keeps in both its years. Without either, the student chooses one, or none.
   const trackChoice = current && chosenTrack(tracks, search.track, memory.tracks[current.plan.code]);
+  const masterAccreditation = master && accredited.get(master.code);
+  // A master's programme can give the degree only with some of its specialisations, and the student follows one of those.
+  const degreeTracks = master && current?.plan === master ? (masterAccreditation?.specialisations ?? []) : [];
+  const withoutDegree = degreeTracks.length > 0 ? tracks.filter((t) => !degreeTracks.includes(t)) : [];
   /** The track chosen in a plan: the one shown when a year of it shows, else the one remembered for it. None is undefined. */
   const trackOf = (plan: ProgrammePlan) => (current?.plan === plan ? trackChoice : memory.tracks[plan.code]) || undefined;
   const pickedKeys = current ? (search.picked ?? rememberedPicks(memory, current.plan.code, current.year) ?? []) : [];
@@ -173,7 +177,7 @@ export function resolvePlanner({ search, memory, cohort, plans, masterPlans, nam
     accredited,
     masters,
     master,
-    masterAccreditation: master && accredited.get(master.code),
+    masterAccreditation,
     years,
     choosingMaster,
     /** Whether the page says where the master's programmes come from. */
@@ -185,6 +189,8 @@ export function resolvePlanner({ search, memory, cohort, plans, masterPlans, nam
      */
     choosingStart: cohort.admitted.length > 1 && (search.start ?? memory.starts[programme.code]) === undefined,
     tracks,
+    /** The tracks of the year shown that the master's programme gives the student's degree without. */
+    tracksWithoutDegree: withoutDegree,
     /** What the plan of the year shown calls its tracks. */
     trackKind: trackKind(current?.plan.code ?? programme.code),
     /** The track whose courses the year shows. Undefined shows those of every track. */
@@ -204,7 +210,7 @@ export function resolvePlanner({ search, memory, cohort, plans, masterPlans, nam
     /** The track of the master's programme, which picks the requirements of a specialisation that has its own. */
     masterTrack: master && trackOf(master),
     /** The course list of the upcoming master's programme the current year belongs to, which its new courses link to. */
-    courseList: master && current?.plan === master ? (accredited.get(master.code)?.courseList ?? null) : null,
+    courseList: master && current?.plan === master ? (masterAccreditation?.courseList ?? null) : null,
   };
 }
 type PlannerState = ReturnType<typeof resolvePlanner>;

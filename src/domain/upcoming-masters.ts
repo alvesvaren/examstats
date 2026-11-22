@@ -7,6 +7,7 @@ import {
   type PlanChoice,
   type PlanCourse,
   type ProgrammePlan,
+  tracksOf,
   type UpcomingMasters,
 } from "./programme-plans.ts";
 
@@ -86,6 +87,21 @@ const pendingCode = (name: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")}`;
 
+/**
+ * The track of `plan` that a specialisation in the matrix names: the one of the same name in either spelling, or else
+ * the only one whose name it holds, since the matrix can put the subject first, as in "Space Geodesy and Remote
+ * Sensing" for "Geodesy and remote sensing". The planner greys out the other tracks, so a name that matches none throws.
+ */
+function trackNamed(specialisation: string, plan: ProgrammePlan | undefined) {
+  const tracks = tracksOf(plan?.years.flatMap((y) => y.courses) ?? []);
+  const name = matchName(specialisation);
+  const same = tracks.find((track) => matchName(track) === name);
+  const held = tracks.filter((track) => name.includes(matchName(track)));
+  const track = same ?? (held.length === 1 ? held[0] : undefined);
+  if (track === undefined) throw new Error(`${plan?.code ?? "A master's programme"} plans no specialisation "${specialisation}"`);
+  return track;
+}
+
 /** What a plan knows of a course only a course list names. */
 const UNKNOWN = { credits: 0, periods: [], periodCredits: [], block: null, themes: [], examiners: [], modules: [], seats: null };
 
@@ -156,9 +172,15 @@ export function upcomingMasters(
     masters[master.code] = { courseList: master.courseList };
   }
 
+  const plansByCode = new Map(plans.map((plan) => [plan.code, plan]));
+  // The matrix and the course lists spell some specialisations differently, and the planner shows those of the plan.
   const accreditations = Map.groupBy(
     file.masters.flatMap(({ code, accreditations: rows }) =>
-      rows.map(({ programme, specialisations }) => ({ programme, code, specialisations })),
+      rows.map(({ programme, specialisations }) => ({
+        programme,
+        code,
+        specialisations: specialisations.map((s) => trackNamed(s, plansByCode.get(code))),
+      })),
     ),
     (a) => a.programme,
   );

@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowLeftIcon, PlusIcon, RepeatIcon } from "lucide-react";
 import { FieldSelect } from "@/components/field-select";
 import { Button } from "@/components/ui/button";
-import { NativeSelectOption } from "@/components/ui/native-select";
+import { NativeSelectOptGroup, NativeSelectOption } from "@/components/ui/native-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { admissionTo } from "@/domain/eligibility";
 import { NO_TRACK } from "@/domain/planner-state";
@@ -24,7 +24,7 @@ export function PlannerPage() {
   }
 
   const { programme, otherName, cohort, masters, master, masterAccreditation, years, choosingMaster, current } = state;
-  const { tracks, track, trackKind, choosingTrack, choosingStart } = state;
+  const { tracks, tracksWithoutDegree, track, trackKind, choosingTrack, choosingStart } = state;
   const startYears = cohort.admitted.toReversed();
   const chooseMaster = (code: string | undefined) => dispatch({ type: "chooseMaster", master: code });
   const showStart = (start: number) => dispatch({ type: "showStart", start });
@@ -128,11 +128,22 @@ export function PlannerPage() {
                 onChange={(event) => showTrack(event.target.value)}
               >
                 <NativeSelectOption value={NO_TRACK}>{t.planner.noTrack(trackKind)}</NativeSelectOption>
-                {tracks.map((name) => (
-                  <NativeSelectOption key={name} value={name}>
-                    {name}
-                  </NativeSelectOption>
-                ))}
+                {tracks
+                  .filter((name) => !tracksWithoutDegree.includes(name))
+                  .map((name) => (
+                    <NativeSelectOption key={name} value={name}>
+                      {name}
+                    </NativeSelectOption>
+                  ))}
+                {tracksWithoutDegree.length > 0 && (
+                  <NativeSelectOptGroup label={t.planner.withoutDegree}>
+                    {tracksWithoutDegree.map((name) => (
+                      <NativeSelectOption key={name} value={name} disabled className="text-muted-foreground">
+                        {name}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelectOptGroup>
+                )}
               </FieldSelect>
             )}
           </div>
@@ -154,7 +165,13 @@ export function PlannerPage() {
           ) : current === undefined ? (
             <p className="text-muted-foreground">{t.planner.noCourses}</p>
           ) : choosingTrack ? (
-            <TrackChooser kind={trackKind} planName={current.plan.name} tracks={tracks} onChoose={showTrack} />
+            <TrackChooser
+              kind={trackKind}
+              planName={current.plan.name}
+              tracks={tracks}
+              withoutDegree={tracksWithoutDegree}
+              onChoose={showTrack}
+            />
           ) : (
             <YearPlanner
               years={years}

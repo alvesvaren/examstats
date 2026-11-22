@@ -155,6 +155,33 @@ describe("upcomingMasters", () => {
     expect(plans.find((p) => p.code === "MPBIO")).not.toHaveProperty("academicYear");
   });
 
+  /** `file` with MPCOS accrediting TKAUT only with `specialisations`, and planning two specialisations. */
+  const accrediting = (specialisations: string[]): UpcomingMastersFile => ({
+    ...file,
+    masters: [
+      {
+        ...file.masters[0]!,
+        accreditations: [{ programme: "TKAUT", degree: "engineering", specialisations }],
+        courses: [
+          listed("Nonlinear optimisation", { track: "Algorithms" }),
+          listed("Complexity", { track: "Sustainability modelling and analytics", year: 2 }),
+        ],
+      },
+    ],
+  });
+
+  it("names the specialisations the degree needs as the plan does, however the matrix spells them", () => {
+    const spelled = upcomingMasters(accrediting(["Sustainability Modeling and Analytics", "Space Algorithms"]), current, []);
+
+    expect(spelled.info.accreditations).toEqual({
+      TKAUT: [{ code: "MPCOS", specialisations: ["Sustainability modelling and analytics", "Algorithms"] }],
+    });
+  });
+
+  it("throws on a specialisation the plan does not have, since the planner greys out the other tracks", () => {
+    expect(() => upcomingMasters(accrediting(["Robotics"]), current, [])).toThrow('MPCOS plans no specialisation "Robotics"');
+  });
+
   it("lists the master's programmes of each programme, with the specialisations the degree needs", () => {
     expect(info.accreditations).toEqual({
       TKDAT: [

@@ -104,7 +104,7 @@ const TKITE = plan(
   { masters: ["MPALG", "MPCSC"] },
 );
 const MPALG = plan("MPALG", {
-  1: [course("DAT060"), course("DAT061", { periods: ["LP2"], track: "Security" })],
+  1: [course("DAT060"), course("DAT061", { periods: ["LP2"], track: "Security" }), course("DAT062", { track: "Algorithms" })],
   2: [course("TDA352", { track: "Security" })],
 });
 const MPCSC = plan("MPCSC", { 1: [course("DAT450")] });
@@ -124,7 +124,7 @@ const INFO = publishedPlanInfoSchema.parse({
 const UPCOMING = upcomingMastersSchema.parse({
   academicYear: "2027/2028",
   matrix: "https://example.com/matrix.pdf",
-  accreditations: { TKITE: [{ code: "MPALG", specialisations: ["Algorithms"] }] },
+  accreditations: { TKITE: [{ code: "MPALG", specialisations: ["Security"] }] },
   masters: { MPALG: { courseList: "https://example.com/mpalg.pdf" } },
 });
 
@@ -324,7 +324,21 @@ describe("resolvePlanner", () => {
       const state = planned({ programme: "TKITE", start: 2024, master: "MPALG", year: 4 }, MEMORY, info);
 
       expect(state.masters).toEqual([MPALG]);
-      expect(state.masterAccreditation).toEqual({ specialisations: ["Algorithms"], courseList: "https://example.com/mpalg.pdf" });
+      expect(state.masterAccreditation).toEqual({ specialisations: ["Security"], courseList: "https://example.com/mpalg.pdf" });
+    });
+
+    it("sets apart the specialisations of the master's programme that the degree cannot have", () => {
+      const inMaster = planned({ programme: "TKITE", start: 2024, master: "MPALG", year: 4 }, MEMORY, info);
+      const inProgramme = planned({ programme: "TKITE", start: 2024, master: "MPALG", year: 3 }, MEMORY, info);
+
+      expect(inMaster).toMatchObject({ tracks: ["Algorithms", "Security"], tracksWithoutDegree: ["Algorithms"] });
+      expect(inProgramme).toMatchObject({ tracks: ["AI", "Web"], tracksWithoutDegree: [] });
+    });
+
+    it("sets apart no specialisation of a master's programme that gives the degree with any", () => {
+      const state = planned({ programme: "TKITE", master: "MPALG", year: 4 });
+
+      expect(state).toMatchObject({ tracks: ["Algorithms", "Security"], tracksWithoutDegree: [] });
     });
 
     it("links the new courses of the master's programme's years to its course list, and those of the programme's own years nowhere", () => {
