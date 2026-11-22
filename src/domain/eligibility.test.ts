@@ -76,6 +76,7 @@ describe("eligibilityOf", () => {
           offered: [],
           offeredLate: [],
           reach: "plans",
+          withinPlans: course("LMA017"),
         },
         {
           rule: course("DAT566"),
@@ -87,6 +88,7 @@ describe("eligibilityOf", () => {
           offered: [offered("DAT566", 3, "LP2")],
           offeredLate: [offered("DAT566", 3, "LP4")],
           reach: "plans",
+          withinPlans: course("DAT566"),
         },
       ],
     });
@@ -98,6 +100,20 @@ describe("eligibilityOf", () => {
     const options = [offered("DAT566", 3, "LP2"), offered("EEM076", 3, "LP4"), offered("KBT340", 2, "LP2")];
     const eligibility = eligibilityOf({ kind: "courses", rule }, { taken: [], offered: options });
     expect(eligibility.kind === "courses" && eligibility.clauses.map((c) => c.reach)).toEqual(["plans", "late", "outside", "outside"]);
+  });
+
+  it("narrows a requirement to the choices the first years' plans have, and keeps it whole when they have none", () => {
+    // TKITE's requirement for MPMSD in the guide for 2027/2028, whose plans have only MVE270.
+    const calculus: CourseRule = { kind: "any", of: [course("LMA017"), course("MVE270"), course("MVE255"), course("MVE655")] };
+    const fluids: CourseRule = { kind: "atLeast", count: 2, of: [course("MTF053"), course("KBT340"), course("MMS260")] };
+    const rule: CourseRule = { kind: "all", of: [calculus, fluids, course("PPU061")] };
+    const options = [offered("MVE270", 2, "LP3"), offered("KBT340", 2, "LP2"), offered("MMS260", 4, "LP1")];
+    const eligibility = eligibilityOf({ kind: "courses", rule }, { taken: [], offered: options });
+    expect(eligibility.kind === "courses" && eligibility.clauses.map((c) => c.withinPlans)).toEqual([
+      course("MVE270"),
+      { kind: "all", of: [course("KBT340"), course("MMS260")] },
+      course("PPU061"),
+    ]);
   });
 
   it("passes on what the guide does not check", () => {
