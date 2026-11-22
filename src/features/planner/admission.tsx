@@ -59,8 +59,8 @@ function useAdmissionWords(names: Names) {
   const t = useMessages();
   const language = useLanguage();
   return {
-    /** A clause in words, its courses named by the codes the plans have. */
-    clause: (clause: Clause) => ruleText(clause.rule, courseLabel(names, language, plannedCodes(clause)), t),
+    /** A clause in words, by the courses and codes the plans have when they can meet it. */
+    clause: (clause: Clause) => ruleText(clause.withinPlans, courseLabel(names, language, plannedCodes(clause)), t),
     /** A course in words, by every code the guide gives it. */
     course: courseLabel(names, language, new Set()),
     /** Where the plans have some courses: each course's code, and the study periods of its rounds in each year of study. */

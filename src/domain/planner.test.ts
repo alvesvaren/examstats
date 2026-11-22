@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { toCatalogCourse } from "./catalog.ts";
-import type { Clause } from "./eligibility.ts";
+import type { Clause, CourseRule } from "./eligibility.ts";
 import type { SurveyAnswers } from "./evaluation.ts";
 import { emptyCounts } from "./grades.ts";
 import {
@@ -365,17 +365,10 @@ const progressOf = (view: ReturnType<typeof yearView>) => {
 const listedKeys = (view: ReturnType<typeof yearView>) => keys(view.listed.map((l) => l.round));
 
 /** A requirement for admission to a master's programme of one course, not met yet. */
-const admissionClause = (code: string, registration = false): Clause => ({
-  rule: { kind: "course", codes: [code], name: code, registration },
-  met: false,
-  have: 0,
-  need: 1,
-  held: [],
-  late: [],
-  offered: [],
-  offeredLate: [],
-  reach: "plans",
-});
+function admissionClause(code: string, registration = false): Clause {
+  const rule: CourseRule = { kind: "course", codes: [code], name: code, registration };
+  return { rule, met: false, have: 0, need: 1, held: [], late: [], offered: [], offeredLate: [], reach: "plans", withinPlans: rule };
+}
 describe("yearView", () => {
   const mtsRule: PlanRequirement = { kind: "theme", theme: "mts", minCredits: 7.5 };
   const scienceRule: PlanRequirement = { kind: "courses", courses: ["MVE055"], minCourses: 1 };

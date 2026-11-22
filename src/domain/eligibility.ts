@@ -176,6 +176,22 @@ export function meets(rule: CourseRule, held: Held): boolean {
   }
 }
 
+/**
+ * A rule narrowed to the courses and alternatives that `held` meets it with, so that "A, B or C" reads "B" for a student
+ * whose plans have only B. Every part it keeps is met, so a set of 2 of 3 courses with 2 left asks for both. Undefined
+ * when `held` does not meet the rule.
+ */
+export function narrowTo(rule: CourseRule, held: Held): CourseRule | undefined {
+  if (!meets(rule, held)) return undefined;
+  if (rule.kind === "course") return rule;
+  const kept = rule.of.flatMap((r) => narrowTo(r, held) ?? []);
+  if (rule.kind === "all") return { ...rule, of: kept };
+  const count = rule.kind === "any" ? 1 : rule.count;
+  if (kept.length === 1) return kept[0];
+  if (kept.length === count) return { kind: "all", of: kept };
+  return { ...rule, of: kept };
+}
+
 /** A course a plan offers in the first years, with its name, year of study and study periods. */
 export interface OfferedCourse extends HeldCourse {
   name: string;
@@ -221,6 +237,12 @@ export interface Clause {
    * programme. A requirement that is met is within the plans.
    */
   reach: "plans" | "late" | "outside";
+  /**
+   * The rule narrowed to the courses that meet it: the student's once it is met, or else those of the first three
+   * years' plans, in time when they can, since a student weighs only the choices their plans have. The whole rule when
+   * the plans cannot meet it.
+   */
+  withinPlans: CourseRule;
 }
 
 /** What a student of a programme needs for a master's programme, checked against the student's courses where the guide names courses. */
@@ -255,6 +277,7 @@ export function eligibilityOf(
       offered: met ? [] : offered.filter((course) => countsTowards(rule, course)),
       offeredLate: met ? [] : offered.filter((course) => names(rule, course) && !countsTowards(rule, course)),
       reach: meets(rule, inPlans) ? "plans" : meets(rule, anyTime) ? "late" : "outside",
+      withinPlans: narrowTo(rule, inTime) ?? narrowTo(rule, inPlans) ?? narrowTo(rule, anyTime) ?? rule,
     };
   });
   return { kind: "courses", met: clauses.every((c) => c.met), clauses };
