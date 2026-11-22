@@ -6,6 +6,10 @@ Exam results and course survey ratings for every Chalmers course, and a course p
 
 `.claude/settings.json` enables the `alve-skills` plugin. Apply `typescript-best-practices` to all `.ts` and `.tsx` code, `react-best-practices` to UI code, and `testing-best-practices` to tests. Run `/alve-skills:writing` for docs, commits and PR text.
 
+## Open a pull request for finished work
+
+When you have pushed finished work to a branch, open a pull request against main, since main only takes pull requests.
+
 ## Commands
 
 - `pnpm snapshot` builds `public/data` from the committed files in `data/`, offline. Run it once before `pnpm dev`.
