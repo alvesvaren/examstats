@@ -452,9 +452,12 @@ export function parseGuide(pages: readonly string[]): { masters: GuideMaster[]; 
   return { masters, problems };
 }
 
+/** pdf.js logs errors only, not its warnings about the guide's fonts, which leave the text as it is. */
+const PDF_ERRORS_ONLY = 0;
+
 /** The text of each page of a PDF. */
 export async function pdfPages(bytes: Uint8Array): Promise<string[]> {
-  const pdf = await getDocumentProxy(bytes);
+  const pdf = await getDocumentProxy(bytes, { verbosity: PDF_ERRORS_ONLY });
   const { text } = await extractText(pdf, { mergePages: false });
   return text;
 }

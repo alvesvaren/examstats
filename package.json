@@ -14,7 +14,8 @@
     "snapshot": "node scripts/snapshot.ts",
     "fetch-results": "node scripts/fetch-results.ts",
     "evaluations": "node scripts/evaluations.ts",
-    "programme-plans": "node scripts/programme-plans.ts"
+    "programme-plans": "node scripts/programme-plans.ts",
+    "eligibility": "node scripts/eligibility.ts"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
