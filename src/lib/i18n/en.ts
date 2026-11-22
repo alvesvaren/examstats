@@ -274,6 +274,9 @@ export const en = {
       missing: "For admission you also need",
       regulations: "The admission regulations decide, in subjects and credits, as the prerequisites say.",
       words: "The guide says:",
+      /** A line of the guide's requirements that has to be a typo, and what the planner reads it as. */
+      corrected: (guide: string, corrected: string) =>
+        `The guide writes “${guide}”, which has to be a typo, so the planner reads it as “${corrected}”.`,
       courseIn: (code: string, years: readonly { year: number; periods: readonly string[] }[]) =>
         `${code} in ${years.map(({ year, periods }) => `year ${year} ${periods.join(", ")}`).join(" and ")}`,
       offeredIn: (places: readonly string[]) => `In your plans: ${places.join(" · ")}`,

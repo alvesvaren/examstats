@@ -120,7 +120,7 @@ export function AdmissionDetails({ check, guide, programmeName, masterStart }: A
   const t = useMessages();
   const words = t.planner.admission;
   const { clause, course, places } = useAdmissionWords(guide.names);
-  const { eligibility, recommended, fit } = check;
+  const { eligibility, recommended, corrections, fit } = check;
   const missing = eligibility.kind === "courses" ? eligibility.clauses.filter((c) => !c.met) : [];
   const status = {
     compulsory: words.compulsory(programmeName),
@@ -154,6 +154,11 @@ export function AdmissionDetails({ check, guide, programmeName, masterStart }: A
         </ul>
       )}
       {recommended.length > 0 && <p className="text-muted-foreground">{words.recommended(recommended.map(course))}</p>}
+      {corrections.map(({ guide: line, corrected }) => (
+        <p key={line} className="text-xs text-muted-foreground">
+          {words.corrected(line, corrected)}
+        </p>
+      ))}
       <p className="text-xs text-muted-foreground">
         {words.deadline} {fit === "earlier" && words.guideEarlier(academicYearOf(masterStart))}{" "}
         <a

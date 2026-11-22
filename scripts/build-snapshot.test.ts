@@ -165,6 +165,7 @@ const eligibility: EligibilityFile = {
             rule: { kind: "course", codes: ["TDA357", "TDA356"], name: "Databaser i guiden", registration: false },
           },
           recommended: [],
+          corrections: [],
         },
       ],
       recommended: [],

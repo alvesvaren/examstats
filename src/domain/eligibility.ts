@@ -44,6 +44,32 @@ export const admissionSchema = z.discriminatedUnion("kind", [
 ]);
 export type Admission = z.infer<typeof admissionSchema>;
 
+/** A line of a programme's course requirements that the guide words wrongly, as the planner reads it instead. */
+export const lineCorrectionSchema = z.object({
+  /** The line as the guide words it. */
+  guide: z.string(),
+  /** The line as the guide means it. */
+  corrected: z.string(),
+});
+export type LineCorrection = z.infer<typeof lineCorrectionSchema>;
+
+/**
+ * The committed file `data/eligibility-corrections.json`: typos in the guide, such as a code that never existed, each
+ * a line of one programme's course requirements and what it means instead. A correction applies only while the
+ * guide still words the line so, so a fixed or new guide drops it.
+ */
+export const guideCorrectionsFileSchema = z.array(
+  lineCorrectionSchema.extend({
+    master: z.string(),
+    /** The specialisation whose section of the guide the line is in, or null for the master's programme's own. */
+    specialisation: z.string().nullable(),
+    programme: z.string(),
+    /** Why the guide's line has to be a typo, and why the correction is what it means. */
+    reason: z.string(),
+  }),
+);
+export type GuideCorrection = z.infer<typeof guideCorrectionsFileSchema>[number];
+
 export const guideEntrySchema = z.object({
   programme: z.string(),
   /**
@@ -54,6 +80,8 @@ export const guideEntrySchema = z.object({
   admission: admissionSchema,
   /** Courses the guide recommends to the programme's students on top of what it asks for. */
   recommended: z.array(guideCourseSchema),
+  /** Lines of the course requirements that the guide words wrongly, which `admission` reads corrected. */
+  corrections: z.array(lineCorrectionSchema).default([]),
 });
 export type GuideEntry = z.infer<typeof guideEntrySchema>;
 
@@ -240,6 +268,7 @@ export function guideEntry(
     specialisation: section.specialisation,
     admission: entry?.admission ?? ({ kind: "regulations" } as const),
     recommended: [...section.recommended, ...(entry?.recommended ?? [])],
+    corrections: entry?.corrections ?? [],
   };
 }
 

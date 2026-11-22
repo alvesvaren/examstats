@@ -40,6 +40,9 @@ jobs:
             exit 0
           fi
           { echo "From the weekly fetch. The planner shows these in the guide's words, without a check:"; echo; grep '^Not checked' eligibility.log | sed 's/^Not checked: /- /' || true; } > body.md
+          if grep -q '^Correction not applied' eligibility.log; then
+            { echo; echo "The guide no longer words these lines as data/eligibility-corrections.json says, so the planner reads them as the guide does. Remove each correction Chalmers has fixed, and update the others:"; echo; grep '^Correction not applied' eligibility.log | sed 's/^Correction not applied: /- /'; } >> body.md
+          fi
           branch="data/eligibility-${{ github.run_id }}"
           git switch -c "$branch"
           git commit -m "Update the eligibility guide"

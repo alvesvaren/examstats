@@ -57,3 +57,4 @@ Each fetch script is the only code that knows its source. It exports its pure tr
 - **A UI word:** `src/lib/i18n/en.ts`, then `sv.ts`. The type checker finds a missing translation.
 - **A data source:** a script under `scripts/` that writes a file to `data/`, a schema for the file in `src/domain`, one input to `buildSnapshot`, and a workflow in `.github/workflows`.
 - **A phrasing of the eligibility guide:** its pattern in `scripts/eligibility.ts`, and a test in `scripts/eligibility.test.ts` on the recorded guide in `scripts/fixtures`.
+- **A typo in the eligibility guide:** a correction in `data/eligibility-corrections.json`, then `pnpm eligibility`.

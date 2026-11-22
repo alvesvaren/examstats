@@ -93,11 +93,17 @@ const master = (specialisation: string | null, entries: GuideMaster["entries"]):
 });
 const guideMasters = [
   master(null, [
-    { programme: "TKMSK", path: "threeYear", admission: { kind: "courses", rule: course("SSY061") }, recommended: [] },
-    { programme: "TKMSK", path: "fiveYear", admission: { kind: "compulsory" }, recommended: [] },
+    { programme: "TKMSK", path: "threeYear", admission: { kind: "courses", rule: course("SSY061") }, recommended: [], corrections: [] },
+    { programme: "TKMSK", path: "fiveYear", admission: { kind: "compulsory" }, recommended: [], corrections: [] },
   ]),
   master("Fluid Mechanics and Water Systems", [
-    { programme: "TKMSK", path: null, admission: { kind: "courses", rule: course("MTF053") }, recommended: [] },
+    {
+      programme: "TKMSK",
+      path: null,
+      admission: { kind: "courses", rule: course("MTF053") },
+      recommended: [],
+      corrections: [{ guide: "MTF035 Strömningsmekanik", corrected: "MTF053 Strömningsmekanik" }],
+    },
   ]),
 ];
 
@@ -111,6 +117,13 @@ describe("guideEntry", () => {
       specialisation: "Fluid Mechanics and Water Systems",
       admission: { kind: "courses", rule: course("MTF053") },
     });
+  });
+
+  it("says which lines of the guide it reads corrected", () => {
+    expect(
+      guideEntry(guideMasters, { master: "MPEIE", track: "Fluid Mechanics and Water Systems", programme: "TKMSK" })?.corrections,
+    ).toEqual([{ guide: "MTF035 Strömningsmekanik", corrected: "MTF053 Strömningsmekanik" }]);
+    expect(guideEntry(guideMasters, { master: "MPEIE", programme: "TKDAT" })?.corrections).toEqual([]);
   });
 
   it("leaves a programme the guide does not name to the admission regulations", () => {

@@ -120,6 +120,7 @@ describe("parseGuide", () => {
           },
         },
         recommended: [],
+        corrections: [],
       },
     ]);
   });
@@ -214,5 +215,38 @@ describe("parseGuide", () => {
       ["DAT710"],
     ]);
     expect(entry("MPBEN", "TKSAM")![0]!.recommended.map((c) => c.codes)).toEqual([["BOM365"], ["BOM375"]]);
+  });
+});
+
+describe("parseGuide with corrections", () => {
+  const typo = {
+    master: "MPEEE",
+    specialisation: null,
+    programme: "TKDAT",
+    guide: "EEM031/EEF015 Elektromagnetisk fältteori",
+    corrected: "EEF031/EEM015 Elektromagnetisk fältteori",
+    reason: "The guide swapped the prefixes of the codes.",
+  };
+  const corrected = parseGuide(pages, [typo]);
+  const mpeee = (programme: string) =>
+    corrected.masters.find((m) => m.code === "MPEEE" && m.specialisation === null)!.entries.find((e) => e.programme === programme)!;
+
+  it("reads the line of the programme's requirements as corrected, and keeps what the guide says", () => {
+    const { admission, corrections } = mpeee("TKDAT");
+    expect(admission.kind === "courses" && admission.rule.kind === "all" && admission.rule.of[0]).toEqual(
+      course(["EEF031", "EEM015"], "Elektromagnetisk fältteori"),
+    );
+    expect(corrections).toEqual([{ guide: typo.guide, corrected: typo.corrected }]);
+    expect(corrected.unused).toEqual([]);
+  });
+
+  it("leaves the requirements of the other programmes as the guide words them", () => {
+    expect(mpeee("TKAUT").corrections).toEqual([]);
+    expect(corrected.problems).toEqual(problems);
+  });
+
+  it("lists a correction of a line the guide no longer words so", () => {
+    const fixed = { ...typo, guide: "EEM031 Elektromagnetisk fältteori" };
+    expect(parseGuide(pages, [fixed]).unused).toEqual([fixed]);
   });
 });

@@ -7,7 +7,9 @@
  *
  * The guide is a PDF whose blocks follow a few fixed phrasings. The parser reads only those, and a block of courses
  * has to read back to its own words. Anything else keeps the guide's words, which the planner shows without checking,
- * and the script lists it. The only code that knows the guide.
+ * and the script lists it. Typos in the guide, such as codes that never existed, are corrected by hand in
+ * `data/eligibility-corrections.json`, and the script lists a correction the guide no longer needs. The only code
+ * that knows the guide.
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -18,6 +20,8 @@ import {
   type Admission,
   type CourseRule,
   type EligibilityFile,
+  guideCorrectionsFileSchema,
+  type GuideCorrection,
   type GuideCourse,
   type GuideEntry,
   type GuideMaster,
@@ -33,6 +37,7 @@ const parseEnv = () =>
         .default("https://www.chalmers.se/utbildning/dina-studier/rattigheter-och-skyldigheter/antagningsordning-for-grundutbildningen/"),
       OUT_FILE: z.string().default("data/eligibility.json"),
       NAMES_FILE: z.string().default("data/names.json"),
+      CORRECTIONS_FILE: z.string().default("data/eligibility-corrections.json"),
     })
     .parse(process.env);
 
@@ -372,9 +377,17 @@ function admissionOf(group: Group, programme: string): { admission: Admission; p
   return { admission: { kind: "courses", rule }, problem: null };
 }
 
-/** Each master's programme of a guide, with what it asks of the students of each programme the guide names. */
-export function parseGuide(pages: readonly string[]): { masters: GuideMaster[]; problems: string[] } {
+/**
+ * Each master's programme of a guide, with what it asks of the students of each programme the guide names, and the
+ * problems to report. Each of `corrections` replaces a line of a programme's course requirements while the guide words
+ * that line as it says. `unused` lists those it words otherwise now.
+ */
+export function parseGuide(
+  pages: readonly string[],
+  corrections: readonly GuideCorrection[] = [],
+): { masters: GuideMaster[]; problems: string[]; unused: GuideCorrection[] } {
   const problems: string[] = [];
+  const applied = new Set<GuideCorrection>();
   const masters: GuideMaster[] = [];
   for (const section of sectionsOf(guideLines(pages))) {
     const label = section.specialisation ? `${section.code} (${section.specialisation})` : section.code;
@@ -434,13 +447,25 @@ export function parseGuide(pages: readonly string[]): { masters: GuideMaster[]; 
       const groupRecommended = recommendedOf(group.recommended);
       return group.programmes.map((line) => {
         const { code, path, known } = programmeOf(line);
-        const read = admissionOf(group, line);
+        const fixes = corrections.filter(
+          (c) =>
+            c.master === section.code &&
+            c.specialisation === section.specialisation &&
+            c.programme === code &&
+            group.requirement?.includes(c.guide),
+        );
+        for (const fix of fixes) applied.add(fix);
+        const read = admissionOf(
+          { ...group, requirement: group.requirement?.map((l) => fixes.find((f) => f.guide === l)?.corrected ?? l) ?? null },
+          line,
+        );
         const problem = !known ? `its line says what the parser does not know: ${line}` : read.problem;
         if (problem) problems.push(`${label} ${code}: ${problem}`);
         if (!groupRecommended) problems.push(`${label} ${code}: its recommended courses do not read as courses`);
         const admission: Admission =
           known && stray.length === 0 ? read.admission : { kind: "words", text: [...stray, groupText(group, line)].join("\n") };
-        return { programme: code, path, admission, recommended: groupRecommended ?? [] };
+        const lines = fixes.map(({ guide, corrected }) => ({ guide, corrected }));
+        return { programme: code, path, admission, recommended: groupRecommended ?? [], corrections: lines };
       });
     });
     const duplicates = entries.filter(
@@ -449,7 +474,7 @@ export function parseGuide(pages: readonly string[]): { masters: GuideMaster[]; 
     for (const { programme } of duplicates) problems.push(`${label} ${programme}: the guide names it twice`);
     masters.push({ code: section.code, specialisation: section.specialisation, entries, recommended: sectionRecommended ?? [] });
   }
-  return { masters, problems };
+  return { masters, problems, unused: corrections.filter((c) => !applied.has(c)) };
 }
 
 /** pdf.js logs errors only, not its warnings about the guide's fonts, which leave the text as it is. */
@@ -511,8 +536,12 @@ async function main() {
   const names = namesFileSchema.parse(JSON.parse(await readFile(env.NAMES_FILE, "utf8")));
   const guide = await newestGuide(env.PAGE_URL);
   console.log(`Reading the eligibility guide for ${guide.year} from ${guide.url}`);
-  const { masters, problems } = parseGuide(guide.pages);
+  const corrections = guideCorrectionsFileSchema.parse(JSON.parse(await readFile(env.CORRECTIONS_FILE, "utf8")));
+  const { masters, problems, unused } = parseGuide(guide.pages, corrections);
   for (const problem of problems) console.warn(`Not checked: ${problem}`);
+  for (const { master, programme, guide: line } of unused) {
+    console.warn(`Correction not applied: ${master} ${programme}: the guide no longer says "${line}"`);
+  }
   const { unknown: unknownCodes, renamed } = courseWarnings(masters, new Map(names.courses.map(({ code, en, sv }) => [code, { en, sv }])));
   if (unknownCodes.length > 0) console.warn(`Codes chalmers.se has not named since 2021/2022: ${unknownCodes.join(", ")}`);
   for (const warning of renamed) console.warn(`Course: ${warning}`);

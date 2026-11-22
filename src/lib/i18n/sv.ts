@@ -256,6 +256,8 @@ export const sv: Messages = {
       missing: "För antagning behöver du också",
       regulations: "Antagningsordningen avgör, i ämnen och poäng, som förkunskapskraven säger.",
       words: "Guiden säger:",
+      corrected: (guide, corrected) =>
+        `Guiden skriver ”${guide}”, vilket måste vara ett skrivfel, så planeraren läser det som ”${corrected}”.`,
       courseIn: (code, years) => `${code} i ${years.map(({ year, periods }) => `år ${year} ${periods.join(", ")}`).join(" och ")}`,
       offeredIn: (places) => `I dina planer: ${places.join(" · ")}`,
       notInPlans: "Finns inte i ditt programs planer",
