@@ -1,0 +1,51 @@
+name: Weekly eligibility guide
+
+on:
+  schedule:
+    - cron: "17 6 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# The data workflows merge into main, so they take turns.
+concurrency: data-commit
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Fails while chalmers.se is down or links no guide, which leaves the committed file as it is.
+      - run: pnpm eligibility 2>&1 | tee eligibility.log
+        shell: bash
+      # Chalmers publishes the guide of the next academic year each October, and corrects it at times. main only takes
+      # pull requests, so the commit goes through one that merges at once, and lists what the parser left to the guide's
+      # words. The merge deploys the site.
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/eligibility.json
+          if git diff --cached --quiet; then
+            echo "No guide changes"
+            exit 0
+          fi
+          { echo "From the weekly fetch. The planner shows these in the guide's words, without a check:"; echo; grep '^Not checked' eligibility.log | sed 's/^Not checked: /- /' || true; } > body.md
+          if grep -q '^Correction not applied' eligibility.log; then
+            { echo; echo "The guide no longer words these lines as data/eligibility-corrections.json says, so the planner reads them as the guide does. Remove each correction Chalmers has fixed, and update the others:"; echo; grep '^Correction not applied' eligibility.log | sed 's/^Correction not applied: /- /'; } >> body.md
+          fi
+          branch="data/eligibility-${{ github.run_id }}"
+          git switch -c "$branch"
+          git commit -m "Update the eligibility guide"
+          git push origin "$branch"
+          gh pr create --base main --head "$branch" --title "Update the eligibility guide" --body-file body.md
+          gh pr merge "$branch" --squash --delete-branch

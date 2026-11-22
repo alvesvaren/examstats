@@ -2,7 +2,7 @@ import { createRootRouteWithContext, createRoute, createRouter, notFound } from 
 import type { QueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { AppLayout, CourseNotFound, ErrorState, PageNotFound, PageSkeleton } from "@/components/app-layout";
-import { courseQuery, plansQuery, queryClient, snapshotQuery } from "@/data/queries";
+import { courseQuery, eligibilityQuery, plansQuery, queryClient, snapshotQuery } from "@/data/queries";
 import { SORT_KEYS, toCatalogCourse } from "@/domain/catalog";
 import { plannerSearchSchema } from "@/domain/planner-state";
 import { OTHER_QUESTIONS } from "@/domain/evaluation";
@@ -70,10 +70,11 @@ const plannerRoute = createRoute({
   validateSearch: plannerSearchSchema,
   loaderDeps: ({ search }) => ({ programme: search.programme, start: search.start }),
   loader: async ({ context, deps }) => {
+    const guide = context.queryClient.ensureQueryData(eligibilityQuery);
     const snapshot = await context.queryClient.ensureQueryData(snapshotQuery);
     const { start, masterPlans } = cohortOf(snapshot.plans, deps.programme, deps.start);
     // A start year this device remembers loads in the page instead.
-    await Promise.all([start, masterPlans].map((year) => context.queryClient.ensureQueryData(plansQuery(getLanguage(), year))));
+    await Promise.all([guide, ...[start, masterPlans].map((year) => context.queryClient.ensureQueryData(plansQuery(getLanguage(), year)))]);
   },
   head: () => ({ meta: [{ title: pageTitle(getMessages().layout.plannerHeading) }] }),
   component: PlannerPage,

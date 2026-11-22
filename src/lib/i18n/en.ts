@@ -204,6 +204,8 @@ export const en = {
     chooseTrackHint: (kind: TrackKind, plan: string) =>
       `${plan} has ${TRACKS[kind].many} with courses of their own. You can change it later.`,
     everyTrack: "Shows the courses of all of them",
+    /** Marks the specialisations that the master's programme does not give the student's degree with. */
+    withoutDegree: "Not for your degree",
 
     chooseMaster: "Choose your master's programme",
     mastersIntro: (count: number, programme: string) =>
@@ -259,6 +261,55 @@ export const en = {
     elsewhereInYear: (year: number, inPeriods: readonly StudyPeriod[]) =>
       `In year ${year}${inPeriods.length > 0 ? ` in ${formatPeriods(inPeriods)}` : ""}.`,
     elsewhereInThisYear: (periods: string) => `In your year in ${periods}. Adding it here moves it.`,
+
+    admission: {
+      heading: "Admission",
+      guide: (academicYear: string) => `Chalmers' eligibility guide for ${academicYear}`,
+      /** The guide is for an earlier year than the one the student's master's programme starts in. */
+      guideEarlier: (year: string) => `The one for ${year} comes out the October before and can differ.`,
+      deadline:
+        "A course counts once it ends in study period 3 of year 3 at the latest, since admission checks your courses in April. Admission can also accept other courses like these.",
+      compulsory: (programme: string) => `The compulsory courses of ${programme} meet the entry requirements.`,
+      met: "Your courses meet the entry requirements.",
+      missing: "For admission you also need",
+      regulations: "The admission regulations decide, in subjects and credits, as the prerequisites say.",
+      words: "The guide says:",
+      /** A line of the guide's requirements that has to be a typo, and what the planner reads it as. */
+      corrected: (guide: string, corrected: string) =>
+        `The guide writes “${guide}”, which has to be a typo, so the planner reads it as “${corrected}”.`,
+      courseIn: (code: string, years: readonly { year: number; periods: readonly string[] }[]) =>
+        `${code} in ${years.map(({ year, periods }) => `year ${year} ${periods.join(", ")}`).join(" and ")}`,
+      offeredIn: (places: readonly string[]) => `In your plans: ${places.join(" · ")}`,
+      /** Where the plans of years 1 to 3 have a course a requirement names, but only after the application. */
+      onlyLate: (places: readonly string[]) => `In your plans only after the application: ${places.join(" · ")}`,
+      /** The plan holds every course it can of the requirements, and those left are outside the programme's plans. */
+      metInPlans: "Your courses meet every requirement your programme's plans can.",
+      outside: "Outside your programme's plans",
+      outsideHint: "You can take these courses on top of your plan, or ask admissions whether a course you take is enough.",
+      runsIn: (code: string, periods: string) => `${code} runs in ${periods} this year`,
+      notThisYear: (code: string) => `${code} does not run this year`,
+      late: (code: string, periods: string) => `${code} in ${periods} of year 3 ends after the application`,
+      recommended: (names: readonly string[]) => `Recommended: ${f.list(names)}`,
+      either: (items: readonly string[]) => f.either(items),
+      all: (items: readonly string[]) => f.list(items),
+      someOf: (count: number, items: readonly string[]) => `${f.count(count)} of ${items.join("; ")}`,
+      summary: {
+        compulsory: "Admission: the compulsory courses suffice",
+        met: "Admission: your courses meet the requirements",
+        missing: (items: readonly string[]) => `Admission also needs ${items.join("; ")}`,
+        /** Marks a missing requirement that only a course outside the programme's plans meets. */
+        outside: (item: string) => `${item} (outside your plans)`,
+        regulations: "Admission: subjects and credits, as the prerequisites say",
+        words: "Admission: see Chalmers' eligibility guide",
+      },
+      rule: {
+        course: (label: string, master: string) => `${label} for admission to ${master}`,
+        oneOf: (master: string) => `One of the marked courses for admission to ${master}`,
+        someOf: (count: number, master: string) => `${f.count(count)} of the marked courses for admission to ${master}`,
+        alternatives: (master: string) => `One of the guide's sets of the marked courses for admission to ${master}`,
+      },
+      mark: (master: string) => `One of the courses for admission to ${master}`,
+    },
   },
 };
 

@@ -2,8 +2,10 @@ import { flip, surveySortKey, type Catalog } from "@/domain/catalog";
 import type { Question } from "@/domain/evaluation";
 import { togglePick, UNSCHEDULED, yearView, type Lane, type PlannerRound, type PlannerSortKey } from "@/domain/planner";
 import type { PlannerAction, PlannerSearch } from "@/domain/planner-state";
+import type { Clause, PublishedEligibility } from "@/domain/eligibility";
 import type { StudyPick, StudyYear } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
+import { AdmissionRule } from "./admission";
 import { CandidateTable } from "./candidate-table";
 import { DegreeRule, PickRule } from "./degree-marks";
 import { PeriodCard } from "./period-card";
@@ -21,6 +23,8 @@ interface YearPlannerProps {
   otherPicks: readonly StudyPick[];
   /** The course list of the upcoming master's programme the year belongs to, which its new courses link to. */
   courseList: string | null;
+  /** What admission to the degree's master's programme asks of the first three years, when the guide names courses for it. */
+  admission: { master: string; clauses: readonly Clause[]; names: PublishedEligibility["names"] } | undefined;
   catalog: Catalog;
   dispatch: (action: PlannerAction) => void;
 }
@@ -29,7 +33,8 @@ interface YearPlannerProps {
  * A year of a programme to fill: the study periods with what every student takes already in them, and the courses
  * of one study period at a time, those every student takes locked among those to choose between.
  */
-export function YearPlanner({ years, current, track, search, pickedKeys, otherPicks, courseList, catalog, dispatch }: YearPlannerProps) {
+export function YearPlanner(props: YearPlannerProps) {
+  const { years, current, track, search, pickedKeys, otherPicks, courseList, admission, catalog, dispatch } = props;
   const t = useMessages();
   const view = yearView({
     years,
@@ -43,8 +48,10 @@ export function YearPlanner({ years, current, track, search, pickedKeys, otherPi
     survey: search.survey,
     stats: catalog.byCode,
     ruleNames: t.ruleNames(catalog.plans.ruleNames),
+    admission: admission?.clauses,
   });
   const { candidates, picked, laneCards, lane, sort, dir, survey, listed, planned, pendingCourses, pickRules, degreeRules, offered } = view;
+  const { admissionRules } = view;
   if (!lane) return <p className="text-muted-foreground">{t.planner.noCoursesThisYear}</p>;
 
   // The active column flips its order. Another column starts in its own default order.
@@ -92,6 +99,8 @@ export function YearPlanner({ years, current, track, search, pickedKeys, otherPi
           {degreeRules.map((rule) => (
             <DegreeRule key={rule.marker} rule={rule} offered={offered} />
           ))}
+          {admission &&
+            admissionRules.map((rule) => <AdmissionRule key={rule.marker} rule={rule} master={admission.master} names={admission.names} />)}
           <p className="flex items-center gap-3 text-muted-foreground">
             {t.planner.inYourYear(planned, pendingCourses)}
             {picked.length > 0 && (
@@ -105,6 +114,7 @@ export function YearPlanner({ years, current, track, search, pickedKeys, otherPi
 
       <CandidateTable
         lane={lane}
+        master={admission?.master}
         listed={listed}
         courseList={courseList}
         sort={sort}

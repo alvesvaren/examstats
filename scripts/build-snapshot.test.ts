@@ -3,6 +3,7 @@ import type { EvaluationFile } from "../src/domain/evaluation.ts";
 import type { NamesFile } from "../src/domain/names.ts";
 import { publishedPlanSchema, type DatedPlan, type PlanCourse, type ProgrammePlansFile } from "../src/domain/programme-plans.ts";
 import type { Part, ResultsFile } from "../src/domain/course-stats.ts";
+import { publishedEligibilitySchema, type EligibilityFile } from "../src/domain/eligibility.ts";
 import { courseDetailSchema, snapshotSchema } from "../src/domain/snapshot.ts";
 import type { UpcomingMastersFile } from "../src/domain/upcoming-masters.ts";
 import { buildSnapshot, type SnapshotInputs } from "./build-snapshot.ts";
@@ -147,7 +148,39 @@ const upcomingFile = (academicYear: string): UpcomingMastersFile => ({
   ],
 });
 
-const inputs = (upcoming: UpcomingMastersFile | null = null): SnapshotInputs => ({ results, evaluations, plans, names, upcoming });
+/** A guide that names TDA357, which chalmers.se names, and TDA356, its code before 2021/2022. */
+const eligibility: EligibilityFile = {
+  academicYear: "2027/2028",
+  source: "https://example.com/guide.pdf",
+  masters: [
+    {
+      code: "MPALG",
+      specialisation: null,
+      entries: [
+        {
+          programme: "TKITE",
+          path: null,
+          admission: {
+            kind: "courses",
+            rule: { kind: "course", codes: ["TDA357", "TDA356"], name: "Databaser i guiden", registration: false },
+          },
+          recommended: [],
+          corrections: [],
+        },
+      ],
+      recommended: [],
+    },
+  ],
+};
+
+const inputs = (upcoming: UpcomingMastersFile | null = null): SnapshotInputs => ({
+  results,
+  evaluations,
+  plans,
+  names,
+  upcoming,
+  eligibility,
+});
 
 const build = (upcoming?: UpcomingMastersFile | null) => buildSnapshot(inputs(upcoming), TODAY);
 
@@ -422,6 +455,14 @@ describe("buildSnapshot", () => {
 
     it("drops the new courses of the upcoming master's programmes once the plans have their year", () => {
       expect(build(upcomingFile("2026/2027")).index.newCourses).toEqual([dat700]);
+    });
+  });
+
+  describe("eligibility guide", () => {
+    it("names each course the guide names as chalmers.se does, and leaves a code chalmers.se no longer names to the guide's name", () => {
+      const published = publishedEligibilitySchema.parse(build().eligibility);
+      expect(published.names).toEqual({ TDA357: { name: "Databases", swedishName: "Databaser" } });
+      expect(published.masters).toEqual(eligibility.masters);
     });
   });
 });

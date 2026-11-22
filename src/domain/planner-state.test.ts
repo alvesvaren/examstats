@@ -104,7 +104,7 @@ const TKITE = plan(
   { masters: ["MPALG", "MPCSC"] },
 );
 const MPALG = plan("MPALG", {
-  1: [course("DAT060"), course("DAT061", { periods: ["LP2"], track: "Security" })],
+  1: [course("DAT060"), course("DAT061", { periods: ["LP2"], track: "Security" }), course("DAT062", { track: "Algorithms" })],
   2: [course("TDA352", { track: "Security" })],
 });
 const MPCSC = plan("MPCSC", { 1: [course("DAT450")] });
@@ -124,7 +124,7 @@ const INFO = publishedPlanInfoSchema.parse({
 const UPCOMING = upcomingMastersSchema.parse({
   academicYear: "2027/2028",
   matrix: "https://example.com/matrix.pdf",
-  accreditations: { TKITE: [{ code: "MPALG", specialisations: ["Algorithms"] }] },
+  accreditations: { TKITE: [{ code: "MPALG", specialisations: ["Security"] }] },
   masters: { MPALG: { courseList: "https://example.com/mpalg.pdf" } },
 });
 
@@ -272,6 +272,17 @@ describe("resolvePlanner", () => {
       expect(planned({ programme: "TKITE", year: 3 }).trackKind).toBe("concentration");
       expect(planned({ programme: "TKITE", year: 4 }, WITH_MPALG).trackKind).toBe("specialisation");
     });
+
+    it("keeps the track of the programme and that of the master's programme apart, whichever year shows", () => {
+      const memory = { ...WITH_MPALG, tracks: { TKITE: "Web", MPALG: "Security" } };
+
+      expect(planned({ programme: "TKITE", year: 3, track: "AI" }, memory)).toMatchObject({
+        programmeTrack: "AI",
+        masterTrack: "Security",
+      });
+      expect(planned({ programme: "TKITE", year: 4 }, memory)).toMatchObject({ programmeTrack: "Web", masterTrack: "Security" });
+      expect(planned({ programme: "TKITE", year: 4 }, { ...memory, tracks: { TKITE: NO_TRACK } }).programmeTrack).toBeUndefined();
+    });
   });
 
   it("shows the picks in the link over the remembered ones", () => {
@@ -284,6 +295,16 @@ describe("resolvePlanner", () => {
     expect(planned({ programme: "TKITE", year: 3 }).pickedKeys).toEqual(["TDA357.LP2"]);
     expect(planned({ programme: "TKITE", year: 2 }).pickedKeys).toEqual(["DAT026.LP1"]);
     expect(planned({ programme: "TKITE", year: 1 }).pickedKeys).toEqual([]);
+  });
+
+  it("holds the picks of every year, those of the year shown from the link", () => {
+    const state = planned({ programme: "TKITE", year: 3, picked: ["EDA344.LP1"] }, WITH_MPALG);
+
+    expect(state.picks).toEqual([
+      { number: 2, programme: "TKITE", year: 2, key: "DAT026.LP1" },
+      { number: 4, programme: "MPALG", year: 1, key: "DAT060.LP1" },
+      { number: 3, programme: "TKITE", year: 3, key: "EDA344.LP1" },
+    ]);
   });
 
   it("remembers the picks of the other years of study, the master's programme's too, and none of other programmes", () => {
@@ -303,7 +324,21 @@ describe("resolvePlanner", () => {
       const state = planned({ programme: "TKITE", start: 2024, master: "MPALG", year: 4 }, MEMORY, info);
 
       expect(state.masters).toEqual([MPALG]);
-      expect(state.masterAccreditation).toEqual({ specialisations: ["Algorithms"], courseList: "https://example.com/mpalg.pdf" });
+      expect(state.masterAccreditation).toEqual({ specialisations: ["Security"], courseList: "https://example.com/mpalg.pdf" });
+    });
+
+    it("sets apart the specialisations of the master's programme that the degree cannot have", () => {
+      const inMaster = planned({ programme: "TKITE", start: 2024, master: "MPALG", year: 4 }, MEMORY, info);
+      const inProgramme = planned({ programme: "TKITE", start: 2024, master: "MPALG", year: 3 }, MEMORY, info);
+
+      expect(inMaster).toMatchObject({ tracks: ["Algorithms", "Security"], tracksWithoutDegree: ["Algorithms"] });
+      expect(inProgramme).toMatchObject({ tracks: ["AI", "Web"], tracksWithoutDegree: [] });
+    });
+
+    it("sets apart no specialisation of a master's programme that gives the degree with any", () => {
+      const state = planned({ programme: "TKITE", master: "MPALG", year: 4 });
+
+      expect(state).toMatchObject({ tracks: ["Algorithms", "Security"], tracksWithoutDegree: [] });
     });
 
     it("links the new courses of the master's programme's years to its course list, and those of the programme's own years nowhere", () => {

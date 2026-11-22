@@ -4,6 +4,7 @@ import {
   examinerNamed,
   matchExaminers,
   matchProgrammes,
+  periodsThisYear,
   queryCourses,
   queryNewCourses,
   surveyColumn,
@@ -226,6 +227,10 @@ describe("toCatalog", () => {
     expect(matchExaminers(catalog.examiners, "lind asa").map((e) => e.name)).toEqual(["Åsa Lindqvist"]);
     expect(matchExaminers(catalog.examiners, "databaser; love").map((e) => e.name)).toEqual(["Ada Lovelace"]);
     expect(matchExaminers(catalog.examiners, "ad")).toEqual([]);
+  });
+
+  it("knows the study periods of a course this year, with results or without, and none of a course no plan has", () => {
+    expect(["TDA357", "DAT700", "NOPE"].map((code) => periodsThisYear(catalog, code))).toEqual([["LP3", "LP4"], ["LP4"], []]);
   });
 
   it("names the examiner a search matched a course by", () => {

@@ -114,11 +114,17 @@ export function DegreeRule({ rule, offered }: { rule: MarkedDegreeRule; offered:
   );
 }
 
+interface RoundMarksProps extends Pick<ListedRound, "picks" | "marks" | "admission"> {
+  /** The code of the master's programme whose admission the course counts towards. */
+  master: string | undefined;
+}
+
 /**
  * What a course counts towards, after its name: the marker of each pick and list of courses it is one of, then the
- * credits it gives each theme. Faded once the plan meets the rule.
+ * credits it gives each theme, then the requirements for admission to the master's programme it meets. Faded once the
+ * plan meets the rule.
  */
-export function RoundMarks({ picks, marks }: Pick<ListedRound, "picks" | "marks">) {
+export function RoundMarks({ picks, marks, admission, master }: RoundMarksProps) {
   const t = useMessages();
   return (
     <>
@@ -134,6 +140,10 @@ export function RoundMarks({ picks, marks }: Pick<ListedRound, "picks" | "marks"
           <RuleMarker key={marker} marker={marker} done={done} label={t.planner.oneOfDegree} />
         ),
       )}
+      {master &&
+        admission.map(({ marker, done }) => (
+          <RuleMarker key={marker} marker={marker} done={done} label={t.planner.admission.mark(master)} />
+        ))}
     </>
   );
 }

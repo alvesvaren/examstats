@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi } from "@tanstack/react-router";
-import { catalogQuery, plansQuery } from "@/data/queries";
+import { catalogQuery, eligibilityQuery, plansQuery } from "@/data/queries";
 import { plannerCohort, plannerStep, resolvePlanner, withLastProgramme, type PlannerAction } from "@/domain/planner-state";
 import { useLanguage } from "@/hooks/use-language";
 import { usePlannerMemory } from "@/hooks/use-planner-memory";
@@ -20,6 +20,7 @@ export function usePlanner() {
   const cohort = plannerCohort(catalog.plans, search, memory);
   const { data: plans } = useSuspenseQuery(plansQuery(language, cohort.start));
   const { data: masterPlans } = useSuspenseQuery(plansQuery(language, cohort.masterPlans));
+  const { data: guide } = useSuspenseQuery(eligibilityQuery);
   const state = resolvePlanner({ search, memory, cohort, plans, masterPlans, names: catalog.programmes });
 
   const dispatch = (action: PlannerAction) => {
@@ -34,5 +35,5 @@ export function usePlanner() {
     rememberProgramme(code);
     void navigate({ to: "/planner", search: { programme: code } });
   };
-  return { state, catalog, dispatch, openProgramme: open, rememberProgramme };
+  return { state, catalog, guide, dispatch, openProgramme: open, rememberProgramme };
 }

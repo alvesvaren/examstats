@@ -16,12 +16,21 @@ function Choice({ heading, hint, children }: { heading: string; hint: string; ch
   );
 }
 
-function Option({ label, detail, onClick }: { label: string; detail?: string; onClick: () => void }) {
+interface OptionProps {
+  label: string;
+  detail?: string;
+  /** Greys the option out, for one the student cannot take. */
+  disabled?: boolean;
+  onClick: () => void;
+}
+
+function Option({ label, detail, disabled, onClick }: OptionProps) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex flex-col gap-0.5 rounded-xl border px-3 py-2.5 text-left transition-colors hover:border-primary hover:bg-muted/50"
+      disabled={disabled}
+      className="flex flex-col gap-0.5 rounded-xl border px-3 py-2.5 text-left transition-colors enabled:hover:border-primary enabled:hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50"
     >
       <span className="font-medium">{label}</span>
       {detail && <span className="text-sm text-muted-foreground">{detail}</span>}
@@ -52,19 +61,29 @@ interface TrackChooserProps {
   /** The name of the plan the tracks belong to. */
   planName: string;
   tracks: readonly string[];
+  /** The tracks the student's degree cannot have, which show greyed out. */
+  withoutDegree: readonly string[];
   /** Takes a track, or `NO_TRACK`. */
   onChoose: (track: string) => void;
 }
 
-/** Asks which track the student follows, or none, since the track decides what is compulsory. */
-export function TrackChooser({ kind, planName, tracks, onChoose }: TrackChooserProps) {
+/**
+ * Asks which track the student follows, or none, since the track decides what is compulsory. The tracks the degree
+ * cannot have come last, greyed out.
+ */
+export function TrackChooser({ kind, planName, tracks, withoutDegree, onChoose }: TrackChooserProps) {
   const t = useMessages();
   return (
     <Choice heading={t.planner.chooseTrack(kind)} hint={t.planner.chooseTrackHint(kind, planName)}>
-      {tracks.map((track) => (
-        <Option key={track} label={track} onClick={() => onChoose(track)} />
-      ))}
+      {tracks
+        .filter((track) => !withoutDegree.includes(track))
+        .map((track) => (
+          <Option key={track} label={track} onClick={() => onChoose(track)} />
+        ))}
       <Option label={t.planner.noTrack(kind)} detail={t.planner.everyTrack} onClick={() => onChoose(NO_TRACK)} />
+      {withoutDegree.map((track) => (
+        <Option key={track} label={track} detail={t.planner.withoutDegree} disabled onClick={() => onChoose(track)} />
+      ))}
     </Choice>
   );
 }

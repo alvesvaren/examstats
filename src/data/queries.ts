@@ -1,6 +1,7 @@
 import { QueryClient, queryOptions } from "@tanstack/react-query";
 import { z } from "zod";
 import { toCatalog } from "@/domain/catalog";
+import { publishedEligibilitySchema } from "@/domain/eligibility";
 import type { Language } from "@/domain/names";
 import { planInLanguage, publishedPlanSchema } from "@/domain/programme-plans";
 import { courseDetailSchema, snapshotSchema } from "@/domain/snapshot";
@@ -31,6 +32,12 @@ const perLanguage = <T>(make: (language: Language) => T) => {
 export const catalogQuery = perLanguage((language) =>
   queryOptions({ ...snapshotQuery, select: (snapshot) => toCatalog(snapshot, language) }),
 );
+
+/** Chalmers' guide to which courses its students need for each master's programme. Only the course planner loads it. */
+export const eligibilityQuery = queryOptions({
+  queryKey: ["eligibility"],
+  queryFn: ({ signal }) => getJson(`${DATA_URL}/eligibility.json`, publishedEligibilitySchema, signal),
+});
 
 export const courseQuery = (code: string) =>
   queryOptions({

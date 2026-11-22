@@ -1,5 +1,6 @@
 import { compareSortValues, defaultSortDir, sortValueOf, surveyColumn, type CatalogCourse, type SortDir } from "./catalog.ts";
 import { degreeRulesOf, marksOf, pickProgress, type DegreeRuleProgress } from "./degree.ts";
+import { APPLICATION_YEAR, countsTowards, type Clause } from "./eligibility.ts";
 import { OTHER_QUESTIONS, type OtherQuestion } from "./evaluation.ts";
 import { normalize, type InLanguage } from "./names.ts";
 import {
@@ -175,6 +176,9 @@ export type RoundWarning =
  */
 export type MarkedDegreeRule = DegreeRuleProgress & { marker: number };
 
+/** A requirement for admission to the degree's master's programme, marked after the degree's own rules. */
+export type MarkedAdmissionRule = Clause & { marker: number };
+
 /** A round the list shows, with everything the list says about it. */
 export interface ListedRound {
   round: PlannerRound;
@@ -188,6 +192,8 @@ export interface ListedRound {
   picks: { marker: number; done: boolean }[];
   /** What the course gives towards the degree requirements the student has to choose courses for. */
   marks: (MarkedDegreeRule & { amount: number })[];
+  /** The requirements for admission to the master's programme the course meets in time, by marker. */
+  admission: { marker: number; done: boolean }[];
 }
 
 const DEFAULT_PLANNER_SORT: PlannerSortKey = "rating";
@@ -210,6 +216,8 @@ interface YearViewInput {
   stats: ReadonlyMap<string, CatalogCourse>;
   /** Chalmers' names of the rule codes, in the language shown. */
   ruleNames: Readonly<Record<string, string>>;
+  /** What admission to the degree's master's programme asks of the first three years, when the guide names courses for it. */
+  admission?: readonly Clause[];
 }
 
 /**
@@ -229,6 +237,7 @@ export function yearView({
   survey,
   stats,
   ruleNames,
+  admission = [],
 }: YearViewInput) {
   // The programme whose plan holds this year: the master's programme in years 4 and 5.
   const { plan: yearProgramme, year } = current;
@@ -249,6 +258,16 @@ export function yearView({
   const degreeRules: MarkedDegreeRule[] = degreeRulesOf(plans, courses, track)
     .toSorted((a, b) => Number(a.requirement.kind === "theme") - Number(b.requirement.kind === "theme"))
     .map((rule, index) => ({ ...rule, marker: pickRules.length + index }));
+  // Admission counts the courses of the first three years only. A year shows the requirements the plans can meet in
+  // time and that its own courses count towards, so that each has courses with its marker and enough of them. The
+  // others are for other years, or need courses outside the plans.
+  const countsInYear = ({ rule, reach }: Clause) =>
+    reach === "plans" &&
+    yearRounds.some((round) => round.codes.some((code) => countsTowards(rule, { code, year: current.number, periods: round.periods })));
+  const admissionRules: MarkedAdmissionRule[] =
+    current.number <= APPLICATION_YEAR
+      ? admission.filter(countsInYear).map((clause, index) => ({ ...clause, marker: pickRules.length + degreeRules.length + index }))
+      : [];
   const warningsOf = (round: PlannerRound): RoundWarning[] => {
     const clash = lectureClash(round, plan);
     const exclusive = exclusiveWith(round, plan);
@@ -299,6 +318,9 @@ export function yearView({
           .filter(({ pick }) => round.choices.some((choice) => choice.id === pick.id))
           .map(({ marker, progress }) => ({ marker, done: progress.done })),
         marks: marksOf(degreeRules, round),
+        admission: admissionRules
+          .filter(({ rule }) => round.codes.some((code) => countsTowards(rule, { code, year: current.number, periods: round.periods })))
+          .map(({ marker, met }) => ({ marker, done: met })),
       };
     }),
     /** Credits of the year's plan. */
@@ -312,6 +334,8 @@ export function yearView({
     pickRules,
     /** The degree's requirements, its lists of courses before its themes. */
     degreeRules,
+    /** What admission to the master's programme asks of the first three years, in those years. */
+    admissionRules,
     /** The codes of every course any year of the degree's plans offers. */
     offered: new Set(plans.flatMap((p) => p.years.flatMap((y) => y.courses.map((c) => c.code)))),
   };
