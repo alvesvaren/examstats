@@ -49,7 +49,7 @@ export function CourseListPage() {
 
   const { sort = DEFAULT_SORT, dir = "desc", programme, examiner, periods, q = "" } = search;
   // A new list can take long to render on a slow device, so it renders in the background and typing stays quick. The
-  // render that the URL starts keeps the old query, and the memo spares it filtering again.
+  // render that a URL change starts still has the old query, so the memo returns the old list without filtering again.
   const query = useDeferredValue(q);
   const { active, newCourses, ended } = useMemo(() => {
     const filters = { q: query, programme, examiner, periods, sort, dir };

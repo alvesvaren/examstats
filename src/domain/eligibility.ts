@@ -56,7 +56,7 @@ export type LineCorrection = z.infer<typeof lineCorrectionSchema>;
 /**
  * The committed file `data/eligibility-corrections.json`: typos in the guide, such as a code that never existed, each
  * a line of one programme's course requirements and what it means instead. A correction applies only while the
- * guide still words the line so, so a fixed or new guide drops it.
+ * guide still words the line that way, so a fixed or new guide drops it.
  */
 export const guideCorrectionsFileSchema = z.array(
   lineCorrectionSchema.extend({
@@ -137,7 +137,7 @@ export interface HeldCourse {
   periods: readonly StudyPeriod[];
 }
 
-/** The year of study a student applies for a master's programme in, in April, during its last study period. */
+/** The year of study in which a student applies for a master's programme, in April, during the year's last study period. */
 export const APPLICATION_YEAR = 3;
 /** Study periods of the application year whose courses are completed and reported by the deadline in April. */
 const COMPLETED_IN_TIME: readonly StudyPeriod[] = ["LP1", "LP2", "LP3"];
@@ -220,21 +220,21 @@ export const countsTowards = (rule: CourseRule, course: HeldCourse) => coursesOf
 export interface Clause {
   rule: CourseRule;
   met: boolean;
-  /** How many of the rules it asks for some of are met, or whether it is met, as 1 or 0 of 1. */
+  /** For an `atLeast` rule, how many of its rules are met, out of `need`. For any other rule, 1 or 0 of 1. */
   have: number;
   need: number;
   /** The student's courses that meet it in time. */
   held: OfferedCourse[];
-  /** The student's courses it names that end after the application deadline, so do not count. */
+  /** The student's courses it names that end after the application deadline, and so do not count. */
   late: OfferedCourse[];
   /** Courses of the first three years that would meet it in time, in the plans' order. Empty once it is met. */
   offered: OfferedCourse[];
   /** Courses of the first three years it names that end after the application deadline. Empty once it is met. */
   offeredLate: OfferedCourse[];
   /**
-   * Whether the courses of the first three years' plans can meet it in time, only with courses that end too late, or
-   * not at all, so that it needs a course outside them, which the guide can ask for when the plans predate the master's
-   * programme. A requirement that is met is within the plans.
+   * Whether the courses of the first three years' plans can meet it in time, can meet it only with courses that end
+   * too late, or cannot meet it at all. In the last case it needs a course outside the plans, which the guide can ask
+   * for when the plans predate the master's programme. A met requirement is within the plans.
    */
   reach: "plans" | "late" | "outside";
   /**
@@ -310,8 +310,8 @@ export function guideEntry(
 
 /**
  * How a guide fits students whose master's programme starts in `masterStart`, as a calendar year: it is their own, or
- * the newest one for an earlier year while theirs is not out, which can still change. Null for a guide of a later
- * year, which does not apply to them.
+ * it is the newest one for an earlier year while theirs is not out, and theirs can still differ. Null for a guide of a
+ * later year, which does not apply to them.
  */
 export function guideFit(academicYear: string, masterStart: number) {
   const year = startYearOf(academicYear);

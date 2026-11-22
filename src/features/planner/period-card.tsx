@@ -20,8 +20,9 @@ interface PeriodCardProps {
 }
 
 /**
- * A study period of the year with what is in it, how full it is, and whether two of its courses meet. The courses
- * without a study period get a card too, which counts courses, since their credits are not known either.
+ * A study period of the year with what is in it, how full it is, and whether two of its courses share lecture times.
+ * The courses without a study period get a card too, which counts courses instead of credits, since their credits are
+ * not known yet.
  */
 export function PeriodCard({ lane, fixed, picked, credits, clashing, active, onFocus, onRemove, className }: PeriodCardProps) {
   const t = useMessages();
@@ -99,7 +100,7 @@ export function PeriodCard({ lane, fixed, picked, credits, clashing, active, onF
   );
 }
 
-/** The study periods of a round that runs over several, so its other periods explain themselves. */
+/** The study periods of a round that runs over several, so the card also names its other periods. */
 function Span({ round }: { round: PlannerRound }) {
   const t = useMessages();
   return <span className="ml-auto shrink-0 text-xs opacity-75">{round.periods.length > 1 && t.periods(round.periods)}</span>;

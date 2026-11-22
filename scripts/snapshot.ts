@@ -35,7 +35,7 @@ const DECIMALS = 1e2;
 const roundNumbers = (_key: string, value: unknown) =>
   typeof value === "number" && !Number.isInteger(value) ? Math.round(value * DECIMALS) / DECIMALS : value;
 
-/** Files written at a time. */
+/** How many files to write at once. */
 const WRITE_CONCURRENCY = 64;
 
 const readJson = async <T>(file: string, schema: z.ZodType<T>) => schema.parse(JSON.parse(await readFile(file, "utf8")));

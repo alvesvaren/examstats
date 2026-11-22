@@ -29,7 +29,7 @@ export function usePlanner() {
     if (step.remember) remember(step.remember);
     void navigate({ search: (prev) => ({ ...prev, ...step.search }), replace: true, resetScroll: false });
   };
-  /** Remembers the programme as the one last worked on. A link to it opens it. */
+  /** Remembers the programme as the one last worked on, for a link that opens it on its own. */
   const rememberProgramme = (code: string) => remember(withLastProgramme(code));
   const open = (code: string) => {
     rememberProgramme(code);

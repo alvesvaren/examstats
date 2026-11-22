@@ -13,7 +13,7 @@ interface ProgrammeSearchProps {
   names: Readonly<Record<string, InLanguage>>;
   /** Opens a programme's plan, and remembers it as the one last worked on. */
   onOpen: (code: string) => void;
-  /** Remembers a programme as the one last worked on, for a link that opens it itself. */
+  /** Remembers a programme as the one last worked on, for a link that opens it on its own. */
   onRemember: (code: string) => void;
 }
 

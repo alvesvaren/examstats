@@ -54,7 +54,7 @@ export const upcomingMastersFileSchema = z.object({
 });
 export type UpcomingMastersFile = z.infer<typeof upcomingMastersFileSchema>;
 
-/** One choice holds a master's programme's compulsory electives, since its course list says how many to choose of none of them. */
+/** One choice holds all of a master's programme's compulsory electives, since its course list never says how many to choose. */
 const COMPULSORY_ELECTIVES: PlanChoice = {
   id: 1,
   kind: "pick",
@@ -63,7 +63,7 @@ const COMPULSORY_ELECTIVES: PlanChoice = {
   minCredits: null,
 };
 const RULES = { compulsory: "O", compulsoryElective: "V", elective: "V" } as const;
-/** The lists give a thesis as compulsory, but it takes the thesis rule, so the planner fixes it when it can be done one way only. */
+/** The lists mark a thesis as compulsory. It gets the thesis rule instead, so the planner fixes it in the year only when it can be done one way. */
 const namesThesis = (name: string) => /\bthesis\b/i.test(name);
 
 /**
