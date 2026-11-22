@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { toCatalogCourse } from "./catalog.ts";
+import type { Clause } from "./eligibility.ts";
 import type { SurveyAnswers } from "./evaluation.ts";
 import { emptyCounts } from "./grades.ts";
 import {
@@ -16,6 +17,7 @@ import {
   togglePick,
   UNSCHEDULED,
   yearView,
+  type Lane,
 } from "./planner.ts";
 import {
   planCourseSchema,
@@ -362,6 +364,16 @@ const progressOf = (view: ReturnType<typeof yearView>) => {
 };
 const listedKeys = (view: ReturnType<typeof yearView>) => keys(view.listed.map((l) => l.round));
 
+/** A requirement for admission to a master's programme of one course, not met yet. */
+const admissionClause = (code: string, registration = false): Clause => ({
+  rule: { kind: "course", codes: [code], name: code, registration },
+  met: false,
+  have: 0,
+  need: 1,
+  held: [],
+  late: [],
+  offered: [],
+});
 describe("yearView", () => {
   const mtsRule: PlanRequirement = { kind: "theme", theme: "mts", minCredits: 7.5 };
   const scienceRule: PlanRequirement = { kind: "courses", courses: ["MVE055"], minCourses: 1 };
@@ -628,6 +640,39 @@ describe("yearView", () => {
           ],
         ],
       ]);
+    });
+
+    describe("admission", () => {
+      const third = planOf("TKDAT", {
+        3: [entry("LMA017", "V"), entry("DAT566", "V", { periods: ["LP4"] }), entry("DAT257", "V", { periods: ["LP4"] })],
+      });
+      const years = studyYears(third, planOf("MPAIN", { 1: [entry("DAT550", "O")] }));
+      const admission = [admissionClause("LMA017"), admissionClause("DAT566"), admissionClause("DAT257", true)];
+      const view = (number: number, period?: Lane) =>
+        yearView({
+          years,
+          current: years.find((y) => y.number === number)!,
+          track: undefined,
+          pickedKeys: [],
+          otherPicks: [],
+          stats: new Map(),
+          ruleNames: {},
+          admission,
+          period,
+        });
+
+      it("marks the courses that count by the application in April, so none of study period 4 of year 3 but one that only needs a registration", () => {
+        expect(view(3).admissionRules.map((r) => r.marker)).toEqual([0, 1, 2]);
+        expect(view(3, "LP1").listed.map((l) => [l.round.key, l.admission])).toEqual([["LMA017.LP1", [{ marker: 0, done: false }]]]);
+        expect(view(3, "LP4").listed.map((l) => [l.round.key, l.admission])).toEqual([
+          ["DAT257.LP4", [{ marker: 2, done: false }]],
+          ["DAT566.LP4", []],
+        ]);
+      });
+
+      it("leaves the requirements out of the master's programme's years, which admission does not count", () => {
+        expect(view(4).admissionRules).toEqual([]);
+      });
     });
 
     it("marks the courses of a master's programme's year towards the master's rule", () => {

@@ -1,11 +1,13 @@
 /**
  * Builds the static data the app reads, `public/data/index.json`, one `public/data/plans/<start year>.json` per year
- * that programmes admitted students in, and one per year of upcoming master's programmes, and one
- * `public/data/courses/<code>.json` per course, from the committed files in `data/`. It reads no network, so builds never depend on the sources being up.
+ * that programmes admitted students in, and one per year of upcoming master's programmes, one
+ * `public/data/courses/<code>.json` per course, and `public/data/eligibility.json`, from the committed files in
+ * `data/`. It reads no network, so builds never depend on the sources being up.
  */
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
+import { eligibilityFileSchema } from "../src/domain/eligibility.ts";
 import { evaluationFileSchema } from "../src/domain/evaluation.ts";
 import { namesFileSchema } from "../src/domain/names.ts";
 import { programmePlansFileSchema } from "../src/domain/programme-plans.ts";
@@ -23,6 +25,7 @@ const parseEnv = () =>
       PLANS_FILE: z.string().default("data/programme-plans.json"),
       NAMES_FILE: z.string().default("data/names.json"),
       UPCOMING_MASTERS_FILE: z.string().default("data/upcoming-masters.json"),
+      ELIGIBILITY_FILE: z.string().default("data/eligibility.json"),
     })
     .parse(process.env);
 
@@ -49,14 +52,16 @@ async function readOptionalJson<T>(file: string, schema: z.ZodType<T>) {
 
 async function main() {
   const env = parseEnv();
-  const [results, evaluations, plans, names, upcoming] = await Promise.all([
+  const [results, evaluations, plans, names, upcoming, eligibility] = await Promise.all([
     readJson(env.RESULTS_FILE, resultsFileSchema),
     readJson(env.EVALUATIONS_FILE, evaluationFileSchema),
     readJson(env.PLANS_FILE, programmePlansFileSchema),
     readJson(env.NAMES_FILE, namesFileSchema),
     readOptionalJson(env.UPCOMING_MASTERS_FILE, upcomingMastersFileSchema),
+    readJson(env.ELIGIBILITY_FILE, eligibilityFileSchema),
   ]);
-  const { index, courses, plans: publishedPlans } = buildSnapshot({ results, evaluations, plans, names, upcoming }, new Date());
+  const built = buildSnapshot({ results, evaluations, plans, names, upcoming, eligibility }, new Date());
+  const { index, courses, plans: publishedPlans } = built;
 
   // Write beside the output and swap it in last, so a crash leaves either the old or the new data in place.
   const tmpDir = `${env.OUT_DIR}.tmp`;
@@ -67,6 +72,7 @@ async function main() {
   await Promise.all([mkdir(coursesDir, { recursive: true }), mkdir(plansDir, { recursive: true })]);
   const files = [
     [path.join(tmpDir, "index.json"), JSON.stringify(index, roundNumbers)],
+    [path.join(tmpDir, "eligibility.json"), JSON.stringify(built.eligibility)],
     ...courses.map((course) => [path.join(coursesDir, `${course.code}.json`), JSON.stringify(course)] as const),
     ...[...publishedPlans].map(([start, cohort]) => [path.join(plansDir, `${start}.json`), JSON.stringify(cohort)] as const),
   ];

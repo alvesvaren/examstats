@@ -24,6 +24,8 @@ const ROW = "grid grid-cols-[2rem_minmax(0,1fr)_4rem_6rem] items-center gap-x-2 
 interface CandidateTableProps {
   /** The lane the list shows. */
   lane: Lane;
+  /** The code of the master's programme whose admission the courses' markers count towards. */
+  master: string | undefined;
   listed: ListedRound[];
   /** The course list of an upcoming master's programme, which the courses only it names link to. */
   courseList: string | null;
@@ -40,7 +42,18 @@ interface CandidateTableProps {
  * The courses of one lane, sortable by pass rate and by a course survey question: those to choose between, and those
  * every student takes, locked.
  */
-export function CandidateTable({ lane, listed, courseList, sort, dir, survey, onSort, onPickSurvey, onToggle }: CandidateTableProps) {
+export function CandidateTable({
+  lane,
+  master,
+  listed,
+  courseList,
+  sort,
+  dir,
+  survey,
+  onSort,
+  onPickSurvey,
+  onToggle,
+}: CandidateTableProps) {
   const t = useMessages();
   const toChoose = listed.filter((l) => !l.fixed).length;
   return (
@@ -72,6 +85,7 @@ export function CandidateTable({ lane, listed, courseList, sort, dir, survey, on
             {...listedRound}
             survey={survey}
             lane={lane}
+            master={master}
             courseList={courseList}
             onToggle={() => onToggle(listedRound.round)}
           />
@@ -139,11 +153,13 @@ interface CandidateProps extends ListedRound {
   survey: Question;
   /** The lane the list shows. */
   lane: Lane;
+  master: string | undefined;
   courseList: string | null;
   onToggle: () => void;
 }
 
-function Candidate({ round, survey, lane, courseList, fixed, picked, elsewhere, warnings, picks, marks, onToggle }: CandidateProps) {
+function Candidate(props: CandidateProps) {
+  const { round, survey, lane, master, courseList, fixed, picked, elsewhere, warnings, picks, marks, admission, onToggle } = props;
   const t = useMessages();
   const { requirement, stats } = round;
   const inOtherYear = Boolean(elsewhere?.year);
@@ -195,7 +211,7 @@ function Candidate({ round, survey, lane, courseList, fixed, picked, elsewhere, 
           <span className={cn("line-clamp-2", !elsewhere && "font-medium")}>
             <CourseLink round={round} courseList={courseList} />
           </span>
-          <RoundMarks picks={picks} marks={marks} />
+          <RoundMarks picks={picks} marks={marks} admission={admission} master={master} />
           {round.periods.length > 1 && <Badge variant="outline">{t.planner.runs(t.periods(round.periods))}</Badge>}
         </span>
         <span className="text-xs text-muted-foreground">{details}</span>

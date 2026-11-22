@@ -343,19 +343,18 @@ export interface StudyPick extends PlanPick {
   number: number;
 }
 
+/** Whether a student takes a course of a year of a plan: a compulsory one of the whole year or of `track`, or a round picked. */
+export const takes = (course: PlanCourse, { plan, year }: { plan: string; year: number }, picks: readonly PlanPick[], track?: string) =>
+  (course.rule === COMPULSORY && (course.track === null || course.track === track)) ||
+  picks.some((p) => p.programme === plan && p.year === year && p.key === roundKey(course.code, course.periods));
+
 /**
  * The courses a student's whole plan holds, each once: the compulsory ones of every year of `plans`, with those of
  * `track`, and the rounds picked in each year.
  */
 export function plannedCourses(plans: readonly ProgrammePlan[], picks: readonly PlanPick[], track?: string): PlanCourse[] {
   const held = plans.flatMap((plan) =>
-    plan.years.flatMap(({ year, courses }) =>
-      courses.filter(
-        (c) =>
-          (c.rule === COMPULSORY && (c.track === null || c.track === track)) ||
-          picks.some((p) => p.programme === plan.code && p.year === year && p.key === roundKey(c.code, c.periods)),
-      ),
-    ),
+    plan.years.flatMap(({ year, courses }) => courses.filter((c) => takes(c, { plan: plan.code, year }, picks, track))),
   );
   return [...new Map(held.map((c) => [c.code, c])).values()];
 }

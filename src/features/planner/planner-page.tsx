@@ -4,10 +4,12 @@ import { FieldSelect } from "@/components/field-select";
 import { Button } from "@/components/ui/button";
 import { NativeSelectOption } from "@/components/ui/native-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { admissionTo } from "@/domain/eligibility";
 import { NO_TRACK } from "@/domain/planner-state";
 import { academicYearOf, MASTER_START_YEAR } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
 import { StartChooser, TrackChooser } from "./choosers";
+import { AdmissionDetails } from "./admission";
 import { ChalmersLink, CourseListLink, Prerequisites, Specialisations } from "./master-details";
 import { MasterPicker, MastersNotPublished } from "./master-picker";
 import { ProgrammeSearch } from "./programme-search";
@@ -16,7 +18,7 @@ import { YearPlanner } from "./year-planner";
 
 export function PlannerPage() {
   const t = useMessages();
-  const { state, catalog, dispatch, openProgramme, rememberProgramme } = usePlanner();
+  const { state, catalog, guide, dispatch, openProgramme, rememberProgramme } = usePlanner();
   if (state.kind === "search") {
     return <ProgrammeSearch programmes={state.programmes} names={state.names} onOpen={openProgramme} onRemember={rememberProgramme} />;
   }
@@ -27,6 +29,13 @@ export function PlannerPage() {
   const chooseMaster = (code: string | undefined) => dispatch({ type: "chooseMaster", master: code });
   const showStart = (start: number) => dispatch({ type: "showStart", start });
   const showTrack = (next: string) => dispatch({ type: "showTrack", track: next });
+  const plan = { programme: programme.code, masterStart: cohort.masterStart, years, picks: state.picks, track: state.programmeTrack };
+  const admissions = new Map(masters.map((m) => [m.code, admissionTo(guide, m.code, undefined, plan)] as const));
+  const admission = master && admissionTo(guide, master.code, state.masterTrack, plan);
+  const admissionRules =
+    master && admission?.eligibility.kind === "courses"
+      ? { master: master.code, clauses: admission.eligibility.clauses, names: guide.names }
+      : undefined;
 
   return (
     <div className="flex flex-col gap-5">
@@ -54,6 +63,7 @@ export function PlannerPage() {
           </p>
         )}
         {masterAccreditation && <Specialisations names={masterAccreditation.specialisations} className="text-sm" />}
+        {admission && <AdmissionDetails check={admission} guide={guide} programmeName={programme.name} masterStart={cohort.masterStart} />}
         {master && master.prerequisites.length > 0 && (
           <Prerequisites paragraphs={master.prerequisites} className="text-sm">
             {t.planner.prerequisitesOf(master.code)}
@@ -132,7 +142,15 @@ export function PlannerPage() {
           )}
 
           {choosingMaster ? (
-            <MasterPicker programme={programme} masters={masters} accredited={state.accredited} catalog={catalog} onChoose={chooseMaster} />
+            <MasterPicker
+              programme={programme}
+              masters={masters}
+              accredited={state.accredited}
+              admissions={admissions}
+              names={guide.names}
+              catalog={catalog}
+              onChoose={chooseMaster}
+            />
           ) : current === undefined ? (
             <p className="text-muted-foreground">{t.planner.noCourses}</p>
           ) : choosingTrack ? (
@@ -146,6 +164,7 @@ export function PlannerPage() {
               pickedKeys={state.pickedKeys}
               otherPicks={state.otherPicks}
               courseList={state.courseList}
+              admission={admissionRules}
               catalog={catalog}
               dispatch={dispatch}
             />

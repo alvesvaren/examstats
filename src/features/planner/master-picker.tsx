@@ -1,10 +1,12 @@
 import { InfoIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Catalog } from "@/domain/catalog";
+import type { AdmissionCheck, PublishedEligibility } from "@/domain/eligibility";
 import { otherNameOf } from "@/domain/names";
 import { masterSummary, type Accreditation } from "@/domain/planner";
 import { academicYearOf, trackKind, type ProgrammePlan, type UpcomingMasters } from "@/domain/programme-plans";
 import { useMessages } from "@/hooks/use-messages";
+import { AdmissionSummary } from "./admission";
 import { ChalmersLink, Prerequisites, Specialisations } from "./master-details";
 
 interface MasterPickerProps {
@@ -13,12 +15,16 @@ interface MasterPickerProps {
   masters: readonly ProgrammePlan[];
   /** What each master's programme needs to complete the degree, by code. */
   accredited: ReadonlyMap<string, Accreditation>;
+  /** What admission to each master's programme asks of the student's plan, by code, where Chalmers' guide says. */
+  admissions: ReadonlyMap<string, AdmissionCheck | undefined>;
+  /** Names of the courses the guide names. */
+  names: PublishedEligibility["names"];
   catalog: Catalog;
   onChoose: (code: string) => void;
 }
 
 /** The master's programmes a programme leads on to, each in short, to choose the fourth and fifth year from. */
-export function MasterPicker({ programme, masters, accredited, catalog, onChoose }: MasterPickerProps) {
+export function MasterPicker({ programme, masters, accredited, admissions, names, catalog, onChoose }: MasterPickerProps) {
   const t = useMessages();
   const options = masters
     .toSorted((a, b) => a.name.localeCompare(b.name, "sv"))
@@ -27,6 +33,8 @@ export function MasterPicker({ programme, masters, accredited, catalog, onChoose
       summary: masterSummary(master),
       otherName: otherNameOf(catalog.programmes, master.code),
       accreditation: accredited.get(master.code) ?? { specialisations: [], courseList: null },
+      admission: admissions.get(master.code),
+      names,
     }));
 
   return (
@@ -51,10 +59,12 @@ interface MasterOptionProps {
   summary: ReturnType<typeof masterSummary>;
   otherName: string | undefined;
   accreditation: Accreditation;
+  admission: AdmissionCheck | undefined;
+  names: PublishedEligibility["names"];
   onChoose: () => void;
 }
 
-function MasterOption({ master, summary, otherName, accreditation, onChoose }: MasterOptionProps) {
+function MasterOption({ master, summary, otherName, accreditation, admission, names, onChoose }: MasterOptionProps) {
   const t = useMessages();
   const { tracks, compulsory, compulsoryCredits, electives } = summary;
   const facts = [
@@ -77,6 +87,7 @@ function MasterOption({ master, summary, otherName, accreditation, onChoose }: M
           <span className="line-clamp-2 text-xs text-muted-foreground">{t.planner.compulsory(compulsory.map((c) => c.name))}</span>
         )}
         <Specialisations names={accreditation.specialisations} className="text-xs" />
+        {admission && <AdmissionSummary check={admission} names={names} className="text-xs" />}
       </button>
       <ChalmersLink code={master.code} courseList={accreditation.courseList} className="self-start px-3 pb-2 text-xs" />
       {master.prerequisites.length > 0 && (

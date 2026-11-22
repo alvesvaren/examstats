@@ -259,6 +259,43 @@ export const en = {
     elsewhereInYear: (year: number, inPeriods: readonly StudyPeriod[]) =>
       `In year ${year}${inPeriods.length > 0 ? ` in ${formatPeriods(inPeriods)}` : ""}.`,
     elsewhereInThisYear: (periods: string) => `In your year in ${periods}. Adding it here moves it.`,
+
+    admission: {
+      heading: "Admission",
+      guide: (academicYear: string) => `Chalmers' eligibility guide for ${academicYear}`,
+      /** The guide is for an earlier year than the one the student's master's programme starts in. */
+      guideEarlier: (year: string) => `The one for ${year} comes out the October before and can differ.`,
+      deadline:
+        "A course counts once it ends in study period 3 of year 3 at the latest, since admission checks your courses in April. Admission can also accept other courses like these.",
+      compulsory: (programme: string) => `The compulsory courses of ${programme} meet the entry requirements.`,
+      met: "Your courses meet the entry requirements.",
+      missing: "For admission you also need",
+      regulations: "The admission regulations decide, in subjects and credits, as the prerequisites say.",
+      words: "The guide says:",
+      courseIn: (code: string, years: readonly { year: number; periods: readonly string[] }[]) =>
+        `${code} in ${years.map(({ year, periods }) => `year ${year} ${periods.join(", ")}`).join(" and ")}`,
+      offeredIn: (places: readonly string[]) => `In your plans: ${places.join(" · ")}`,
+      notInPlans: "Not in your programme's plans",
+      late: (code: string, periods: string) => `${code} in ${periods} of year 3 ends after the application`,
+      recommended: (names: readonly string[]) => `Recommended: ${f.list(names)}`,
+      either: (items: readonly string[]) => f.either(items),
+      all: (items: readonly string[]) => f.list(items),
+      someOf: (count: number, items: readonly string[]) => `${f.count(count)} of ${items.join("; ")}`,
+      summary: {
+        compulsory: "Admission: the compulsory courses suffice",
+        met: "Admission: your courses meet the requirements",
+        missing: (items: readonly string[]) => `Admission also needs ${items.join("; ")}`,
+        regulations: "Admission: subjects and credits, as the prerequisites say",
+        words: "Admission: see Chalmers' eligibility guide",
+      },
+      rule: {
+        course: (label: string, master: string) => `${label} for admission to ${master}`,
+        oneOf: (master: string) => `One of the marked courses for admission to ${master}`,
+        someOf: (count: number, master: string) => `${f.count(count)} of the marked courses for admission to ${master}`,
+        alternatives: (master: string) => `One of the guide's sets of the marked courses for admission to ${master}`,
+      },
+      mark: (master: string) => `One of the courses for admission to ${master}`,
+    },
   },
 };
 

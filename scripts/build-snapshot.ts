@@ -1,4 +1,5 @@
 import { hasEnded, summarizeCourse, type ResultsFile } from "../src/domain/course-stats.ts";
+import { guideCourses, type EligibilityFile, type PublishedEligibility } from "../src/domain/eligibility.ts";
 import {
   compareRounds,
   ratedRounds,
@@ -28,6 +29,7 @@ export interface SnapshotInputs {
   plans: ProgrammePlansFile;
   names: NamesFile;
   upcoming: UpcomingMastersFile | null;
+  eligibility: EligibilityFile;
 }
 
 export interface BuiltSnapshot {
@@ -35,10 +37,14 @@ export interface BuiltSnapshot {
   courses: CourseDetail[];
   /** Published plans by the year of the cohort that follows them, with the upcoming master's programmes under their start year. */
   plans: Map<number, PublishedPlan[]>;
+  eligibility: PublishedEligibility;
 }
 
 /** Joins the files of `data/` into what the app reads. Reads no clock and does no I/O. */
-export function buildSnapshot({ results, evaluations, plans, names, upcoming: upcomingFile }: SnapshotInputs, today: Date): BuiltSnapshot {
+export function buildSnapshot(
+  { results, evaluations, plans, names, upcoming: upcomingFile, eligibility }: SnapshotInputs,
+  today: Date,
+): BuiltSnapshot {
   const courseNames = new Map(names.courses.map(({ code, ...n }) => [code, n]));
   // A programme can have results under a code Chalmers no longer names, or a plan but no results yet.
   const programmeCodes = new Set([...Object.keys(results.programmes), ...Object.keys(names.programmes)]);
@@ -140,5 +146,11 @@ export function buildSnapshot({ results, evaluations, plans, names, upcoming: up
   });
   const published = new Map(starts.map((start) => [start, cohortPlans(programmePlans, start).map(publish)]));
   if (upcoming) published.set(startYearOf(upcoming.info.academicYear), upcoming.plans.map(publish));
-  return { index, courses: details, plans: published };
+  const guideNames = guideCourses(eligibility.masters).flatMap(({ codes }) =>
+    codes.flatMap((code) => {
+      const named = courseNames.get(code);
+      return named ? [[code, nameOf(named, code)] as const] : [];
+    }),
+  );
+  return { index, courses: details, plans: published, eligibility: { ...eligibility, names: Object.fromEntries(guideNames) } };
 }

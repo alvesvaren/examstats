@@ -159,6 +159,10 @@ export function resolvePlanner({ search, memory, cohort, plans, masterPlans, nam
   // A track in the URL is a shared plan and wins. Without one, it is the one this device chose in the plan, which a
   // master's programme keeps in both its years. Without either, the student chooses one, or none.
   const trackChoice = current && chosenTrack(tracks, search.track, memory.tracks[current.plan.code]);
+  /** The track chosen in a plan: the one shown when a year of it shows, else the one remembered for it. None is undefined. */
+  const trackOf = (plan: ProgrammePlan) => (current?.plan === plan ? trackChoice : memory.tracks[plan.code]) || undefined;
+  const pickedKeys = current ? (search.picked ?? rememberedPicks(memory, current.plan.code, current.year) ?? []) : [];
+  const others = current ? otherPicks(memory, years, current.number) : [];
   return {
     kind: "plan" as const,
     search,
@@ -188,9 +192,17 @@ export function resolvePlanner({ search, memory, cohort, plans, masterPlans, nam
     /** Whether the student chooses a track, or none, before the year shows, since the track decides what is compulsory. */
     choosingTrack: tracks.length > 0 && trackChoice === undefined,
     /** The round keys picked in the current year. Picks in the URL are a shared plan and win over the remembered ones. */
-    pickedKeys: current ? (search.picked ?? rememberedPicks(memory, current.plan.code, current.year) ?? []) : [],
+    pickedKeys,
     /** The picks remembered for the other years of study. */
-    otherPicks: current ? otherPicks(memory, years, current.number) : [],
+    otherPicks: others,
+    /** The picks of every year of study. */
+    picks: current
+      ? [...others, ...pickedKeys.map((key) => ({ number: current.number, programme: current.plan.code, year: current.year, key }))]
+      : [],
+    /** The track of the programme's own years, which decides their compulsory courses also while a year of the master's programme shows. */
+    programmeTrack: trackOf(programme),
+    /** The track of the master's programme, which picks the requirements of a specialisation that has its own. */
+    masterTrack: master && trackOf(master),
     /** The course list of the upcoming master's programme the current year belongs to, which its new courses link to. */
     courseList: master && current?.plan === master ? (accredited.get(master.code)?.courseList ?? null) : null,
   };

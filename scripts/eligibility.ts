@@ -14,7 +14,7 @@ import { dirname } from "node:path";
 import { extractText, getDocumentProxy } from "unpdf";
 import { z } from "zod";
 import {
-  coursesOf,
+  guideCourses,
   type Admission,
   type CourseRule,
   type EligibilityFile,
@@ -489,13 +489,7 @@ const nameWords = (name: string) => space(normalize(name).replace(/[^a-z0-9]+/g,
  * names the codes a course had before.
  */
 function courseWarnings(masters: readonly GuideMaster[], names: ReadonlyMap<string, { en: string; sv: string }>) {
-  const courses = masters.flatMap((master) => [
-    ...master.recommended,
-    ...master.entries.flatMap((entry) => [
-      ...entry.recommended,
-      ...(entry.admission.kind === "courses" ? coursesOf(entry.admission.rule) : []),
-    ]),
-  ]);
+  const courses = guideCourses(masters);
   const unknown = new Set(courses.flatMap(({ codes }) => codes.filter((code) => !names.has(code))));
   const renamed = new Set(
     courses.flatMap(({ codes, name }) =>
