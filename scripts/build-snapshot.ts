@@ -124,7 +124,11 @@ export function buildSnapshot(
       starts: Object.fromEntries(
         [...Map.groupBy(programmePlans, (p) => p.code)].map(([code, dated]) => [
           code,
-          dated.map((p) => startYearOf(p.academicYear)).toSorted((a, b) => a - b),
+          // A programme that stops admitting students keeps plans for its later years until its last students finish.
+          dated
+            .filter((p) => p.years.some(({ year }) => year === 1))
+            .map((p) => startYearOf(p.academicYear))
+            .toSorted((a, b) => a - b),
         ]),
       ),
       upcomingMasters: upcoming?.info ?? null,
