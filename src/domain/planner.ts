@@ -258,10 +258,15 @@ export function yearView({
   const degreeRules: MarkedDegreeRule[] = degreeRulesOf(plans, courses, track)
     .toSorted((a, b) => Number(a.requirement.kind === "theme") - Number(b.requirement.kind === "theme"))
     .map((rule, index) => ({ ...rule, marker: pickRules.length + index }));
-  // Admission counts the courses of the first three years only.
+  // Admission counts the courses of the first three years only. A year shows the requirements the plans can meet in
+  // time and that its own courses count towards, so that each has courses with its marker and enough of them. The
+  // others are for other years, or need courses outside the plans.
+  const countsInYear = ({ rule, reach }: Clause) =>
+    reach === "plans" &&
+    yearRounds.some((round) => round.codes.some((code) => countsTowards(rule, { code, year: current.number, periods: round.periods })));
   const admissionRules: MarkedAdmissionRule[] =
     current.number <= APPLICATION_YEAR
-      ? admission.map((clause, index) => ({ ...clause, marker: pickRules.length + degreeRules.length + index }))
+      ? admission.filter(countsInYear).map((clause, index) => ({ ...clause, marker: pickRules.length + degreeRules.length + index }))
       : [];
   const warningsOf = (round: PlannerRound): RoundWarning[] => {
     const clash = lectureClash(round, plan);

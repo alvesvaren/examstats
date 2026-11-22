@@ -373,6 +373,8 @@ const admissionClause = (code: string, registration = false): Clause => ({
   held: [],
   late: [],
   offered: [],
+  offeredLate: [],
+  reach: "plans",
 });
 describe("yearView", () => {
   const mtsRule: PlanRequirement = { kind: "theme", theme: "mts", minCredits: 7.5 };
@@ -644,6 +646,7 @@ describe("yearView", () => {
 
     describe("admission", () => {
       const third = planOf("TKDAT", {
+        2: [entry("TDA555", "O")],
         3: [entry("LMA017", "V"), entry("DAT566", "V", { periods: ["LP4"] }), entry("DAT257", "V", { periods: ["LP4"] })],
       });
       const years = studyYears(third, planOf("MPAIN", { 1: [entry("DAT550", "O")] }));
@@ -662,12 +665,35 @@ describe("yearView", () => {
         });
 
       it("marks the courses that count by the application in April, so none of study period 4 of year 3 but one that only needs a registration", () => {
-        expect(view(3).admissionRules.map((r) => r.marker)).toEqual([0, 1, 2]);
         expect(view(3, "LP1").listed.map((l) => [l.round.key, l.admission])).toEqual([["LMA017.LP1", [{ marker: 0, done: false }]]]);
         expect(view(3, "LP4").listed.map((l) => [l.round.key, l.admission])).toEqual([
-          ["DAT257.LP4", [{ marker: 2, done: false }]],
+          ["DAT257.LP4", [{ marker: 1, done: false }]],
           ["DAT566.LP4", []],
         ]);
+      });
+
+      it("shows a requirement only in a year with courses that meet it in time, so that each has courses with its marker", () => {
+        expect(view(3).admissionRules.map((r) => [r.marker, r.rule])).toEqual([
+          [0, admission[0]!.rule],
+          [1, admission[2]!.rule],
+        ]);
+        expect(view(2).admissionRules).toEqual([]);
+      });
+
+      it("leaves out a requirement the plans cannot meet, though a course of the year counts towards it", () => {
+        const outside: Clause = { ...admissionClause("LMA017"), reach: "outside" };
+        const current = years.find((y) => y.number === 3)!;
+        const shown = yearView({
+          years,
+          current,
+          track: undefined,
+          pickedKeys: [],
+          otherPicks: [],
+          stats: new Map(),
+          ruleNames: {},
+          admission: [outside],
+        });
+        expect(shown.admissionRules).toEqual([]);
       });
 
       it("leaves the requirements out of the master's programme's years, which admission does not count", () => {

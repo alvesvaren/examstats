@@ -66,7 +66,17 @@ describe("eligibilityOf", () => {
       kind: "courses",
       met: false,
       clauses: [
-        { rule: multivariable, met: true, have: 1, need: 1, held: [offered("LMA017", 2, "LP3")], late: [], offered: [] },
+        {
+          rule: multivariable,
+          met: true,
+          have: 1,
+          need: 1,
+          held: [offered("LMA017", 2, "LP3")],
+          late: [],
+          offered: [],
+          offeredLate: [],
+          reach: "plans",
+        },
         {
           rule: course("DAT566"),
           met: false,
@@ -75,9 +85,19 @@ describe("eligibilityOf", () => {
           held: [],
           late: [offered("DAT566", 3, "LP4")],
           offered: [offered("DAT566", 3, "LP2")],
+          offeredLate: [offered("DAT566", 3, "LP4")],
+          reach: "plans",
         },
       ],
     });
+  });
+
+  it("tells whether the first years' plans can meet what is missing in time, only too late, or not at all", () => {
+    const fluids: CourseRule = { kind: "atLeast", count: 2, of: [course("MTF053"), course("KBT340"), course("MMS260")] };
+    const rule: CourseRule = { kind: "all", of: [course("DAT566"), course("EEM076"), course("PPU061"), fluids] };
+    const options = [offered("DAT566", 3, "LP2"), offered("EEM076", 3, "LP4"), offered("KBT340", 2, "LP2")];
+    const eligibility = eligibilityOf({ kind: "courses", rule }, { taken: [], offered: options });
+    expect(eligibility.kind === "courses" && eligibility.clauses.map((c) => c.reach)).toEqual(["plans", "late", "outside", "outside"]);
   });
 
   it("passes on what the guide does not check", () => {

@@ -126,6 +126,10 @@ export function toCatalog(snapshot: Snapshot, language: Language) {
   };
 }
 
+/** The study periods a course runs in this academic year, by the plans. Empty when no plan has it. */
+export const periodsThisYear = ({ byCode, newCourses }: Pick<Catalog, "byCode" | "newCourses">, code: string) =>
+  byCode.get(code)?.periods ?? newCourses.find((course) => course.code === code)?.periods ?? [];
+
 /** Everyone who examines a course this year, by name, with how many such courses. */
 function examinersOf(courses: readonly Pick<CourseSummary, "examiners">[]) {
   return [

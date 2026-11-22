@@ -280,7 +280,14 @@ export const en = {
       courseIn: (code: string, years: readonly { year: number; periods: readonly string[] }[]) =>
         `${code} in ${years.map(({ year, periods }) => `year ${year} ${periods.join(", ")}`).join(" and ")}`,
       offeredIn: (places: readonly string[]) => `In your plans: ${places.join(" · ")}`,
-      notInPlans: "Not in your programme's plans",
+      /** Where the plans of years 1 to 3 have a course a requirement names, but only after the application. */
+      onlyLate: (places: readonly string[]) => `In your plans only after the application: ${places.join(" · ")}`,
+      /** The plan holds every course it can of the requirements, and those left are outside the programme's plans. */
+      metInPlans: "Your courses meet every requirement your programme's plans can.",
+      outside: "Outside your programme's plans",
+      outsideHint: "You can take these courses on top of your plan, or ask admissions whether a course you take is enough.",
+      runsIn: (code: string, periods: string) => `${code} runs in ${periods} this year`,
+      notThisYear: (code: string) => `${code} does not run this year`,
       late: (code: string, periods: string) => `${code} in ${periods} of year 3 ends after the application`,
       recommended: (names: readonly string[]) => `Recommended: ${f.list(names)}`,
       either: (items: readonly string[]) => f.either(items),
@@ -290,6 +297,8 @@ export const en = {
         compulsory: "Admission: the compulsory courses suffice",
         met: "Admission: your courses meet the requirements",
         missing: (items: readonly string[]) => `Admission also needs ${items.join("; ")}`,
+        /** Marks a missing requirement that only a course outside the programme's plans meets. */
+        outside: (item: string) => `${item} (outside your plans)`,
         regulations: "Admission: subjects and credits, as the prerequisites say",
         words: "Admission: see Chalmers' eligibility guide",
       },

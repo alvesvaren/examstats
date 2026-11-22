@@ -213,6 +213,14 @@ export interface Clause {
   late: OfferedCourse[];
   /** Courses of the first three years that would meet it in time, in the plans' order. Empty once it is met. */
   offered: OfferedCourse[];
+  /** Courses of the first three years it names that end after the application deadline. Empty once it is met. */
+  offeredLate: OfferedCourse[];
+  /**
+   * Whether the courses of the first three years' plans can meet it in time, only with courses that end too late, or
+   * not at all, so that it needs a course outside them, which the guide can ask for when the plans predate the master's
+   * programme. A requirement that is met is within the plans.
+   */
+  reach: "plans" | "late" | "outside";
 }
 
 /** What a student of a programme needs for a master's programme, checked against the student's courses where the guide names courses. */
@@ -229,6 +237,9 @@ export function eligibilityOf(
 ): Eligibility {
   if (admission.kind !== "courses") return admission;
   const inTime = heldByDeadline(taken);
+  const inPlans = heldByDeadline([...taken, ...offered]);
+  const everyCode = new Set([...taken, ...offered].map((c) => c.code));
+  const anyTime = { completed: everyCode, registered: everyCode };
   const terms = admission.rule.kind === "all" ? admission.rule.of : [admission.rule];
   const clauses = terms.map((rule): Clause => {
     const met = meets(rule, inTime);
@@ -242,6 +253,8 @@ export function eligibilityOf(
       held,
       late: taken.filter((course) => names(rule, course) && !held.includes(course)),
       offered: met ? [] : offered.filter((course) => countsTowards(rule, course)),
+      offeredLate: met ? [] : offered.filter((course) => names(rule, course) && !countsTowards(rule, course)),
+      reach: meets(rule, inPlans) ? "plans" : meets(rule, anyTime) ? "late" : "outside",
     };
   });
   return { kind: "courses", met: clauses.every((c) => c.met), clauses };

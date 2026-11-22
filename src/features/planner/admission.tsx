@@ -1,9 +1,17 @@
 import { CheckIcon, ExternalLinkIcon } from "lucide-react";
 import { cn } from "cn";
-import type { AdmissionCheck, Clause, CourseRule, GuideCourse, OfferedCourse, PublishedEligibility } from "@/domain/eligibility";
+import {
+  coursesOf,
+  type AdmissionCheck,
+  type Clause,
+  type CourseRule,
+  type GuideCourse,
+  type OfferedCourse,
+  type PublishedEligibility,
+} from "@/domain/eligibility";
 import type { Language } from "@/domain/names";
 import type { MarkedAdmissionRule } from "@/domain/planner";
-import { academicYearOf } from "@/domain/programme-plans";
+import { academicYearOf, type StudyPeriod } from "@/domain/programme-plans";
 import { useLanguage } from "@/hooks/use-language";
 import { useMessages } from "@/hooks/use-messages";
 import type { Messages } from "@/lib/i18n/en";
@@ -43,7 +51,8 @@ function ruleText(rule: CourseRule, label: CourseLabel, t: Messages): string {
 }
 
 /** The codes a student's plans hold or offer of a clause's courses. */
-const plannedCodes = ({ held, late, offered }: Clause) => new Set([...held, ...late, ...offered].map((c) => c.code));
+const plannedCodes = ({ held, late, offered, offeredLate }: Clause) =>
+  new Set([...held, ...late, ...offered, ...offeredLate].map((c) => c.code));
 
 /** The words for the guide's clauses and courses in the language shown. */
 function useAdmissionWords(names: Names) {
@@ -69,9 +78,18 @@ function useAdmissionWords(names: Names) {
 const passes = ({ eligibility }: AdmissionCheck) =>
   eligibility.kind === "compulsory" || (eligibility.kind === "courses" && eligibility.met);
 
-/** Green once met, red while courses are missing, muted when the planner does not check it. */
+/** The requirements a check still misses. */
+const missingOf = ({ eligibility }: AdmissionCheck) => (eligibility.kind === "courses" ? eligibility.clauses.filter((c) => !c.met) : []);
+
+/** Whether only a course outside the programme's plans meets a requirement, which is no choice within the plan. */
+const isOutside = (clause: Clause) => clause.reach === "outside";
+
+/**
+ * Green once met, red while the plans can meet more, muted when only courses outside them are missing or the planner
+ * does not check it.
+ */
 const statusClass = (check: AdmissionCheck) =>
-  passes(check) ? "font-medium text-grade-4" : check.eligibility.kind === "courses" ? "text-grade-u" : "text-muted-foreground";
+  passes(check) ? "font-medium text-grade-4" : missingOf(check).some((c) => !isOutside(c)) ? "text-grade-u" : "text-muted-foreground";
 
 function Met() {
   return <CheckIcon className="mr-0.5 inline size-[1em] align-[-0.15em]" aria-hidden />;
@@ -94,7 +112,7 @@ export function AdmissionSummary({ check, names, className }: AdmissionSummaryPr
       ? summary[eligibility.kind]
       : eligibility.met
         ? summary.met
-        : summary.missing(eligibility.clauses.filter((c) => !c.met).map(words.clause));
+        : summary.missing(missingOf(check).map((c) => (isOutside(c) ? summary.outside(words.clause(c)) : words.clause(c))));
   return (
     <span className={cn("block", statusClass(check), className)}>
       {passes(check) && <Met />}
@@ -110,24 +128,39 @@ interface AdmissionDetailsProps {
   programmeName: string;
   /** The calendar year the student's master's programme starts in. */
   masterStart: number;
+  /** The study periods a course runs in this academic year, by its code. */
+  periodsOf: (code: string) => readonly StudyPeriod[];
 }
 
 /**
  * What admission to the chosen master's programme asks of the student's plan, by Chalmers' eligibility guide: whether
  * the plan meets it, what is missing and where the plans offer it, and when a course counts.
  */
-export function AdmissionDetails({ check, guide, programmeName, masterStart }: AdmissionDetailsProps) {
+export function AdmissionDetails({ check, guide, programmeName, masterStart, periodsOf }: AdmissionDetailsProps) {
   const t = useMessages();
   const words = t.planner.admission;
   const { clause, course, places } = useAdmissionWords(guide.names);
   const { eligibility, recommended, corrections, fit } = check;
-  const missing = eligibility.kind === "courses" ? eligibility.clauses.filter((c) => !c.met) : [];
+  const missing = missingOf(check);
+  const inPlans = missing.filter((c) => !isOutside(c));
+  const outside = missing.filter(isOutside);
   const status = {
     compulsory: words.compulsory(programmeName),
-    courses: eligibility.kind === "courses" && eligibility.met ? words.met : words.missing,
+    courses: missing.length === 0 ? words.met : inPlans.length > 0 ? words.missing : words.metInPlans,
     regulations: words.regulations,
     words: words.words,
   }[eligibility.kind];
+  /** When each course of a requirement that the plans do not have runs this year, by the first of its codes that does. */
+  const runs = (c: Clause) => {
+    const planned = plannedCodes(c);
+    const lines = coursesOf(c.rule)
+      .filter(({ codes }) => !codes.some((code) => planned.has(code)))
+      .map(({ codes }) => {
+        const running = codes.map((code) => ({ code, periods: periodsOf(code) })).find(({ periods }) => periods.length > 0);
+        return running ? words.runsIn(running.code, t.periods(running.periods)) : words.notThisYear(codes[0]!);
+      });
+    return [...new Set(lines)].join(" · ");
+  };
 
   return (
     <section aria-label={words.heading} className="flex max-w-prose flex-col gap-1 text-sm">
@@ -136,14 +169,16 @@ export function AdmissionDetails({ check, guide, programmeName, masterStart }: A
         {status}
       </p>
       {eligibility.kind === "words" && <p className="whitespace-pre-line text-muted-foreground">{eligibility.text}</p>}
-      {missing.length > 0 && (
+      {inPlans.length > 0 && (
         <ul className="flex list-disc flex-col gap-1 pl-5">
-          {missing.map((c) => (
+          {inPlans.map((c) => (
             <li key={clause(c)}>
               {clause(c)}
-              <span className="block text-xs text-muted-foreground">
-                {c.offered.length > 0 ? words.offeredIn(places(c.offered)) : words.notInPlans}
-              </span>
+              {(c.offered.length > 0 || c.late.length === 0) && (
+                <span className="block text-xs text-muted-foreground">
+                  {c.offered.length > 0 ? words.offeredIn(places(c.offered)) : words.onlyLate(places(c.offeredLate))}
+                </span>
+              )}
               {c.late.map((late) => (
                 <span key={late.code} className="block text-xs text-grade-u">
                   {words.late(late.code, t.periods(late.periods))}
@@ -152,6 +187,20 @@ export function AdmissionDetails({ check, guide, programmeName, masterStart }: A
             </li>
           ))}
         </ul>
+      )}
+      {outside.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <p>{words.outside}</p>
+          <ul className="flex list-disc flex-col gap-1 pl-5">
+            {outside.map((c) => (
+              <li key={clause(c)}>
+                {clause(c)}
+                <span className="block text-xs text-muted-foreground">{runs(c)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-muted-foreground">{words.outsideHint}</p>
+        </div>
       )}
       {recommended.length > 0 && <p className="text-muted-foreground">{words.recommended(recommended.map(course))}</p>}
       {corrections.map(({ guide: line, corrected }) => (

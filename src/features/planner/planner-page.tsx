@@ -4,6 +4,7 @@ import { FieldSelect } from "@/components/field-select";
 import { Button } from "@/components/ui/button";
 import { NativeSelectOptGroup, NativeSelectOption } from "@/components/ui/native-select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { periodsThisYear } from "@/domain/catalog";
 import { admissionTo } from "@/domain/eligibility";
 import { NO_TRACK } from "@/domain/planner-state";
 import { academicYearOf, MASTER_START_YEAR } from "@/domain/programme-plans";
@@ -63,7 +64,15 @@ export function PlannerPage() {
           </p>
         )}
         {masterAccreditation && <Specialisations names={masterAccreditation.specialisations} className="text-sm" />}
-        {admission && <AdmissionDetails check={admission} guide={guide} programmeName={programme.name} masterStart={cohort.masterStart} />}
+        {admission && (
+          <AdmissionDetails
+            check={admission}
+            guide={guide}
+            programmeName={programme.name}
+            masterStart={cohort.masterStart}
+            periodsOf={(code) => periodsThisYear(catalog, code)}
+          />
+        )}
         {master && master.prerequisites.length > 0 && (
           <Prerequisites paragraphs={master.prerequisites} className="text-sm">
             {t.planner.prerequisitesOf(master.code)}
