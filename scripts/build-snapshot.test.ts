@@ -39,6 +39,7 @@ const names: NamesFile = {
     MPALG: { en: "Computer science - algorithms, languages and logic", sv: "Datavetenskap" },
     NEWMP: { en: "", sv: "" },
   },
+  tracks: { TKITE: [{ en: "Software engineering", sv: "Programvaruteknik" }] },
   courses: [
     { code: "TDA357", en: "Databases", sv: "Databaser", lastOffered: "2026/2027" },
     // A name Chalmers has in one language only has the other one empty.
@@ -148,7 +149,10 @@ const upcomingFile = (academicYear: string): UpcomingMastersFile => ({
   ],
 });
 
-/** A guide that names TDA357, which chalmers.se names, and TDA356, its code before 2021/2022. */
+/**
+ * A guide that names TDA357, which chalmers.se names, and TDA356, its code before 2021/2022, and that asks TKITE's
+ * students of MPSOF for the track "Programvaruteknik".
+ */
 const eligibility: EligibilityFile = {
   academicYear: "2027/2028",
   source: "https://example.com/guide.pdf",
@@ -167,6 +171,14 @@ const eligibility: EligibilityFile = {
           recommended: [],
           corrections: [],
         },
+      ],
+      recommended: [],
+    },
+    {
+      code: "MPSOF",
+      specialisation: null,
+      entries: [
+        { programme: "TKITE", path: null, admission: { kind: "track", track: "Programvaruteknik" }, recommended: [], corrections: [] },
       ],
       recommended: [],
     },
@@ -463,6 +475,17 @@ describe("buildSnapshot", () => {
       const published = publishedEligibilitySchema.parse(build().eligibility);
       expect(published.names).toEqual({ TDA357: { name: "Databases", swedishName: "Databaser" } });
       expect(published.masters).toEqual(eligibility.masters);
+    });
+
+    it("names each track the guide names in Swedish as the plans do", () => {
+      expect(build().eligibility.trackNames).toEqual({ TKITE: { Programvaruteknik: "Software engineering" } });
+    });
+
+    it("throws on a track the plans do not have, which no plan could follow", () => {
+      const renamed = { ...names, tracks: { TKITE: [{ en: "Software engineering", sv: "Mjukvaruteknik" }] } };
+      expect(() => buildSnapshot({ ...inputs(), names: renamed }, TODAY)).toThrow(
+        'no track that the eligibility guide calls "Programvaruteknik"',
+      );
     });
   });
 });

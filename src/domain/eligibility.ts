@@ -41,6 +41,8 @@ export const admissionSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("regulations") }),
   /** What the guide says in words that name no courses to check, such as credits in a subject, or a block it words unclearly. */
   z.object({ kind: z.literal("words"), text: z.string() }),
+  /** The compulsory courses of the first three years and the courses of one of the programme's tracks, which the guide names in Swedish. */
+  z.object({ kind: z.literal("track"), track: z.string() }),
 ]);
 export type Admission = z.infer<typeof admissionSchema>;
 
@@ -109,10 +111,12 @@ export const eligibilityFileSchema = z.object({
 });
 export type EligibilityFile = z.infer<typeof eligibilityFileSchema>;
 
-/** The guide as the app loads it, with the names of the courses it names. */
+/** The guide as the app loads it, with the names of the courses and tracks it names. */
 export const publishedEligibilitySchema = eligibilityFileSchema.extend({
   /** Chalmers' English and Swedish names of each course the guide names, by code, for the codes it has named since 2021/2022. */
   names: z.record(z.string(), namedSchema),
+  /** The name the plans give each track the guide names in Swedish, by programme code and the guide's name. */
+  trackNames: z.record(z.string(), z.record(z.string(), z.string())),
 });
 export type PublishedEligibility = z.infer<typeof publishedEligibilitySchema>;
 
@@ -181,11 +185,19 @@ export interface OfferedCourse extends HeldCourse {
   name: string;
 }
 
+/** The courses of a degree's first three years, and the years of them that Chalmers has not planned yet. */
+export interface FirstYears {
+  taken: readonly OfferedCourse[];
+  offered: readonly OfferedCourse[];
+  unplanned: readonly number[];
+}
+
 /**
  * The courses of a degree's first three years, each with its year of study and study periods: those a student takes,
  * compulsory or picked, and every course the plans offer. The programme's own `track` decides its compulsory courses.
+ * A new programme can have no plan for some of the years yet, which `unplanned` lists.
  */
-export function firstYears(years: readonly StudyYear[], picks: readonly StudyPick[], track: string | undefined) {
+export function firstYears(years: readonly StudyYear[], picks: readonly StudyPick[], track: string | undefined): FirstYears {
   const courses = years
     .filter(({ number }) => number <= APPLICATION_YEAR)
     .flatMap(({ number, plan, year }) =>
@@ -194,7 +206,12 @@ export function firstYears(years: readonly StudyYear[], picks: readonly StudyPic
         taken: takes(course, { plan: plan.code, year }, picks, track),
       })),
     );
-  return { taken: courses.filter((c) => c.taken).map((c) => c.offered), offered: courses.map((c) => c.offered) };
+  const planned = new Set(years.map((y) => y.number));
+  return {
+    taken: courses.filter((c) => c.taken).map((c) => c.offered),
+    offered: courses.map((c) => c.offered),
+    unplanned: Array.from({ length: APPLICATION_YEAR }, (_, i) => i + 1).filter((number) => !planned.has(number)),
+  };
 }
 
 /** Whether a course on its own meets one of the courses a rule names in time. */
@@ -216,25 +233,28 @@ export interface Clause {
   /** Courses of the first three years it names that end after the application deadline. Empty once it is met. */
   offeredLate: OfferedCourse[];
   /**
-   * Whether the courses of the first three years' plans can meet it in time, only with courses that end too late, or
-   * not at all, so that it needs a course outside them, which the guide can ask for when the plans predate the master's
-   * programme. A requirement that is met is within the plans.
+   * Whether the courses of the first three years' plans can meet it in time, only with courses that end too late, maybe
+   * with those of a year Chalmers has not planned yet, or not at all, so that it needs a course outside them, which the
+   * guide can ask for when the plans predate the master's programme. A requirement that is met is within the plans.
    */
-  reach: "plans" | "late" | "outside";
+  reach: "plans" | "late" | "unplanned" | "outside";
 }
 
 /** What a student of a programme needs for a master's programme, checked against the student's courses where the guide names courses. */
 export type Eligibility =
-  { kind: "compulsory" } | { kind: "courses"; met: boolean; clauses: Clause[] } | { kind: "regulations" } | { kind: "words"; text: string };
+  | { kind: "compulsory" }
+  /** `unplanned` lists the first three years that Chalmers has not planned yet. */
+  | { kind: "courses"; met: boolean; clauses: Clause[]; unplanned: readonly number[] }
+  | { kind: "regulations" }
+  | { kind: "words"; text: string }
+  /** The programme's track that the compulsory courses need, as the plans name it, and whether the plan follows it. */
+  | { kind: "track"; track: string; met: boolean };
 
 /** Whether a course is one a rule names, under any of its codes, whether it counts in time or not. */
 const names = (rule: CourseRule, course: HeldCourse) => coursesOf(rule).some((c) => c.codes.includes(course.code));
 
 /** What an admission asks of a student who takes `taken` in the first three years, and which of `offered` would meet what is missing. */
-export function eligibilityOf(
-  admission: Admission,
-  { taken, offered }: { taken: readonly OfferedCourse[]; offered: readonly OfferedCourse[] },
-): Eligibility {
+export function eligibilityOf(admission: Exclude<Admission, { kind: "track" }>, { taken, offered, unplanned }: FirstYears): Eligibility {
   if (admission.kind !== "courses") return admission;
   const inTime = heldByDeadline(taken);
   const inPlans = heldByDeadline([...taken, ...offered]);
@@ -254,10 +274,10 @@ export function eligibilityOf(
       late: taken.filter((course) => names(rule, course) && !held.includes(course)),
       offered: met ? [] : offered.filter((course) => countsTowards(rule, course)),
       offeredLate: met ? [] : offered.filter((course) => names(rule, course) && !countsTowards(rule, course)),
-      reach: meets(rule, inPlans) ? "plans" : meets(rule, anyTime) ? "late" : "outside",
+      reach: meets(rule, inPlans) ? "plans" : meets(rule, anyTime) ? "late" : unplanned.length > 0 ? "unplanned" : "outside",
     };
   });
-  return { kind: "courses", met: clauses.every((c) => c.met), clauses };
+  return { kind: "courses", met: clauses.every((c) => c.met), clauses, unplanned };
 }
 
 /**
@@ -313,7 +333,7 @@ export interface AdmissionInput {
  * guide does not have the master's programme.
  */
 export function admissionTo(
-  guide: Pick<EligibilityFile, "academicYear" | "masters">,
+  guide: Pick<PublishedEligibility, "academicYear" | "masters" | "trackNames">,
   master: string,
   masterTrack: string | undefined,
   input: AdmissionInput,
@@ -321,6 +341,11 @@ export function admissionTo(
   const fit = guideFit(guide.academicYear, input.masterStart);
   const entry = fit && guideEntry(guide.masters, { master, track: masterTrack, programme: input.programme });
   if (!entry) return undefined;
-  return { ...entry, fit, eligibility: eligibilityOf(entry.admission, firstYears(input.years, input.picks, input.track)) };
+  const { admission } = entry;
+  if (admission.kind === "track") {
+    const track = guide.trackNames[input.programme]?.[admission.track] ?? admission.track;
+    return { ...entry, fit, eligibility: { kind: "track", track, met: input.track === track } satisfies Eligibility };
+  }
+  return { ...entry, fit, eligibility: eligibilityOf(admission, firstYears(input.years, input.picks, input.track)) };
 }
 export type AdmissionCheck = NonNullable<ReturnType<typeof admissionTo>>;

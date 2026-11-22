@@ -1,10 +1,1 @@
-[
-  {
-    "master": "MPEEE",
-    "specialisation": null,
-    "programme": "TKDAT",
-    "guide": "EEM031/EEF015 Elektromagnetisk fältteori",
-    "corrected": "EEF031/EEM015 Elektromagnetisk fältteori",
-    "reason": "chalmers.se has named neither EEM031 nor EEF015 since 2021/2022, and neither looks like an older code of the course. The guide swapped the prefixes of EEF031 Elektromagnetisk fältteori, the course it names, and EEM015 Elektromagnetiska fält, which the same section asks of TKAUT and TKMED."
-  }
-]
+[]

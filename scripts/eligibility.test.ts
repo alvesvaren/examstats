@@ -87,8 +87,6 @@ describe("parseGuide", () => {
       ...["TIDAL", "TIDSL", "TIELL", "TIKEL", "TIMAL", "TIMEL", "TISAM"].map(
         (code) => `MPLOL ${code}: its course requirements do not follow the guide's grammar`,
       ),
-      "MPMSD TKIEK: its heading is not one the parser knows",
-      "MPSGE TKATK: it has no course requirements, nor a heading that says why",
       "MPSGE TISAM: its course requirements do not follow the guide's grammar",
     ]);
   });
@@ -192,15 +190,18 @@ describe("parseGuide", () => {
     expect(masters.find((m) => m.code === "MPBDP")!.entries.every((e) => e.admission.kind === "regulations")).toBe(true);
   });
 
-  it("keeps the guide's words for a requirement it does not check, such as a track of the programme", () => {
-    expect(entry("MPMSD", "TKIEK")!.map((e) => e.admission)).toEqual([
-      {
-        kind: "words",
-        text:
-          "Sökande från följande program uppfyller alla särskilda förkunskapskrav utifrån de obligatoriska kurserna i programmets kandidatdel samt kurserna inom teknikinriktningen Finansiell matematik (observera kravet på teknikinriktning)\n" +
-          "Industriell ekonomi, civilingenjör (300hp) (TKIEK) - med villkorad ackreditering för specialiseringen: Financial mathematics",
-      },
-    ]);
+  it("reads that the compulsory courses suffice with those of a track of the programme, by the guide's name of the track", () => {
+    expect(entry("MPMSD", "TKIEK")!.map((e) => e.admission)).toEqual([{ kind: "track", track: "Finansiell matematik" }]);
+  });
+
+  it("gives programmes on consecutive lines the requirement after them", () => {
+    const structural = { kind: "courses", rule: course(["TME305", "TME187"], "Strukturmekanik") };
+    expect([...entry("MPSGE", "TKATK")!, ...entry("MPSGE", "TKSAM")!].map((e) => e.admission)).toEqual([structural, structural]);
+  });
+
+  it("keeps the guide's words for a block it cannot read, such as a programme's line with words it does not know", () => {
+    const [tkark] = entry("MPDEM", "TKARK")!;
+    expect(tkark!.admission).toMatchObject({ kind: "words", text: expect.stringContaining("Programmet ackrediterar inte MPDEM.") });
   });
 
   it("gives a specialisation that defers to its programme the programme's requirements", () => {

@@ -161,7 +161,11 @@ function logicalLines(lines: readonly string[]): string[] {
 const LETTER_AND_INTERVIEW =
   "Observera att det finns ett krav på att sökande ska ladda upp ett personligt brev. Urvalet baseras på det personliga brevet samt en intervju.";
 
-type HeadingKind = "same" | "compulsory" | "regulations";
+type HeadingKind = "same" | "compulsory" | "regulations" | "track";
+
+/** A heading that the compulsory courses and those of one of the programme's tracks meet every requirement. */
+const TRACK_HEADING =
+  /^Sökande från följande program uppfyller alla särskilda förkunskapskrav utifrån de obligatoriska kurserna i programmets kandidatdel samt kurserna inom teknikinriktningen (.+) \(observera kravet på teknikinriktning\)$/;
 
 /** The headings of a list of programmes, and what they say of the programmes after them. */
 const HEADINGS: { kind: HeadingKind; pattern: RegExp }[] = [
@@ -185,6 +189,7 @@ const HEADINGS: { kind: HeadingKind; pattern: RegExp }[] = [
       /^De särskilda behörighetskraven ska kontrolleras, de framgår av kapitlet Särskild behörighet till avancerad nivå \(huvudområde och kurskrav specificerat för varje masterprogram\) i Antagningsordningen\.$/,
   },
   { kind: "regulations", pattern: /^Följande program är ackrediterade:$/ },
+  { kind: "track", pattern: TRACK_HEADING },
 ];
 
 function escape(text: string) {
@@ -367,6 +372,10 @@ function admissionOf(group: Group, programme: string): { admission: Admission; p
   const words = (problem: string) => ({ admission: { kind: "words" as const, text: groupText(group, programme) }, problem });
   const kind = group.heading?.kind ?? "same";
   if (kind === "words") return words("its heading is not one the parser knows");
+  if (kind === "track") {
+    if (group.requirement) return words("it is listed as a track's but has course requirements");
+    return { admission: { kind, track: TRACK_HEADING.exec(group.heading!.text)![1]! }, problem: null };
+  }
   if (kind !== "same") {
     if (group.requirement) return words(`it is listed as ${kind} but has course requirements`);
     return { admission: { kind }, problem: null };
@@ -412,9 +421,8 @@ export function parseGuide(
       if (heading || line.startsWith("Sökande från ")) {
         groups.push({ heading: { kind: heading?.kind ?? "words", text: line }, programmes: [], requirement: null, recommended: [] });
       } else if (isProgrammeLine(line)) {
-        // A programme on its own line heads a group of its own, unless a heading lists it.
-        const joins = group && !group.requirement && (group.heading ? true : group.programmes.length === 0);
-        if (joins) group.programmes.push(line);
+        // Programmes on consecutive lines share the requirement after them, as those a heading lists do.
+        if (group && !group.requirement) group.programmes.push(line);
         else groups.push({ heading: null, programmes: [line], requirement: null, recommended: [] });
       } else if (line === "Kurskrav:" && group && group.programmes.length > 0 && !group.requirement) {
         group.requirement = [];

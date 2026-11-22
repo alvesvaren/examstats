@@ -12,6 +12,11 @@ const namesSchema = z.object({ en: z.string(), sv: z.string() });
  */
 export const namesFileSchema = z.object({
   programmes: z.record(z.string(), namesSchema),
+  /**
+   * The tracks of each programme's current plan in English and Swedish, by programme code, since the plans name them
+   * in English and Chalmers' eligibility guide in Swedish.
+   */
+  tracks: z.record(z.string(), z.array(namesSchema)).default({}),
   courses: z.array(
     namesSchema.extend({
       code: z.string(),

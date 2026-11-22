@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  admissionTo,
   eligibilityOf,
   firstYears,
   guideEntry,
@@ -56,15 +57,19 @@ describe("meets", () => {
 describe("eligibilityOf", () => {
   it("is met when every requirement joined by samt is", () => {
     const taken = [offered("LMA017", 2, "LP3"), offered("DAT566", 3, "LP2")];
-    expect(eligibilityOf({ kind: "courses", rule: ai }, { taken, offered: [] })).toMatchObject({ kind: "courses", met: true });
+    expect(eligibilityOf({ kind: "courses", rule: ai }, { taken, offered: [], unplanned: [] })).toMatchObject({
+      kind: "courses",
+      met: true,
+    });
   });
 
   it("lists the courses of the first years that would meet what is missing, and a course taken too late to count", () => {
     const taken = [offered("LMA017", 2, "LP3"), offered("DAT566", 3, "LP4")];
     const options = [offered("LMA017", 2, "LP3"), offered("DAT566", 3, "LP2"), offered("DAT566", 3, "LP4"), offered("MVE655", 3, "LP1")];
-    expect(eligibilityOf({ kind: "courses", rule: ai }, { taken, offered: options })).toEqual({
+    expect(eligibilityOf({ kind: "courses", rule: ai }, { taken, offered: options, unplanned: [] })).toEqual({
       kind: "courses",
       met: false,
+      unplanned: [],
       clauses: [
         {
           rule: multivariable,
@@ -92,16 +97,20 @@ describe("eligibilityOf", () => {
     });
   });
 
-  it("tells whether the first years' plans can meet what is missing in time, only too late, or not at all", () => {
+  it("tells whether the first years' plans can meet what is missing in time, only too late, maybe in a year not planned yet, or not at all", () => {
     const fluids: CourseRule = { kind: "atLeast", count: 2, of: [course("MTF053"), course("KBT340"), course("MMS260")] };
     const rule: CourseRule = { kind: "all", of: [course("DAT566"), course("EEM076"), course("PPU061"), fluids] };
     const options = [offered("DAT566", 3, "LP2"), offered("EEM076", 3, "LP4"), offered("KBT340", 2, "LP2")];
-    const eligibility = eligibilityOf({ kind: "courses", rule }, { taken: [], offered: options });
-    expect(eligibility.kind === "courses" && eligibility.clauses.map((c) => c.reach)).toEqual(["plans", "late", "outside", "outside"]);
+    const reach = (unplanned: number[]) => {
+      const eligibility = eligibilityOf({ kind: "courses", rule }, { taken: [], offered: options, unplanned });
+      return eligibility.kind === "courses" && eligibility.clauses.map((c) => c.reach);
+    };
+    expect(reach([])).toEqual(["plans", "late", "outside", "outside"]);
+    expect(reach([3])).toEqual(["plans", "late", "unplanned", "unplanned"]);
   });
 
   it("passes on what the guide does not check", () => {
-    expect(eligibilityOf({ kind: "regulations" }, { taken: [], offered: [] })).toEqual({ kind: "regulations" });
+    expect(eligibilityOf({ kind: "regulations" }, { taken: [], offered: [], unplanned: [] })).toEqual({ kind: "regulations" });
   });
 });
 
@@ -209,7 +218,37 @@ describe("firstYears", () => {
     ]);
   });
 
+  it("lists the first three years that have no plan yet", () => {
+    expect(firstYears(years, [], undefined).unplanned).toEqual([2]);
+  });
+
   it("offers every course of the first three years, and none of the master's programme", () => {
     expect(firstYears(years, [], undefined).offered.map((c) => c.code)).toEqual(["TMV216", "TME010", "MVE137", "TEK125"]);
+  });
+});
+
+describe("admissionTo", () => {
+  const programme = plan("TKIEK", { 1: [entry("TMV216", { rule: "O" })] });
+  const guide = {
+    academicYear: "2027/2028",
+    masters: [
+      {
+        code: "MPMSD",
+        specialisation: null,
+        entries: [
+          { programme: "TKIEK", path: null, admission: { kind: "track", track: "Finansiell matematik" }, recommended: [], corrections: [] },
+        ],
+        recommended: [],
+      },
+    ] satisfies GuideMaster[],
+    trackNames: { TKIEK: { "Finansiell matematik": "Financial mathematics" } },
+  };
+  const eligibility = (track: string | undefined) =>
+    admissionTo(guide, "MPMSD", undefined, { programme: "TKIEK", masterStart: 2027, years: studyYears(programme), picks: [], track })
+      ?.eligibility;
+
+  it("meets a requirement of a track of the programme when the plan follows it, by the plans' name of the track", () => {
+    expect(eligibility("Financial mathematics")).toEqual({ kind: "track", track: "Financial mathematics", met: true });
+    expect([eligibility("Industrial production"), eligibility(undefined)].map((e) => e?.kind === "track" && e.met)).toEqual([false, false]);
   });
 });

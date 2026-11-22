@@ -270,6 +270,10 @@ export const en = {
       deadline:
         "A course counts once it ends in study period 3 of year 3 at the latest, since admission checks your courses in April. Admission can also accept other courses like these.",
       compulsory: (programme: string) => `The compulsory courses of ${programme} meet the entry requirements.`,
+      /** The compulsory courses meet the requirements with those of one of the programme's concentrations, which the plan follows. */
+      trackMet: (programme: string, track: string) =>
+        `The compulsory courses of ${programme} and its concentration ${track} meet the entry requirements.`,
+      trackMissing: (track: string) => `Admission needs the concentration ${track} of your programme, with its compulsory courses.`,
       met: "Your courses meet the entry requirements.",
       missing: "For admission you also need",
       regulations: "The admission regulations decide, in subjects and credits, as the prerequisites say.",
@@ -284,6 +288,9 @@ export const en = {
       onlyLate: (places: readonly string[]) => `In your plans only after the application: ${places.join(" · ")}`,
       /** The plan holds every course it can of the requirements, and those left are outside the programme's plans. */
       metInPlans: "Your courses meet every requirement your programme's plans can.",
+      /** Requirements that a year of the programme that Chalmers has not planned yet may or may not meet. */
+      unplanned: (years: readonly number[]) =>
+        `Chalmers has not planned year ${f.list(years.map(String))} of your programme yet, so the planner cannot tell whether it will have these:`,
       outside: "Outside your programme's plans",
       outsideHint: "You can take these courses on top of your plan, or ask admissions whether a course you take is enough.",
       runsIn: (code: string, periods: string) => `${code} runs in ${periods} this year`,
@@ -299,6 +306,9 @@ export const en = {
         missing: (items: readonly string[]) => `Admission also needs ${items.join("; ")}`,
         /** Marks a missing requirement that only a course outside the programme's plans meets. */
         outside: (item: string) => `${item} (outside your plans)`,
+        unplanned: (item: string) => `${item} (not planned yet)`,
+        trackMet: (track: string) => `Admission: the compulsory courses and the concentration ${track} suffice`,
+        trackMissing: (track: string) => `Admission needs the concentration ${track}`,
         regulations: "Admission: subjects and credits, as the prerequisites say",
         words: "Admission: see Chalmers' eligibility guide",
       },

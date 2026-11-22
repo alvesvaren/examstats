@@ -8,7 +8,7 @@ import {
   type EvaluationFile,
   type EvaluationRound,
 } from "../src/domain/evaluation.ts";
-import { nameOf, type NamesFile } from "../src/domain/names.ts";
+import { nameOf, normalize, type NamesFile } from "../src/domain/names.ts";
 import {
   cohortPlans,
   courseThisYear,
@@ -38,6 +38,21 @@ export interface BuiltSnapshot {
   /** Published plans by the year of the cohort that follows them, with the upcoming master's programmes under their start year. */
   plans: Map<number, PublishedPlan[]>;
   eligibility: PublishedEligibility;
+}
+
+/**
+ * The name the plans give each track the guide names, by programme code and the guide's Swedish name. A track the
+ * current plans do not have throws, since the planner would never find a plan that follows it.
+ */
+function trackNamesOf({ masters }: EligibilityFile, { tracks }: NamesFile) {
+  const named: Record<string, Record<string, string>> = {};
+  for (const { programme, admission } of masters.flatMap((m) => m.entries)) {
+    if (admission.kind !== "track") continue;
+    const track = tracks[programme]?.find((t) => normalize(t.sv) === normalize(admission.track));
+    if (!track) throw new Error(`The plans of ${programme} have no track that the eligibility guide calls "${admission.track}"`);
+    (named[programme] ??= {})[admission.track] = track.en;
+  }
+  return named;
 }
 
 /** Joins the files of `data/` into what the app reads. Reads no clock and does no I/O. */
@@ -152,5 +167,10 @@ export function buildSnapshot(
       return named ? [[code, nameOf(named, code)] as const] : [];
     }),
   );
-  return { index, courses: details, plans: published, eligibility: { ...eligibility, names: Object.fromEntries(guideNames) } };
+  return {
+    index,
+    courses: details,
+    plans: published,
+    eligibility: { ...eligibility, names: Object.fromEntries(guideNames), trackNames: trackNamesOf(eligibility, names) },
+  };
 }

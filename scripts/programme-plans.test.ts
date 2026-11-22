@@ -10,6 +10,7 @@ import {
   toCourses,
   toRequirements,
   toRounds,
+  trackNames,
 } from "./programme-plans.ts";
 
 const fixture = (name: string): unknown => JSON.parse(readFileSync(new URL(`fixtures/${name}`, import.meta.url), "utf8"));
@@ -318,5 +319,18 @@ describe("toCourseNames", () => {
         lastOffered: null,
       },
     ]);
+  });
+});
+
+describe("trackNames", () => {
+  const [tkite] = programmesIn("chalmers-programme-plan.json");
+  const moments = momentsOf(tkite!).slice(0, 3);
+  const onTrack = (index: number, concName: string | null) => ({ ...moments[index]!, momentSpecialisation: { concName } });
+
+  it("pairs the English and Swedish name of each track by the plan entry, once each", () => {
+    const english = [onTrack(0, "Financial mathematics"), onTrack(1, "Financial mathematics"), onTrack(2, null)];
+    const swedish = [onTrack(0, "Finansiell matematik"), onTrack(1, "Finansiell matematik"), onTrack(2, null)];
+
+    expect(trackNames(english, swedish)).toEqual([{ en: "Financial mathematics", sv: "Finansiell matematik" }]);
   });
 });

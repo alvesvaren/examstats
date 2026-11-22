@@ -28,7 +28,7 @@ import {
   type StudyPeriod,
   type Theme,
 } from "../src/domain/programme-plans.ts";
-import type { NamesFile } from "../src/domain/names.ts";
+import type { Names, NamesFile } from "../src/domain/names.ts";
 import { toJsonLines } from "./json-lines.ts";
 import { mapConcurrent } from "./map-concurrent.ts";
 import { paragraphsOf } from "./plain-text.ts";
@@ -378,17 +378,48 @@ export function toCourseNames(rows: readonly z.infer<typeof courseNameRowSchema>
   }));
 }
 
-async function fetchNames(apiUrl: string): Promise<NamesFile> {
+async function fetchNames(apiUrl: string): Promise<Omit<NamesFile, "tracks">> {
   const [courses, programmes] = await Promise.all([
     listAll(apiUrl, "PewCourses", courseNameRowSchema),
     listAll(apiUrl, "PewStudyprogrammes", programmeNameRowSchema),
   ]);
-  const names: NamesFile = {
+  const names = {
     programmes: Object.fromEntries(newestNames(programmes.map((p) => ({ ...p, code: p.programCode }))).map(({ code, ...n }) => [code, n])),
     courses: toCourseNames(courses),
   };
   if (names.courses.length < MIN_COURSE_NAMES) throw new Error(`Only ${names.courses.length} course names`);
   return names;
+}
+
+/** The tracks of a plan in English and Swedish, from its entries in either language, which share their ids. */
+export function trackNames(english: readonly Moment[], swedish: readonly Moment[]): Names[] {
+  const swedishOf = new Map(swedish.map((m) => [m.ppId, trackOf(m)]));
+  const pairs = english.flatMap((m) => {
+    const [en, sv] = [trackOf(m), swedishOf.get(m.ppId)];
+    return en && sv ? [{ en, sv }] : [];
+  });
+  return [...new Map(pairs.map((pair) => [pair.en, pair])).values()].toSorted((a, b) => a.en.localeCompare(b.en));
+}
+
+/** The tracks of each plan that has any, in English and Swedish, by programme code. */
+async function tracksOf(
+  env: Env,
+  academicYear: string,
+  plans: readonly { code: string; years: readonly { courses: readonly Pick<PlanCourse, "track">[] }[] }[],
+) {
+  const withTracks = plans.filter((plan) => plan.years.some((y) => y.courses.some((c) => c.track !== null)));
+  console.log(`Fetching the Swedish names of the tracks of ${withTracks.length} programmes`);
+  const entries = await mapConcurrent(withTracks, env.CONCURRENCY, async ({ code }) => {
+    const filter = { acYear: { _eq: academicYear }, programCode: { _eq: code } };
+    const [english, swedish] = await Promise.all(
+      (["en", "sv"] as const).map(async (language) => {
+        const { search } = await get(env.API_URL, "PewStudyprogrammes", { language, filter }, programmeSchema);
+        return (search.results.find((r) => r.programCode === code)?.yearClasses ?? []).flatMap((y) => y.courseMoments);
+      }),
+    );
+    return [code, trackNames(english!, swedish!)] as const;
+  });
+  return Object.fromEntries(entries);
 }
 
 /** Every programme plan of `academicYear` with its syllabus, without examiners. Records the name of each rule in `ruleNames`. */
@@ -480,7 +511,7 @@ async function main() {
   await writeFile(env.OUT_FILE, toJsonLines(head, "programmes", lines));
   console.log(`Wrote ${file.programmes.length} programme plans to ${env.OUT_FILE}`);
 
-  const { courses, ...namesHead } = await names;
+  const { courses, ...namesHead } = { ...(await names), tracks: await tracksOf(env, env.ACADEMIC_YEAR, current) };
   await mkdir(path.dirname(env.NAMES_FILE), { recursive: true });
   await writeFile(env.NAMES_FILE, toJsonLines(namesHead, "courses", courses));
   console.log(

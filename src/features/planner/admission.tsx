@@ -76,20 +76,24 @@ function useAdmissionWords(names: Names) {
 
 /** Whether an eligibility check passes: the compulsory courses suffice, or the plan holds the courses it names. */
 const passes = ({ eligibility }: AdmissionCheck) =>
-  eligibility.kind === "compulsory" || (eligibility.kind === "courses" && eligibility.met);
+  eligibility.kind === "compulsory" || ((eligibility.kind === "courses" || eligibility.kind === "track") && eligibility.met);
 
 /** The requirements a check still misses. */
 const missingOf = ({ eligibility }: AdmissionCheck) => (eligibility.kind === "courses" ? eligibility.clauses.filter((c) => !c.met) : []);
 
-/** Whether only a course outside the programme's plans meets a requirement, which is no choice within the plan. */
-const isOutside = (clause: Clause) => clause.reach === "outside";
+/** Whether the plans have courses for a requirement, in time or too late, so that the plan falls short of it. */
+const blocks = ({ reach }: Clause) => reach === "plans" || reach === "late";
 
 /**
- * Green once met, red while the plans can meet more, muted when only courses outside them are missing or the planner
- * does not check it.
+ * Green once met, red while the plan falls short, muted when only courses outside the plans or in years not planned yet
+ * are missing, or the planner does not check it.
  */
 const statusClass = (check: AdmissionCheck) =>
-  passes(check) ? "font-medium text-grade-4" : missingOf(check).some((c) => !isOutside(c)) ? "text-grade-u" : "text-muted-foreground";
+  passes(check)
+    ? "font-medium text-grade-4"
+    : check.eligibility.kind === "track" || missingOf(check).some(blocks)
+      ? "text-grade-u"
+      : "text-muted-foreground";
 
 function Met() {
   return <CheckIcon className="mr-0.5 inline size-[1em] align-[-0.15em]" aria-hidden />;
@@ -108,11 +112,21 @@ export function AdmissionSummary({ check, names, className }: AdmissionSummaryPr
   const { summary } = t.planner.admission;
   const { eligibility } = check;
   const text =
-    eligibility.kind !== "courses"
-      ? summary[eligibility.kind]
-      : eligibility.met
+    eligibility.kind === "courses"
+      ? eligibility.met
         ? summary.met
-        : summary.missing(missingOf(check).map((c) => (isOutside(c) ? summary.outside(words.clause(c)) : words.clause(c))));
+        : summary.missing(
+            missingOf(check).map((c) =>
+              c.reach === "outside"
+                ? summary.outside(words.clause(c))
+                : c.reach === "unplanned"
+                  ? summary.unplanned(words.clause(c))
+                  : words.clause(c),
+            ),
+          )
+      : eligibility.kind === "track"
+        ? (eligibility.met ? summary.trackMet : summary.trackMissing)(eligibility.track)
+        : summary[eligibility.kind];
   return (
     <span className={cn("block", statusClass(check), className)}>
       {passes(check) && <Met />}
@@ -142,14 +156,20 @@ export function AdmissionDetails({ check, guide, programmeName, masterStart, per
   const { clause, course, places } = useAdmissionWords(guide.names);
   const { eligibility, recommended, corrections, fit } = check;
   const missing = missingOf(check);
-  const inPlans = missing.filter((c) => !isOutside(c));
-  const outside = missing.filter(isOutside);
-  const status = {
-    compulsory: words.compulsory(programmeName),
-    courses: missing.length === 0 ? words.met : inPlans.length > 0 ? words.missing : words.metInPlans,
-    regulations: words.regulations,
-    words: words.words,
-  }[eligibility.kind];
+  const inPlans = missing.filter(blocks);
+  const unplanned = missing.filter((c) => c.reach === "unplanned");
+  const outside = missing.filter((c) => c.reach === "outside");
+  const status =
+    eligibility.kind === "track"
+      ? eligibility.met
+        ? words.trackMet(programmeName, eligibility.track)
+        : words.trackMissing(eligibility.track)
+      : {
+          compulsory: words.compulsory(programmeName),
+          courses: missing.length === 0 ? words.met : inPlans.length > 0 ? words.missing : words.metInPlans,
+          regulations: words.regulations,
+          words: words.words,
+        }[eligibility.kind];
   /** When each course of a requirement that the plans do not have runs this year, by the first of its codes that does. */
   const runs = (c: Clause) => {
     const planned = plannedCodes(c);
@@ -187,6 +207,16 @@ export function AdmissionDetails({ check, guide, programmeName, masterStart, per
             </li>
           ))}
         </ul>
+      )}
+      {eligibility.kind === "courses" && unplanned.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <p>{words.unplanned(eligibility.unplanned)}</p>
+          <ul className="flex list-disc flex-col gap-1 pl-5">
+            {unplanned.map((c) => (
+              <li key={clause(c)}>{clause(c)}</li>
+            ))}
+          </ul>
+        </div>
       )}
       {outside.length > 0 && (
         <div className="flex flex-col gap-1">

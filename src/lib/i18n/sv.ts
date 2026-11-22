@@ -252,6 +252,8 @@ export const sv: Messages = {
       deadline:
         "En kurs räknas när den slutar senast i läsperiod 3 i år 3, eftersom antagningen kontrollerar dina kurser i april. Antagningen kan också godta andra motsvarande kurser.",
       compulsory: (programme) => `De obligatoriska kurserna i ${programme} uppfyller behörighetskraven.`,
+      trackMet: (programme, track) => `De obligatoriska kurserna i ${programme} och inriktningen ${track} uppfyller behörighetskraven.`,
+      trackMissing: (track) => `Antagningen kräver inriktningen ${track} i ditt program, med dess obligatoriska kurser.`,
       met: "Dina kurser uppfyller behörighetskraven.",
       missing: "För antagning behöver du också",
       regulations: "Antagningsordningen avgör, i ämnen och poäng, som förkunskapskraven säger.",
@@ -262,6 +264,8 @@ export const sv: Messages = {
       offeredIn: (places) => `I dina planer: ${places.join(" · ")}`,
       onlyLate: (places) => `I dina planer bara efter ansökan: ${places.join(" · ")}`,
       metInPlans: "Dina kurser uppfyller alla krav som ditt programs planer kan uppfylla.",
+      unplanned: (years) =>
+        `Chalmers har inte planerat år ${f.list(years.map(String))} i ditt program än, så planeraren vet inte om det kommer att ha:`,
       outside: "Utanför ditt programs planer",
       outsideHint: "Du kan läsa kurserna utöver planen, eller fråga antagningen om en kurs du läser räcker.",
       runsIn: (code, periods) => `${code} går i ${periods} i år`,
@@ -276,6 +280,9 @@ export const sv: Messages = {
         met: "Antagning: dina kurser uppfyller kraven",
         missing: (items) => `Antagning kräver också ${items.join("; ")}`,
         outside: (item) => `${item} (utanför planen)`,
+        unplanned: (item) => `${item} (inte planerat än)`,
+        trackMet: (track) => `Antagning: obligatoriska kurser och inriktningen ${track} räcker`,
+        trackMissing: (track) => `Antagning kräver inriktningen ${track}`,
         regulations: "Antagning: ämnen och poäng, som förkunskapskraven säger",
         words: "Antagning: se Chalmers behörighetsguide",
       },
