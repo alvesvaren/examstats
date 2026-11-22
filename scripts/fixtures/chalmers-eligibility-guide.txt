@@ -1,0 +1,1343 @@
+Valav masterprogramför Chalmersstudenter
+Behörighetsguide:
+kurskrav,ackrediteringar,villkoradeackrediteringaroch förtur
+Dokumentetkompletterarfastställd
+Antagningsordningför grundutbildning,förutbildningsamt fort- och
+vidareutbildningvid Chalmerstekniskahögskolaför läsåret2027/281
+Innehållsförteckning
+Inledning ...............................................................................................................................................................................3
+Årlig översyn .........................................................................................................................................................................5
+Justeringar och nyheter i dokumentet i jämförelse med läsåret 2026/27............................................................................5
+Acoustics: Sound and Vibration (MPASV) .............................................................................................................................7
+Architectural Design (MPADE) ..............................................................................................................................................7
+Artificial Intelligence (MPAIN)...............................................................................................................................................7
+Biomedical Engineering (MPBIE)...........................................................................................................................................8
+Biotechnology (MPBIO).........................................................................................................................................................9
+Building Engineering (MPBEN) ..............................................................................................................................................9
+Complex Adaptive Systems (MPCXS) ..................................................................................................................................10
+Computational Mechanics (MPCME) ..................................................................................................................................10
+Computer Science (MPCOS)................................................................................................................................................12
+Computing Systems (MPCSY) ..............................................................................................................................................13
+Design and Construction Management (MPDEM) ..............................................................................................................13
+Electric Power Engineering (MPEPE)...................................................................................................................................14
+Electrical and Electronics Engineering (MPEEE) ..................................................................................................................16
+Energy Systems (MPESY).....................................................................................................................................................17
+Entrepreneurship and Business Design (MPBDP) ...............................................................................................................18
+Environmental and Infrastructure Engineering (MPEIE) .....................................................................................................19
+Environmental and Infrastructure Engineering (MPEIE) med specialiseringen: Fluid Mechanics and Water Systems ......19
+Human-Centred Design and Engineering (MPHCD) ............................................................................................................20
+Human-Centred Design and Engineering (MPHCD) med specialiseringen: Game Design and Development.....................21
+Human-Centred Design and Engineering (MPHCD) med specialiseringen: Integrated Product Design .............................22
+Industrial Ecology (MPINE)..................................................................................................................................................22
+Innovative and Sustainable Chemical Engineering (MPISC)................................................................................................23
+Lärande och ledarskap (MPLOL) .........................................................................................................................................23
+Maritime Management (MPMAR) ......................................................................................................................................24
+Materials Chemistry (MPMCN) ...........................................................................................................................................242
+Materials Science and Engineering (MPMSE) .....................................................................................................................24
+Mathematics, Statistics and Data science (MPMSD) ..........................................................................................................25
+Mobility Engineering (MPMBE)...........................................................................................................................................26
+Mobility Engineering (MPMBE) med specialiseringen: Naval Architecture and Ocean Engineering ..................................27
+NewSpace Systems Engineering (MPNSE) ..........................................................................................................................28
+Operations Management (MPOPM) ...................................................................................................................................29
+Physics (MPPHX) .................................................................................................................................................................29
+Product Development (MPPRO) .........................................................................................................................................30
+Production Engineering (MPPRD) .......................................................................................................................................30
+Software Engineering (MPSOE)...........................................................................................................................................31
+Structural and Geotechnical Engineering (MPSGE).............................................................................................................32
+Systems, Learning and Control (MPSLC) .............................................................................................................................33
+Systems, Learning and Control (MPSLC) med specialiseringen: Communication and Sensing...........................................34
+Technology and Innovation Management (MPTIM) ...........................................................................................................34
+Urban Design (MPURB) .......................................................................................................................................................353
+Inledning
+Målgrupp
+Dokumentet är en komplettering till antagningsordningen. Målgruppen är de som har läst, eller läser sista året på ett
+grundnivåprogram på Chalmers och gör en anmälan till avancerad nivå (masterprogram) på Chalmers.
+Tillträdeskrav – behörighet för avancerad nivå och särskild behörighet för respektive masterprogram
+Tillträdeskraven ska inte förväxlas med examenskraven, vilka anges i Lokal examensordning för examina på
+grundnivå och avancerad nivå.
+Tillträdeskraven för avancerad nivå (masterprogram) som anges i antagningsordningens kapitel 7.2
+Behörighet för avancerad nivå gäller för alla sökande. I det här dokumentet har den särskilda behörigheten
+till respektive masterprogram översatts till Chalmers kurskoder. Dokumentet ersätter inte
+antagningsordningen och i händelse av eventuella skillnader eller i de fall grundprogrammet inte omnämns
+ska den fastställda antagningsordningen äga företräde.
+För att ett kurskrav ska anses uppfyllt krävs att kursen är avklarad. Kursen ska vara slutrapporterad, alla
+moment/delkurser ska vara godkända och kursbetyget ska vara inrapporterat i Ladok. Dispens från det kravet beviljas
+inte för den sökande. Ett kurskrav ska inte utgöras av en kurs som endast ges i Lp4, årskurs 3 på grundnivåprogrammet.
+Orsaken är att den sökande inte kan göra en komplett anmälan i tid om detta är ett krav. Till läsåret 2027/28 har något
+enstaka undantag beviljats, med villkoret att det tas bort till läsåret 2028/29. Ett kurskrav* markerat med en asterisk
+innebär att en registrering på kursen räcker för behörighet till läsåret 2027/28.
+Om sökande saknar en avslutad kurs med någon av de kurskoder som anges här gör antagningen en prövning
+av om sökande har motsvarande behörighet genom annan avklarad kurs från Chalmers eller annat lärosäte.
+Fördelning av platser (förtur, urval och eventuell platsgaranti) för Chalmerister (i en lokal antagningsomgång)
+Den lokala antagningsomgången i april är avsedd för studenter med pågående studier eller en utfärdad examen på lägst
+kandidatnivå (eller motsvarande) från Chalmers tekniska högskola.
+Förtur
+Vissa utbildningar på grundnivå har förtur till specifika masterprogram. Behöriga sökande från dessa utbildningar
+tilldelas platser före övriga behöriga sökande.
+En student på ett civilingenjörs- eller arkitektprogram har förtur till ett eller flera masterprogram, vilket utgör den
+avslutande delen av det femåriga programmet.
+Är programmet ackrediterat omfattas det av förtur. Två program undantas från denna regel, det gäller
+Entrepreneurship and Business Design (MPBDP) samt Lärande och ledarskap (MPLOL).
+Villkor för att förtur ska gälla är:
+ att anmälan görs i tid (förtur gäller inte vid sen anmälan).
+ att grundläggande och särskild behörighet är uppfyllda senast sista dag för komplettering. I den lokala
+antagningsomgången i april (Chalmersomgången) sammanfaller sista dag för anmälan och sista dag för
+komplettering.
+Urval görs i följande prioritetsordning:
+1. Urvalsgrupp GP: student på ett civilingenjörs- eller arkitektprogram som omfattas av förtur
+Är programmet ackrediterat omfattas det av förtur. (Med undantag för Entrepreneurship and Business Design
+(MPBDP) samt Lärande och ledarskap (MPLOL).)
+2. Urvalsgrupp GPH: student på högskoleingenjörsprogram som omfattas av förtur.
+Förtur kan gälla vid anmälan till HT27 och HT28. Från och med läsåret 2029/30 utgår urvalsgruppen. Förtur4
+anges i ett separat dokument (se vidare: Val av masterprogram för Chalmersstudenter Behörighetsguide -
+kurskrav, ackrediteringar, villkorade ackrediteringar och förtur).
+3. Urvalsgrupp AP: övriga studenter
+Vid konkurrens om platserna, när det finns fler behöriga än platser, kommer den sökande att rangordnas inom
+urvalsgruppen. Rangordning görs utifrån antalet högskolepoäng inom den sökandes nuvarande program på grundnivå,
+dock maximalt upp till 157,5 hp. Om flera sökande i samma urvalsgrupp har samma antal högskolepoäng ges den
+sökande som har det högsta viktade betygsmedelvärdet företräde. För att säkerställa detta i urvalet kan sökande med
+samma antal högskolepoäng rangordnas genom fiktiva meritvärden. Vid samma betygsmedelvärde tillämpas lottning.
+Platsgaranti
+När sökande uppfyller villkoren för förtur ges platsgaranti om den sökande också anger tre alternativ i anmälan, som
+den sökande har förtur till. Platsgaranti innebär inte en garanti för ett erbjudande om plats till ett första- eller
+andrahandsval utan något av alternativen i anmälan.
+Vid anmälan till ett program utan platsbegränsning räcker det med ett anmälningsalternativ för att garanteras en plats,
+om sökande uppfyller grundläggande- och särskild behörighet.
+Ackreditering och villkorad ackreditering
+Ackreditering och villkorad ackreditering anger vilka krav som gäller för att ett masterprogram ska kunna ligga till grund
+för en arkitekt- eller civilingenjörsexamen (yrkesexamen). Den vid antagningstillfället gällande ackrediteringen utgör ett
+av underlagen vid utfärdandet av arkitekt- eller civilingenjörsexamen.
+En ackreditering innebär att ett grundprogram i kombination med ett visst masterprogram uppfyller kraven för arkitekt-
+eller civilingenjörsexamen utan ytterligare krav på en viss utbildningsinriktning inom programmet.
+En villkorad ackreditering innebär att ett grundprogram i kombination med ett visst masterprogram och en viss
+specialisering inom programmet krävs för en civilingenjörsexamen.
+Villkorad ackreditering tillämpas inte för arkitektexamen.
+För mer information hänvisas till Lokal examensordning för examina på grundnivå och avancerad nivå.
+Matrisen ger en översikt över samtliga ackrediteringar och villkorade ackrediteringar
+Matrisen publiceras i ett eget kapitel i antagningsordningen. Den ger en översikt (är en sammanställning) av de
+ackrediteringar och villkorade ackrediteringar som anges under respektive masterprogram i det här dokumentet.5
+Årlig översyn
+Tillträdesregler och ackreditering (förtur) till masterprogram ska ses över årligen. Uppgifterna i dokumentet ska
+kontrolleras och vid behov rättas av programansvarig (PA) för associerat grundprogram samt masterprogramansvarig
+(MPA). Såväl tillträdesreglerna som ackrediteringarna ska verifieras av respektive utbildningsområdesledare innan
+fastställandet.
+Tillägg av kurskoder eller borttag av äldre kurskoder, som inte anses utgöra en väsentlig förändring för sökande,
+uppdateras utan att kommenteras i kapitlet Justeringar och nyheter i dokumentet i jämförelse med läsåret (se rubrik för
+aktuellt läsår).
+Justeringar och nyheter i dokumentet i jämförelse med läsåret 2026/27
+Student på Arkitektur, Arkitekt (300hp) (TKARK) ges förtur till det nyinrättade masterprogrammet Design and
+Construction Management (MPDEM) (med start HT27)
+Behöriga sökande från Arkitektur, Arkitekt (300hp) (TKARK) till masterprogrammet Design and Construction
+Management (MPDEM) ska placeras i urvalsgruppen GP tillsammans med civilingenjörsprogram (300hp) med förtur.
+Det nya masterprogrammet ackrediteras inte av Arkitektur, Arkitekt (300hp) (TKARK).
+Beslut C 2018-0701 upphör att gälla när masterprogrammet med samma namn (med annan programkod, MPDCM)
+avvecklas.
+Beslut C2014-0968 Omstart Samhällsbyggnad, gäller inte till något av de nya masterprogrammen
+Behörigheten för sökande från avvecklade grundprogram prövas på samma sätt som för övriga sökande. Den tidigare
+förturen gäller inte längre de avvecklade grundprogrammen:
+Väg- och vattenbyggnad, civilingenjör (300hp) (TKVOV)
+Byggingenjör, högskoleingenjör (180hp) (TIBYL)
+Anmälan till masterprogram och specialiseringar
+Anmälan till ett masterprogram görs via sökandewebben (antagning.se) i den lokala antagningsomgången i början av
+april. Specialiseringar är en nyhet. Majoriteten av specialiseringar är valbara efter att studenten blivit antagen och
+påbörjat sina studier. Specialiseringar är programspecifika. De flesta program kan också läsas utan en specialisering.
+Det finns även masterprogram utan specialiseringar, exempel på detta är de båda arkitekturmastrarna Architectural
+Design (MPADE), Urban Design (MPURB) och Entrepreneurship and Business Design (MPBDP).
+Vid anmälan och antagning till ett masterprogram utan angiven specialisering görs valet av specialisering efter
+studiestarten.
+De specialiseringar som annonseras på antagning.se är inte valbara efter studiestarten. De utgör separata
+utbildningsalternativ och publiceras med masterprogrammets namn och specialiseringens namn (i kombination) på
+sökandewebbarna (antagning.se och universityadmissions.se). Orsaken är att specialiseringen har andra
+behörighetskrav än moderprogrammet eller att det är platsbegränsat.
+Till läsåret 2027/28 gäller det följande utbildningsalternativ:
+ Environmental and infrastructure engineering (MPEIE) med specialiseringen: Fluid Mechanics and Water
+Systems
+ Human-Centred Design and Engineering (MPHCD) med specialiseringen: Game Design and Development
+ Human-Centred Design and Engineering (MPHCD) med specialiseringen: Integrated Product Design
+ Mobility engineering (MPMBE) med specialiseringen: Naval Architecture and Ocean Engineering
+ System Learning and Control (MPSLC) med specialiseringen: Communication and Sensing6
+Villkorad ackreditering införs
+Läs mer om villkorad ackreditering i kapitlet Inledning i det här dokumentet.
+Ackrediteringar och förtur
+Observera att ackreditering avser en arkitekt- eller civilingenjörsexamen. På de grundprogram som idag har en
+gemensam ingång, dvs Maskinteknik (180/300hp) samt Teknisk design (180/300hp) gäller ackrediteringen enbart den
+student som väljer civilingenjörsspåret i årskurs 3.
+Förtur kan gälla högskoleingenjörsprogram vid anmälan till HT27 och HT28 (övergångsperioden avslutas därefter).
+Ange tre alternativ med förtur för att uppfylla villkoret för platsgaranti
+När en sökande uppfyller villkoren för förtur ges platsgaranti om den sökande också anger tre programalternativ i sin
+anmälan, vilka den sökande har förtur till. Platsgaranti innebär inte en garanti för erbjudande om plats till
+förstahandsvalet.
+Observera att det vid anmälan till ett platsobegränsat program räcker med ett anmälningsalternativ för att garanteras
+en plats, om den sökande uppfyller behörigheten till detta.7
+Acoustics: Sound and Vibration (MPASV)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Arkitektur och teknik (300hp) (TKATK) – ackrediterat (för civilingenjörsexamen)
+Automation och mekatronik, civilingenjör (300hp) (TKAUT)
+Elektroteknik, högskoleingenjör (180hp) (TIELLr)
+Elektroteknik, civilingenjör (300hp) (TKELT) – med villkorad ackreditering för specialiseringen: Audio and Music
+Technology
+Globala system, civilingenjör (300hp) (TKGBS)
+Maskinteknik, högskoleingenjör (180hp) (TIMAL)
+Maskinteknik, civilingenjör (300hp) (TKMAS) – med villkorad ackreditering
+för specialiseringen: Engineering Acoustics
+Maskinteknik (180/300hp) (TKMSK) – med villkorad ackreditering för specialiseringen: Engineering Acoustics (för
+student som följer programplan mot civilingenjörsexamen)
+Medicinteknik, civilingenjör (300hp) (TKMED)
+Mekatronik, högskoleingenjör (180hp) (TIMEL)
+Samhällsbyggnadsteknik, högskoleingenjör (180hp) (TISAM) - förtur
+Samhällsbyggnadsteknik, civilingenjör (300hp) (TKSAM) – med villkorad ackreditering för specialiseringen:
+Engineering Acoustics
+Teknisk design, civilingenjör (300hp) (TKDES)
+Teknisk fysik, civilingenjör (300hp) (TKTFY) - ackrediterat
+Teknisk matematik, civilingenjör (300hp) (TKTEM) – ackrediterat
+Architectural Design (MPADE)
+Är programmet ackrediterat omfattas det av förtur.
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Arkitektur (300hp) (TKARK) - ackrediterat
+Arkitektur och teknik (300hp) (TKATK) – ackrediterat (för arkitektexamen)
+Artificial Intelligence (MPAIN)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Datateknik, civilingenjör (300hp) (TKDAT) - ackrediterat
+Kurskrav:
+LMA017 Matematisk analys i flera variabler eller MVE655 Flervariabelanalys
+samt8
+DAT566 Introduktion till data science och AI
+Informationsteknik, civilingenjör (300hp) (TKITE) - ackrediterat
+Kurskrav:
+MVE655 Flervariabelanalys
+Teknisk matematik, civilingenjör (300hp) (TKTEM) - ackrediterat
+Kurskrav:
+DAT566 Introduktion till data science och AI
+Sökande från följande program har samma kurskrav:
+Elektroteknik, civilingenjör (300hp) (TKELT) - ackrediterat
+Industriell ekonomi, civilingenjör (300hp) (TKIEK)
+Kurskrav:
+DAT566 Introduktion till data science och AI
+samt
+DAT038/TDA417 Datastrukturer och algoritmer
+Sökande från följande program har samma kurskrav:
+Maskinteknik, civilingenjör (300hp) (TKMAS)
+Maskinteknik, (180hp/300hp) (TKMSK) (för student som följer programpan mot civilingenjörsprogram)
+Medicinteknik civilingenjör (300hp) (TKMED) – ackrediterat
+Teknisk fysik civilingenjör (300hp) (TKTFY) - ackrediterat
+Globala system, civilingenjör (300hp) (TKGBS) – ackrediterat
+Kurskrav:
+DAT038 Datastrukturer och algoritmer
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Automation och mekatronik, civilingenjör (300hp) (TKAUT) - ackrediterat
+Biomedical Engineering (MPBIE)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Bioteknik, civilingenjör (300hp) (TKBIO)
+Kurskrav:
+TMA982 Linjära system och transformer
+Datateknik, civilingenjör (300hp) (TKDAT) - ackrediterat
+Kurskrav:
+MVE255 Flervariabelanalys och partiella differentialekvationer eller LMA017 Matematisk analys i flera variabler eller
+MVE660/MVE655/TMA044 Flervariabelanalys9
+Teknisk matematik, civilingenjör (300 hp) (TKTEM) - ackrediterat
+Kurskrav:
+EEM076 Elektriska kretsar och fält eller SEE055 Elektriska kretsar
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Automation och mekatronik, civilingenjör (300 hp) (TKAUT) - ackrediterat
+Elektroteknik, civilingenjör (300 hp) (TKELT) - ackrediterat
+Medicinteknik, civilingenjör (300 hp) (TKMED) - ackrediterat
+Teknisk fysik, civilingenjör (300 hp) (TKTFY) - ackrediterat
+Maskinteknik (180/300hp) (TKMSK) (för student som följer programplan mot civilingenjörsexamen)
+Maskinteknik, civilingenjör (300hp) (TKMAS)
+Biotechnology (MPBIO)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Kemiteknik, högskoleingenjör (180hp) (TIKEL) – förtur
+Kurskrav:
+MVE471/MVE470/MVE351 Flervariabelanalys eller LMA017 Matematisk analys i flera variabler
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Bioteknik, civilingenjör (300hp) (TKBIO) – ackrediterat
+Kemiteknik, civilingenjör (300hp) (TKKMT) – ackrediterat
+Teknisk kemi, civilingenjör (300hp) (TKTKE) – ackrediterat
+Building Engineering (MPBEN)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Samhällsbyggnadsteknik, högskoleingenjör (180hp) (TISAM) - förtur
+Kurskrav:
+MVE500 Serier och derivator i flera variabler
+Rekommenderade kurser: BOM365 Byggnadsfysik och byggnadsakustik och BOM375 Installationsteknik
+Sökande från följande program uppfyller alla särskilda förkunskapskrav utifrån de obligatoriska kurserna i årskurs 1-3,
+utan ytterligare kurskrav:
+Arkitektur och teknik (300hp) (TKATK) – ackrediterat (för civilingenjörsexamen)
+Maskinteknik, civilingenjör (300hp) (TKMAS)10
+Maskinteknik (180/300hp) (TKMSK) (för student som följer programplan mot civilingenjörsexamen)
+Maskinteknik, högskoleingenjör (180hp) (TIMAL)
+Samhällsbyggnadsteknik, civilingenjör (300hp) (TKSAM) – ackrediterat
+Rekommenderade kurser: BOM365 Byggnadsfysik och byggnadsakustik och BOM375 Installationsteknik
+Complex Adaptive Systems (MPCXS)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3 på , utan
+ytterligare kurskrav:
+Automation och mekatronik, civilingenjör (300hp) (TKAUT) - ackrediterat
+Bioteknik, civilingenjör (300hp) (TKBIO)- ackrediterat
+Datateknik, civilingenjör (300hp) (TKDAT) – med villkorad ackreditering för följande specialiseringar: Intelligent and
+Embodied Systems eller Machine Learning eller Classical and Quantum Algorithms
+Elektroteknik, civilingenjör (300hp) (TKELT) – med villkorad ackreditering för följande specialiseringar: Dynamics of
+Physical Systems eller Machine Learning
+Globala system, civilingenjör (300hp) (TKGBS) - ackrediterat
+Industriell ekonomi, civilingenjör (300hp) (TKIEK) – med villkorad ackreditering för specialiseringen: Biological and
+Evolutionary Systems
+Informationsteknik, civilingenjör (300hp) (TKITE) – med villkorad ackreditering för specialiseringen: Intelligent and
+Embodied Systems
+Kemiteknik med fysik, civilingenjör (300hp) (TKKEF) - ackrediterat
+Maskinteknik, civilingenjör (300hp) (TKMAS) - ackrediterat
+Maskinteknik (180/300hp) (TKMSK) - ackrediterat (för student som följer programplan mot civilingenjörsexamen)
+Medicinteknik, civilingenjör (300hp) (TKMED) – med villkorad ackreditering för följande specialiseringar: Biological
+and Evolutionary Systems eller Dynamics of Physical Systems eller Intelligent and Embodied Systems eller Machine
+Learning
+Teknisk fysik, civilingenjör (300hp) (TKTFY) - ackrediterat
+Teknisk kemi, civilingenjör (300hp) (TKTKE) - ackrediterat
+Teknisk matematik, civilingenjör (300hp) (TKTEM) - ackrediterat
+Computational Mechanics (MPCME)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Automation och mekatronik, civilingenjör (300hp) (TKAUT) - ackrediterat
+Kurskrav:11
+MMS260 Kontinuummekanik
+samt
+MHA022/MHA021 Finit elementmetod
+Globala system, civilingenjör (300hp) (TKGBS)
+Kurskrav:
+IMS080 Hållfasthetslära och materialval
+samt
+MTF053 Strömningsmekanik
+samt
+MHA022/MHA021 Finit elementmetod
+Kemiteknik med fysik, civilingenjör (300hp) (TKKEF) – ackrediterat
+Kurskrav:
+1 av följande 2 alternativ:
+Alternativ 1:
+MTF053/TME055 Strömningsmekanik eller KAA061/KAA060/KBT340 Transportprocesser eller MMS260
+Kontinuummekanik
+samt
+MHA022/MHA021 Finit elementmetod
+Alternativ 2:
+MTF053/TME055 Strömningsmekanik eller KAA061/KAA060/KBT340 Transportprocesser eller MMS260
+Kontinuummekanik
+samt
+MVE695/TMA690 Partiella differentialekvationer eller TMA373/TMA372 Partiella differentialekvationer, grundkurs
+samt
+TME300 Hållfasthetslära eller IMS080 Hållfasthetslära och materialval eller MHA064 Simuleringsbaserad
+hållfasthetslära eller IMS090 Simuleringsbaserad mekanik och hållfasthetslära
+Sökande från följande program har samma kurskrav:
+Maskinteknik, civilingenjör (300hp) (TKMAS) – ackrediterat
+Maskinteknik (180/300hp) (TKMSK) – ackrediterat (för student som följer programplan mot civilingenjörsexamen)
+Kurskrav:
+MHA022/MHA021 Finit elementmetod
+Maskinteknik (180/300hp) (TKMSK) (för student som följer programplan mot högskoleingenjörsexamen)
+Kurskrav:
+MTF053 Strömningsmekanik
+samt
+SSY061 Mekatronik
+samt
+ERE033 Reglerteknik
+samt
+MHA022/MHA021 Finit elementmetod
+Maskinteknik, högskoleingenjör (180hp) (TIMAL) - förtur
+Kurskrav:
+LMA017 Matematisk analys i flera variabler
+samt
+LMT211 Mekanik, fortsättningskurs
+samt
+LMU111/IMS095 Hållfasthetslära, fortsättningskurs
+samt
+MMS050 Konstruktionsberäkningar med finita elementmetoden eller MHA022/MHA021 Finit elementmetod12
+samt
+MTF053 Strömningsmekanik
+Samhällsbyggnadsteknik, civilingenjör (300hp) (TKSAM)
+Kurskrav:
+TME300 Hållfasthetslära
+samt
+MHA022/MHA021 Finit elementmetod eller MVE695 Partiella differentialekvationer
+samt
+MTF053 Strömningsmekanik eller MMS260 Kontinuummekanik eller KBT340 Transportprocesser
+Teknisk fysik, civilingenjör (300hp) (TKTFY) - ackrediterat
+Kurskrav:
+MHA022/MHA021 Finit elementmetod
+samt
+MMS260 Kontinuummekanik
+Teknisk matematik, civilingenjör (300hp) (TKTEM) – ackrediterat
+Kurskrav:
+TME010 Mekanik eller FFM516 Mekanik 1
+samt
+MTM021 Statik och hållfasthetslära eller TME300 Hållfasthetslära eller IMS080 Hållfasthetslära och materialval
+eller IMS090 Simuleringsbaserad mekanik och hållfasthetslära eller MHA064 Simuleringsbaserad hållfasthetslära
+samt
+MTF053 Strömningsmekanik eller MMS260 Kontinuummekanik
+samt
+MHA022/MHA021 Finit elementmetod eller TMA373 Partiella differentialekvationer, grundkurs eller MVE695 Partiella
+differentialekvationer
+Computer Science (MPCOS)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Sökande från följande program har samma kurskrav:
+Elektroteknik, civilingenjör (300hp) (TKELT) – ackrediterat
+Globala system, civilingenjör (300hp) (TKGBS) - ackrediterat
+Teknisk fysik, civilingenjör (300hp) (TKTFY) - ackrediterat
+Teknisk matematik, civilingenjör (300hp) (TKTEM) – ackrediterat
+Kurskrav:
+DAT038/DAT495/ DAT525/TDA417 Datastrukturer och algoritmer
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Automation och mekatronik, civilingenjör (300hp) (TKAUT) - ackrediterat
+Datateknik, civilingenjör (300hp) (TKDAT) - ackrediterat
+Datateknik, högskoleingenjör (180hp) (TIDAL) - förtur13
+Informationsteknik, civilingenjör (300hp) (TKITE) - ackrediterat
+Rekommenderade kurser samtliga sökande:
+DAT026 Matematisk modellering och problemlösning
+DAT710 Funktionell programmering
+Computing Systems (MPCSY)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Sökande från följande program har samma kurskrav:
+Teknisk fysik, civilingenjör (300hp) (TKTFY) - ackrediterat
+Globala system, civilingenjör (300hp) (TKGBS)
+Teknisk matematik, civilingenjör (300hp) (TKTEM) - ackrediterat
+Kurskrav:
+EDA433/EDA452/EDA216/DAT430/LEU432 Grundläggande datorteknik
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Automation och mekatronik, civilingenjör (300hp) (TKAUT) - ackrediterat
+Datateknik, civilingenjör (300hp) (TKDAT) - ackrediterat
+Datateknik, högskoleingenjör (180hp) (TIDAL) - förtur
+Elektroteknik, civilingenjör (300hp) (TKELT) - ackrediterat
+Informationsteknik, civilingenjör (300hp) (TKITE) - ackrediterat
+Rekommenderade kurser för samtliga sökande:
+EDA344/EDA343 Datakommunikation
+DAT017/DAT390/EDA488/EDA482/EDA483 Maskinorienterad programmering
+TDA384 Principer för parallell programmering
+DAT026/DAT605 Matematisk modellering och problemlösning
+TMV029 Ändliga automater och formella språk
+TDA452/TDA555 Funktionell programmering
+DAT038/DAT495/ DAT525/TDA417 Datastrukturer och algoritmer
+Design and Construction Management (MPDEM)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:14
+Affärsutveckling och entreprenörskap inom samhällsbyggnadsteknik, teknologie kandidat (180hp) (TAFFS)
+Arkitektur, arkitekt (300hp) (TKARK) – förtur TKARK placeras i urvalsgrupp GP.
+Förtur ska tillämpas från och med HT27 och tillsvidare.
+Programmet ackrediterar inte MPDEM.
+Arkitektur och teknik (TKATK) (300hp) – ackrediterat (för civilingenjörsexamen)
+Samhällsbyggnadsteknik, högskoleingenjör (180hp) (TISAM) - förtur
+Samhällsbyggnadsteknik, civilingenjör (300hp) (TKSAM) – ackrediterat
+Electric Power Engineering (MPEPE)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Automation och mekatronik, civilingenjör (300hp) (TKAUT) - ackrediterat
+Kurskrav:
+MVE616 Flervariabelanalys eller MVE615 Matematisk analys i flera variabler eller MVE041 Flervariabelmatematik
+samt
+MVE611/MVE610/TMV142/TMV140 Linjär algebra
+samt
+SEE055 Elektriska kretsar eller RRY135 Elektriska kretsar och elenergi
+samt
+EEN155 Elektriska drivsystem och fält eller ENM011 Miljöteknik och elenergi
+samt
+SSY052/SSY051 Reglerteknik
+Elektroteknik, civilingenjör (300hp) (TKELT) - ackrediterat
+Kurskrav:
+TMA044/TMA043 Flervariabelanalys
+samt
+EMI084 Kretsanalys
+samt
+TMV143/TMV141 Linjär algebra
+samt
+EEK141 Elkraftteknik eller EEK140 Elteknik
+samt
+SSY051/ESS017 Reglerteknik
+Elektroteknik, högskoleingenjör (180hp) (TIELL) - förtur
+Kurskrav:
+LMA017 Matematisk analys i flera variabler
+samt
+LEU471/LEU470 Elektriska kretsar
+samt
+MVE580 Linjär algebra och differentialekvationer
+samt15
+EEK565 Elkraftsteknik
+samt
+LEU236 Dynamiska system med reglerteknik
+Globala system, civilingenjör (300hp) (TKGBS) - ackrediterat
+Kurskrav:
+SEE086/SEE085 Linjär algebra och experimentell matematik
+samt
+MVE655 Flervariabelanalys
+samt
+SSY052/SSY051 Reglerteknik eller ERE091 Reglerteknik
+samt
+SEE055 Elektriska kretsar eller EMI084 Kretsanalys eller ESS117/ESS116 Elektriska nät och system
+samt
+EEN155 Elektriska drivsystem och fält eller EEK141 Elkraftteknik eller EEK565 Elkraftsteknik
+Medicinteknik, civilingenjör (300hp) (TKMED)
+Kurskrav:
+TMV143 Linjär algebra
+samt
+TMA044 Flervariabelanalys
+samt
+EEN075 Medicinsk elektronik
+samt
+EEK141 Elkraftteknik eller EEN155 Elektriska drivsystem och fält eller EEK565 Elkraftsteknik
+samt
+SSY051 Reglerteknik
+Mekatronik, högskoleingenjör (180hp) (TIMEL)
+Kurskrav:
+LEU236 Dynamiska system med reglerteknik
+samt
+LEU471 Elektriska kretsar
+samt
+MVE580 Linjär algebra och differentialekvationer
+samt
+LMA017 Matematisk analys i flera variabler
+samt
+LMA522/LMA521 Tillämpad matematisk statistik
+samt
+EEK141 Elkraftteknik eller EEN155 Elektriska drivsystem och fält eller EEK565 Elkraftsteknik
+Teknisk fysik, civilingenjör (300hp) (TKTFY) - ackrediterat
+Kurskrav:
+MVE035 Flervariabelanalys
+samt
+MVE670 Linjär algebra eller TMA672/TMA671 Linjär algebra och numerisk analys
+samt
+ESS117 Elektriska kretsar och system eller ESS116/ESS115 Elektriska nät och system16
+samt
+EEK141 Elkraftteknik eller EEN155 Elektriska drivsystem och fält eller EEK565 Elkraftsteknik eller EEK140 Elteknik
+samt
+ERE091 Reglerteknik
+Electrical and Electronics Engineering (MPEEE)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Sökande från följande program har samma kurskrav:
+Automation och mekatronik, civilingenjör (300hp) (TKAUT) - ackrediterat
+Medicinteknik, civilingenjör (300hp) (TKMED) - ackrediterat
+Kurskrav:
+EEM015 Elektromagnetiska fält
+Datateknik, civilingenjör (300hp) (TKDAT) – med villkorad ackreditering för specialiseringen: Integrated Circuit Design
+Kurskrav:
+EEM031/EEF015 Elektromagnetisk fältteori
+samt
+LMA017 Matematisk analys i flera variabler eller MVE660/MVE655/TMA044 Flervariabelanalys eller
+MVE255 Flervariabelanalys och partiella differentialekvationer
+samt
+ETI147* Analog elektronik eller FFY144 Fysik 2 eller MCC176 Modern fysik
+*) kursregistrering kontrollereras, undantag från kravet på slutrapporterad kurs i Ladok gäller endast för anmälan i tid
+till höstterminen 2027 och vid studier i nominell studietakt. Vid sen anmälan till höstterminen 2027 ska kursen vara
+slutrapporterad. Undantag från avklarad kurs upphör efter 2027 och gäller inte för anmälan till höstterminen 2028.
+Teknisk matematik, civilingenjör (300hp) (TKTEM)
+Kurskrav:
+ESS117 Elektriska kretsar och system
+samt
+EEF031 Elektromagnetiska fält
+samt
+ETI147 Analog elektronik
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Elektroteknik, civilingenjör (300hp) (TKELT) - ackrediterat
+Teknisk fysik, civilingenjör (300hp) (TKTFY) - ackrediterat17
+Energy Systems (MPESY)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Automation och mekatronik, civilingenjör (300hp) (TKAUT) – ackrediterat
+Kurskrav:
+SEE020 Termisk energiomvandling eller MTF115 Värmeöverföring
+samt
+1 av följande 2 alternativ:
+Alternativ 1:
+MTF042 Termodynamik med energiteknik
+samt
+MTF053 Strömningsmekanik
+Alternativ 2:
+MTF042 Termodynamik med energiteknik
+samt
+KBT340/KAA061/KAA060 Transportprocesser
+Maskinteknik (180/300hp) (TKMSK) (för student som följer programplan mot högskoleingenjörsexamen)
+Kurskrav:
+MTF053 Strömningsmekanik
+samt
+SEE020 Termisk energiomvandling eller MTF115 Värmeöverföring
+Maskinteknik, högskoleingenjör (180hp) (TIMAL) – förtur
+Kurskrav:
+LMA017 Matematisk analys i flera variabler eller LMA224Matematisk överbryggningskurs
+samt
+SEE020 Termisk energiomvandling eller MTF115 Värmeöverföring
+Samhällsbyggnadsteknik, civilingenjör (300hp) (TKSAM)
+Kurskrav:
+MTF042 Termodynamik med energiteknik eller KVM091 Termodynamik
+samt
+SEE020 Termisk energiomvandling
+samt
+BOM370 Hydrogeologi och geoteknik
+Globala system (300hp) (TKGBS) – ackrediterat
+Kurskrav:
+MTF053 Strömningsmekanik
+samt
+SEE020 Termisk energiomvandling
+Teknisk matematik, civilingenjör (300hp) (TKTEM) – ackrediterat
+Kurskrav:18
+MTF042 Termodynamik med energiteknik eller KVM091 Termodynamik eller FTF141/FTF140 Termodynamik och
+statistisk mekanik
+samt
+SEE020 Termisk energiomvandling eller MTF115 Värmeöverföring
+samt
+MTF053/TME055 Strömningsmekanik
+Teknisk fysik, civilingenjör (300hp) (TKTFY) - ackrediterat
+Kurskrav:
+SEE020 Termisk energiomvandling
+samt
+MMS260 Kontinuummekanik
+Sökande från följande program har samma kurskrav:
+Maskinteknik, civilingenjör (300hp) (TKMAS) – ackrediterat
+Maskinteknik, civilingenjör (180/300hp) (TKMSK) - ackrediterat (för student som följer programplan mot
+civilingenjörsexamen)
+Kurskrav:
+SEE020 Termisk energiomvandling eller MTF115 Värmeöverföring
+Sökande från nedanstående civilingenjörsprogram 300hp uppfyller alla särskilda förkunskapskrav utifrån de
+obligatoriska kurserna i respektive programs kandidatdel utan ytterligare kurskrav:
+Kemiteknik, civilingenjör (300hp) (TKKMT) – ackrediterat
+Kemiteknik med fysik, civilingenjör (300hp) (TKKEF) – ackrediterat
+Teknisk kemi, civilingenjör (300hp) (TKTKE) - ackrediterat
+Entrepreneurship and Business Design (MPBDP)
+Programmet tillämpar ett alternativt urval baserat på skriftliga reflektioner, resumé samt intervju för samtliga
+sökande. För sökande från samtliga program på grundutbildningsnivå framgår de särskilda behörighetskraven av
+kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje masterprogram) i
+Antagningsordningen.
+Observera:
+Den generella regeln att ackreditering likställs med förtur gäller inte till programmet.
+Programmets alternativa urvalsprocess innehåller flera moment och ingen sökande kan ges en förhandsbedömning.
+Följande program är ackrediterade:
+Arkitektur och teknik (300hp) (TKATK) – ackrediterat (civilingenjörsexamen)
+Automation och mekatronik, civilingenjör (300hp) (TKAUT) – ackrediterat
+Globala system, civilingenjör (300hp) (TKGBS) – ackrediterat
+Industriell ekonomi, civilingenjör (300hp) (TKIEK) – ackrediterat
+Informationsteknik, civilingenjör (300hp) (TKITE) – ackrediterat
+Maskinteknik, civilingenjör (300hp) (TKMAS) – ackrediterat
+Maskinteknik (180/300hp) (TKMSK) - ackrediterat (för student som följer programplan mot civilingenjörsexamen)
+Medicinteknik, civilingenjör (300hp) (TKMED) – ackrediterat
+Teknisk design, civilingenjör (300hp) (TKDES)– ackrediterat
+Teknisk design (180/300hp) (TKTDE) - ackrediterat (för student som följer programplan mot civilingenjörsexamen)
+Teknisk fysik, civilingenjör (300hp) (TKTFY) – ackrediterat
+Teknisk matematik, civilingenjör (300hp) (TKTEM)– ackrediterat19
+Environmental and Infrastructure Engineering (MPEIE)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Observera att en av programmets specialiseringar har egna behörighetskrav, som anges längre ner.
+Globala system, civilingenjör (300hp) (TKGBS) – ackrediterat
+Kurskrav:
+3 av 6 valfritt från nedan kurser
+ACE235 Geoteknik
+BOM345 Vattenteknik och miljö
+BOM360 Infrastruktur
+MTF053 Strömningsmekanik
+TEK761/TEK760 Innovation och omställning
+SEE155 Miljömätteknik
+Samhällsbyggnadsteknik, civilingenjör (300hp) (TKSAM) – ackrediterat
+Kurskrav:
+2 av 4 valfritt från nedan kurser
+BOM345 Vattenteknik och miljö
+BOM350 Hydrologi och dagvatten eller ACE185 Hydrologi och dagvatten
+BOM360 Infrastruktur
+BOM370 Hydrogeologi och geoteknik
+Samhällsbyggnadsteknik, högskoleingenjör (180hp) (TISAM) - förtur
+Kurskrav:
+2 av 4 valfritt från nedan kurser
+BOM310/BOM360 Infrastruktur
+BOM325/BOM370 Hydrogeologi och geoteknik
+BOM345 Vattenteknik och miljö
+BOM350 Hydrologi och dagvatten eller ACE185 Hydrologi och dagvatten
+samt
+1 av 2 valfrit från nedan kurser
+MVE500 Serier och derivator i flera variabler
+MVE515 Beräkningsmatematik, fortsättningskurs
+Environmental and Infrastructure Engineering (MPEIE) med specialiseringen: Fluid Mechanics and
+Water Systems
+(Anmälan görs samtidigt till program och specialiseringen, på antagning.se)
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Globala system, civilingenjör (300hp) (TKGBS) - ackrediterat
+Kurskrav:
+MTF053 Strömningsmekanik
+samt
+MHA022/MHA021 Finit elementmetod20
+Samhällsbyggnadsteknik, civilingenjör (300hp) (TKSAM) - ackrediterat
+Kurskrav:
+MHA022/MHA021 Finit elementmetod eller TMA373 Partiella differentialekvationer, grundkurs eller MVE695 Partiella
+differentialekvationer eller MVE680 Differentialekvationer
+samt
+MTF053 Strömningsmekanik eller KBT340 Transportprocesser eller MMS260 Kontinuummekanik
+Samhällsbyggnadsteknik, högskoleingenjör (180hp) (TISAM)
+Kurskrav:
+MVE500 Serier och derivator i flera variabler
+MVE515 Beräkningsmatematik, fortsättningskurs
+MHA022/MHA021 Finit elementmetod eller TMA373 Partiella differentialekvationer, grundkurs eller MVE695 Partiella
+differentialekvationer eller MVE680 Differentialekvationer
+samt
+MTF053 Strömningsmekanik eller KBT340 Transportprocesser eller MMS260 Kontinuummekanik
+Human-Centred Design and Engineering (MPHCD)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Observera att två av programmets specialiseringar har egna behörighetskrav, som anges längre ner.
+Automation och mekatronik, civilingenjör (300hp) (TKAUT)
+Kurskrav:
+DAT257 Agile software project management
+samt
+PPU061 Människa-maskinsystem
+Datateknik, civilingenjör (300hp) (TKDAT) – med villkorad ackreditering för följande specialiseringar: Game Design and
+Development eller Interaction Design
+Kurskrav:
+PPU061 Människa-maskinsystem
+samt
+DAT257* Agile software project management
+*) kursregistrering kontrollereras, undantag från kravet på slutrapporterad kurs i Ladok gäller endast för anmälan i tid
+till höstterminen 2027 och vid studier i nominell studietakt. Vid sen anmälan till höstterminen 2027 ska kursen vara
+slutrapporterad. Undantag från avklarad kurs upphör efter 2027 och gäller inte för anmälan till höstterminen 2028.
+Sökande från följande program har samma kurskrav:
+Datateknik, högskoleingenjör (TIDAL) (180hp) - förtur
+Maskinteknik (300hp) (TKMAS)
+Maskinteknik (180/300hp) (TKMSK)
+Medicinteknik, civilingenjör (300hp) (TKMED) – med villkorad ackreditering för följande specialiseringar: Ergonomics
+and Human Factors eller Interaction Design
+Kurskrav:
+PPU061 Människa-maskinsystem21
+Sökande från följande program har samma kurskrav:
+Elektroteknik, civilingenjör (300hp) (TKELT)
+Globala system, civilingenjör (300hp) (TKGBS)
+Kurskrav:
+DAT257 Agile software project management
+samt
+PPU061 Människa-maskinsystem
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Design och produktutveckling, högskoleingenjör (180hp) (TIDSL) - förtur
+Informationsteknik, civilingenjör (300hp) (TKITE) – med villkorad ackreditering för följande specialiseringar: Game
+Design and Development eller Ergonomics and Human Factors eller Interaction Design
+Teknisk design, civilingenjör (300hp) (TKDES) – med villkorad ackreditering för följande specialiseringar: Strategic and
+Sustainable Design eller Ergonomics and Human Factors eller Interaction Design eller Integrated Product Design
+Teknisk design (180/300hp) (TKTDE) - (för student som följer programplan mot civilingenjörsexamen) – med villkorad
+ackreditering för följande specialiseringar: Strategic and Sustainable Design eller Ergonomics and Human Factors eller
+Interaction Design eller Integrated Product Design
+Human-Centred Design and Engineering (MPHCD) med specialiseringen: Game Design and
+Development
+(Anmälan görs samtidigt till program och specialiseringen, på antagning.se)
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Datateknik, civilingenjör (300hp) (TKDAT) - ackrediterat
+Kurskrav:
+DAT510 Design och konstruktion av datorspel eller PPU061 Människa-maskinsystem
+samt
+DAT257* Agile software project management
+*) kursregistrering kontrollereras, undantag från kravet på slutrapporterad kurs i Ladok gäller endast för anmälan i tid
+till höstterminen 2027 och vid studier i nominell studietakt. Vid sen anmälan till höstterminen 2027 ska kursen vara
+slutrapporterad. Undantag från avklarad kurs upphör efter 2027 och gäller inte för anmälan till höstterminen 2028.
+Datateknik, högskoleingenjör (180hp) (TIDAL)
+Kurskrav:
+DAT510 Design och konstruktion av datorspel eller PPU061 Människa-maskinsystem
+Sökande från följande program uppfyller behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan ytterligare
+kurskrav:
+Informationsteknik, civilingenjör (300hp) (TKITE) – ackrediterat22
+Human-Centred Design and Engineering (MPHCD) med specialiseringen: Integrated Product
+Design
+(Anmälan görs samtidigt till program och specialiseringen, på antagning.se)
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Design och produktutveckling, högskoleingenjör (TIDSL) (180hp)
+Teknisk design (180/300hp) (TKTDE) – ackrediterat (för student som följer programplan mot civilingenjörsexamen)
+Teknisk design, civilingenjör (300hp) (TKDES) - ackrediterat
+Industrial Ecology (MPINE)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Arkitektur och teknik (TKATK) (300hp) – ackrediterat (för civilingenjörsexamen)
+Automation och mekatronik , civilingenjör (300hp) (TKAUT) – med villkorad ackreditering för specialiseringen:
+Sustainability Modeling and Analytics
+Globala system, civilingenjör (300hp) (TKGBS) – ackrediterat
+Industriell ekonomi, civilingenjör (300hp) (TKIEK) – ackrediterat
+Kemiteknik, civilingenjör (300hp) (TKKMT) – ackrediterat
+Kemiteknik med fysik, civilingenjör (300hp) (TKKEF) – ackrediterat
+Maskinteknik civilingenjör (300hp) (TKMAS) – med villkorad ackreditering för specialiseringen: Sustainability Modeling
+and Analytics
+Maskinteknik (180/300hp) (TKMSK) – med villkorad ackreditering för specialiseringen: Sustainability Modeling and
+Analytics (för student som följer programplan mot civilingenjörsexamen)
+Samhällsbyggnadsteknik, civilingenjör (300hp) (TKSAM) – med villkorad ackreditering för specialiseringen: Sustainable
+Technological and Industrial Systems
+Teknisk design, civilingenjör (300hp) (TKDES) – med villkorad ackreditering för följande specialiseringar: Sustainable
+Technological and Industrial Systems eller Sustainability Modeling and Analytics
+Teknisk design (180/300hp) (TKTDE) – med villkorad ackreditering för följande specialiseringar: Sustainable
+Technological and Industrial Systems eller Sustainability Modeling and Analytics (för student som följer programplan
+mot civilingenjörsexamen)
+Teknisk kemi, civilingenjör (300hp) (TKTKE)
+Teknisk matematik, civilingenjör (300 hp) (TKTEM) – ackrediterat23
+Innovative and Sustainable Chemical Engineering (MPISC)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Kemiteknik, högskoleingenjör (180hp) (TIKEL) – förtur
+Kurskrav:
+MVE471/MVE470/MVE351 Flervariabelanalys eller LMA017 Matematisk analys i flera variabler
+samt
+KBT340/KAA061/KAA060 Transportprocesser
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Bioteknik, civilingenjör (300hp) (TKBIO) – ackrediterat
+Kemiteknik, civilingenjör (300hp) (TKKMT) – ackrediterat
+Kemiteknik med fysik, civilingenjör (300hp) (TKKEF) – ackrediterat
+Teknisk kemi, civilingenjör (300hp) (TKTKE) – ackrediterat
+Lärande och ledarskap (MPLOL)
+Programmet tillämpar ett alternativt urval baserat på ett personligt brev och en godkänd personlig intervju för
+samtliga sökande. För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de
+särskilda behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat
+för varje masterprogram) i Antagningsordningen.
+Observera:
+Den generella regeln att ackreditering likställs med förtur gäller inte till programmet.
+Programmets alternativa urvalsprocess innehåller flera moment och ingen sökande kan ges en förhandsbedömning.
+Sökande från följande program har samma kurskrav utöver de obligatoriska kurserna i årskurs 1-3 på respektive
+program. Observera att det finns ett krav på att sökande ska ladda upp ett personligt brev. Urvalet baseras på det
+personliga brevet samt en intervju.
+Datateknik, högskoleingenjör (180hp) (TIDAL)
+Design och produktutveckling, högskoleingenjör (180hp) (TIDSL)
+Elektroteknik, högskoleingenjör (180hp) (TIELL)
+Kemiteknik, högskoleingenjör (180hp) (TIKEL)
+Maskinteknik, högskoleingenjör (180hp) (TIMAL)
+Mekatronik, högskoleingenjör (180hp) (TIMEL)
+Samhällsbyggnadsteknik, högskoleingenjör (180hp) (TISAM)
+Kurskrav:
+22.5 hp i matematik eller matematisk statistik (utöver grundprogrammets obligatoriska kurser)
+Sökande från följande program uppfyller alla särskilda förkunskapskrav utifrån de obligatoriska kurserna i årskurs 1-3 på
+respektive program, utan ytterligare kurskrav. Observera att det finns ett krav på att sökande ska ladda upp ett
+personligt brev. Urvalet baseras på det personliga brevet samt en intervju.
+Arkitektur och teknik (TKATK) (300hp) – ackrediterat (för civilingenjörsexamen)
+Automation och mekatronik, civilingenjör (300hp) (TKAUT) – ackrediterat
+Bioteknik, civilingenjör (300hp) (TKBIO) – ackrediterat
+Datateknik, civilingenjör (300hp) (TKDAT) – ackrediterat
+Globala system, civilingenjör (300hp) (TKGBS) – ackrediterat24
+Informationsteknik, civilingenjör (300hp) (TKITE) – ackrediterat
+Kemiteknik, civilingenjör (300hp) (TKKMT) – ackrediterat
+Kemiteknik med fysik, civilingenjör (300hp) (TKKEF) – ackrediterat
+Maskinteknik, civilingenjör (300hp) (TKMAS) – ackrediterat
+Maskinteknik (180/300hp) (TKMSK) – ackrediterat (för student som följer programplan mot civilingenjörsexamen)
+Medicinteknik, civilingenjör (300hp) (TKMED) - ackrediterat
+Samhällsbyggnadsteknik, civilingenjör (300hp) (TKSAM) – ackrediterat
+Teknisk design, civilingenjör (300hp) (TKDES) – ackrediterat
+Teknisk design (180/300hp) (TKTDE) – ackrediterat (för student som följer programplan mot civilingenjörsexamen)
+Teknisk fysik, civilingenjör (300hp) (TKTFY) – ackrediterat
+Teknisk kemi, civilingenjör (300hp) (TKTKE) – ackrediterat
+Teknisk matematik, civilingenjör (300hp) (TKTEM) – ackrediterat
+Maritime Management (MPMAR)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Programmet är inte ackrediterat av något civilingenjörs-/arkitektprogram.
+Sökande från följande program uppfyller alla särskilda förkunskapskrav utifrån de obligatoriska kurserna i respektive
+program utan ytterligare kurskrav:
+Internationell logistik, teknologie kandidat (180hp) (TSILO)
+Sjöingenjör (180hp) (TISJL)
+Sjökapten (180hp) (TSJKL)
+Materials Chemistry (MPMCN)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Bioteknik, civilingenjör (300hp) (TKBIO) – ackrediterat
+Kemiteknik, civilingenjör (300hp) (TKKMT) – ackrediterat
+Kemiteknik med fysik, civilingenjör (300hp) (TKKEF) – ackrediterat
+Kemiteknik, högskoleingenjör (180hp) (TIKEL) – förtur
+Teknisk kemi, civilingenjör (300hp) (TKTKE) – ackrediterat
+Materials Science and Engineering (MPMSE)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.25
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Maskinteknik, högskoleingenjör (180hp) (TIMAL) - förtur
+Kurskrav:
+LMS586 Materialteknik, fortsättningskurs
+Sökande från följande program uppfyller alla särskilda förkunskapskrav utifrån de obligatoriska kurserna i årskurs 1-3 på
+respektive program, utan ytterligare kurskrav.
+Bioteknik, civilingenjör (300hp) (TKBIO)
+Maskinteknik, civilingenjör (300hp) (TKMAS) - ackrediterat
+Maskinteknik (180/300hp) (TKMSK) – ackrediterat (för student som följer programplan mot civilingenjörsexamen)
+Maskinteknik (180/300hp) (TKMSK) – (för student som följer programplan mot högskoleingenjörsexamen)
+Teknisk fysik, civilingenjör (300hp) (TKTFY) – ackrediterat
+Mathematics, Statistics and Data science (MPMSD)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Automation och mekatronik, civilingenjör (300hp) (TKAUT) - med villkorad ackreditering för följande specialiseringar:
+Engineering and Computational Mathematics eller Foundations of Machine Learning and AI eller Mathematical
+Statistics
+Kurskrav:
+MVE163 Ordinära differentialekvationer och matematisk modellering eller MVE295 Komplex analys eller MVE290
+Fouriermetoder eller MVE550 Stokastiska processer och bayesiansk inferens eller MVE695 Partiella
+differentialekvationer eller TMA947 Olinjär optimering
+Samhällsbyggnadsteknik, civilingenjör (300hp) (TKSAM) – med villkorad ackreditering för följande specialiseringar:
+Engineering and Computational Mathematics eller Foundations of Machine Learning eller Mathematical Statistics
+Kurskrav:
+MVE295 Komplex analys eller MVE290 Fouriermetoder eller MVE695 Partiella differentialekvationer eller MVE680
+Differentialekvationer
+Sökande från följande program har samma kurskrav:
+Datateknik, civilingenjör (300hp) (TKDAT) - med villkorad ackreditering för följande specialiseringar: Engineering and
+Computational Mathematics eller Foundations of Machine Learning and AI
+Informationsteknik, civilingenjör (300hp) (TKITE) - ackrediterat
+Kurskrav:
+LMA017 Matematisk analys i flera variabler eller MVE270 Flervariabelanalys eller MVE255 Flervariabelanalys och
+partiella differentialekvationer eller MVE655 Flervariabelanalys
+De särskilda behörighetskraven ska kontrolleras, de framgår av kapitlet Särskild behörighet till avancerad nivå
+(huvudområde och kurskrav specificerat för varje masterprogram) i Antagningsordningen.
+Arkitektur och teknik (300hp) (TKATK) - med villkorad ackreditering (för civilingenjörsexamen) för följande
+specialiseringar: Engineering and Computational Mathematics eller Foundations of Machine Learning eller
+Mathematical Statistics
+Maskinteknik, civilingenjör (300hp) (TKMAS) - med villkorad ackreditering för följande specialiseringar: Engineering
+and Computational Mathematics eller Foundations of Machine Learning and AI26
+Maskinteknik (180/300hp) (TKMSK) - med villkorad ackreditering för följande specialiseringar: Engineering and
+Computational Mathematics eller Foundations of Machine Learning and AI – (för student som följer programplan mot
+civilingenjörsexamen)
+Teknisk kemi, civilingenjör (300hp) (TKTKE) – ackrediterat
+Sökande från följande program uppfyller alla särskilda förkunskapskrav utifrån de obligatoriska kurserna i programmets
+kandidatdel samt kurserna inom teknikinriktningen Finansiell matematik (observera kravet på teknikinriktning)
+Industriell ekonomi, civilingenjör (300hp) (TKIEK) - med villkorad ackreditering för specialiseringen: Financial
+mathematics
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Bioteknik, civilingenjör (300hp) (TKBIO) - med villkorad ackreditering för specialiseringen: Computational Biology
+Elektroteknik civilingenjör (300hp) (TKELT) - med villkorad ackreditering för följande specialiseringar: Engineering and
+Computational Mathematics eller Foundations of Machine Learning and AI eller Theoretical Mathematics and
+Mathematical Physics
+Globala system, civilingenjör (300hp) (TKGBS) - ackrediterat
+Kemiteknik, civilingenjör (300hp) (TKKMT) - ackrediterat
+Kemiteknik med fysik, civilingenjör (300hp) (TKKEF) - ackrediterat
+Medicinteknik, civilingenjör (300hp) (TKMED) - med villkorad ackreditering för följande specialiseringar:
+Computational Biology eller Engineering and Computational Mathematics eller Foundations of Machine Learning and AI
+eller Mathematical Statistics eller Theoretical Mathematics and Mathematical Physics
+Teknisk fysik, civilingenjör (300hp) (TKTFY) – ackrediterat
+Teknisk matematik, civilingenjör (300hp) (TKTEM) - ackrediterat
+Mobility Engineering (MPMBE)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Observera att av programmets specialiseringar har egna behörighetskrav, som anges längre ner.
+Maskinteknik, högskoleingenjör (180hp) (TIMAL) - förtur
+Kurskrav:
+LMA017 Matematisk analys i flera variabler eller MVE471/MVE470 Flervariabelanalys
+samt
+LMA522/LMA521 Tillämpad matematisk statistik
+samt
+SSY295 El- och reglerteknik
+Maskinteknik (180hp/300hp) (TKMSK) (för student som följer programplan mot högskoleingenjörsexamen)
+Kurskrav:
+ERE033 Reglerteknik
+samt
+MTF053 - Strömningsmekanik
+samt
+SSY061 - Mekatronik
+Mekatronik, högskoleingenjör (180hp) (TIMEL) - förtur27
+Kurskrav:
+LMA017 Matematisk analys i flera variabler eller MVE471/MVE470 Flervariabelanalys
+samt
+LMA522 Tillämpad matematisk statistik
+Sökande från följande program har samma kurskrav:
+Samhällsbyggnadsteknik, civilingenjör (300hp) (TKSAM)
+Teknisk fysik, civilingenjör (300hp) (TKTFY) – ackrediterat
+Teknisk matematik, civilingenjör (300hp) (TKTEM)– ackrediterat
+Kurskrav:
+ERE033/ ERE091/ SSY051/SSY310 Reglerteknik
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Automation och mekatronik, civilingenjör (300hp) (TKAUT) - ackrediterat
+Maskinteknik, civilingenjör (300hp) (TKMAS) – förtur (platsgaranti), ackrediterat
+Maskinteknik (180/300hp) (TKMSK) – ackrediterat (för student som följer programplan mot civilingenjörsexamen)
+Mobility Engineering (MPMBE) med specialiseringen: Naval Architecture and Ocean Engineering
+(Anmälan görs samtidigt till program och specialiseringen, på antagning.se)
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Sökande från följande program har samma kurskrav:
+Maskinteknik, högskoleingenjör (180hp) (TIMAL)
+Mekatronik, högskoleingenjör (180hp) (TIMEL)
+Kurskrav:
+LMA017 Matematisk analys i flera variabler eller MVE471/MVE470 Flervariabelanalys
+samt
+LMA522/LMA521 Tillämpad matematisk statistik
+Maskinteknik (180hp/300hp) (TKMSK) (för student som följer programplan mot högskoleingenjörsexamen)
+Kurskrav:
+MTF053 - Strömningsmekanik
+Samt
+SSY061 – Mekatronik
+Sjöingenjör (180hp) (TISJL)
+Kurskrav:
+LMA017 Matematisk analys i flera variabler
+samt
+LMA522 Tillämpad matematisk statistik
+samt
+MVE355 Programmering och numeriska beräkningar med Matlab eller MVE645 Programmering och numeriska
+beräkningar med Python eller MMS320 Introduktion till programmering och AI
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Automation och mekatronik, civilingenjör (300hp) (TKAUT) - ackrediterat
+Maskinteknik, civilingenjör (300hp) (TKMAS) – ackrediterat
+Maskinteknik (180/300hp) (TKMSK) – ackrediterat (för student som följer programplan mot civilingenjörsexamen)
+Samhällsbyggnadsteknik, civilingenjör (300hp) (TKSAM)
+Teknisk fysik, civilingenjör (300hp) (TKTFY) - ackrediterat28
+Teknisk matematik, civilingenjör (300hp) (TKTEM) – ackrediterat
+NewSpace Systems Engineering (MPNSE)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Datateknik, civilingenjör (300 hp) (TKDAT)
+Kurskrav:
+EEM015 Elektromagnetiska fält eller EEN155 Elektriska drivsystem och fält
+Informationsteknik, civilingenjör (300 hp) (TKITE)
+Kurskrav:
+EEM076 Elektriska kretsar och fält
+samt
+MVE655 Flervariabelanalys
+Teknisk matematik, civilingenjör (300 hp) (TKTEM) – ackrediterat
+Kurskrav:
+EEF031 Elektromagnetisk fältteori
+Sökande från följande program uppfyller alla särskilda förkunskapskrav utifrån de obligatoriska kurserna i årskurs 1-3
+utan ytterligare kurskrav:
+Arkitektur och teknik (300 hp) (TKATK) – med villkorad ackreditering (för civilingenjörsexamen) för specialiseringen:
+Space Structures and Materials
+Automation och Mekatronik, civilingenjör (300 hp) (TKAUT) – med villkorad ackreditering för följande
+specialiseringar: Space Electronics and Software eller Space Geodesy and Remote Sensing
+Elektroteknik, civilingenjör (300 hp) (TKELT) -– med villkorad ackreditering för följande specialiseringar: Space
+Electronics and Software eller Space Geodesy and Remote Sensing
+Globala System, civilingenjör (300 hp) (TKGBS) – ackrediterat
+Maskinteknik, civilingenjör (300 hp) (TKMAS) – med villkorad ackreditering för följande specialiseringar: Space
+Propulsion eller Space Structures and Materials
+Maskinteknik (180/300 hp) (TKMSK) – med villkorad ackreditering för följande specialiseringar: Space Propulsion eller
+Space Structures and Materials (för student som följer programplan mot civilingenjörsexamen)
+Samhällsbyggnadsteknik, civilingenjör (300 hp) (TKSAM) – med villkorad ackreditering för specialiseringen: Space
+Structures and Materials
+Teknisk fysik, civilingenjör (300 hp) (TKTFY) – ackrediterat29
+Operations Management (MPOPM)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Automation och mekatronik, civilingenjör (300hp) (TKAUT) – ackrediterat
+Kurskrav:
+TEK125 Logistik eller TEK741 Ledarskap och organisationsutveckling eller TEK250 Industriell produktion eller MMS225
+Organisation och ledarskap
+Sökande från följande program har samma kurskrav:
+Maskinteknik, civilingenjör (300hp) (TKMAS) – ackrediterat
+Maskinteknik (180/300hp) (TKMSK) – ackrediterat (för student som följer programplan mot civilingenjörsexamen)
+Kurskrav:
+TEK125 Logistik eller TEK741 Ledarskap och organisationsutveckling
+Sökande från följande program uppfyller alla särskilda förkunskapskrav utifrån de obligatoriska kurserna i årskurs 1-3
+utan ytterligare kurskrav:
+Industriell ekonomi, civilingenjör (300hp) (TKIEK) – ackrediterat
+Physics (MPPHX)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Sökande från följande program har samma kurskrav:
+Elektroteknik, civilingenjör (300hp) (TKELT)
+Globala system, civilingenjör (300hp) (TKGBS) - ackrediterat
+Teknisk kemi, civilingenjör (300hp) (TKTKE) – ackrediterat
+Teknisk matematik, civilingenjör (300hp) (TKTEM) - ackrediterat
+Kurskrav:
+TIF395 Kvantfysik
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Kemiteknik med fysik, civilingenjör (300hp) (TKKEF) – ackrediterat
+Teknisk fysik, civilingenjör (300hp) (TKTFY) – ackrediterat30
+Product Development (MPPRO)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Industriell ekonomi, civilingenjör (300hp) (TKIEK) – ackrediterat
+Kurskrav:
+TME010 Mekanik eller IMS090 Simuleringsbaserad mekanik och hållfasthetslära
+samt
+MTT031 Tillverkningsteknik eller MPR095/IMS070 Material- och tillverkningsteknik
+Maskinteknik, högskoleingenjör (180hp) (TIMAL) - förtur
+Kurskrav:
+LMA224 Matematisk överbryggningskurs eller LMA017 Matematisk analys i flera variabler
+samt
+MMF092 Maskinkonstruktion
+Mekatronik, högskoleingenjör (180hp) (TIMEL) - förtur
+Kurskrav:
+LMA224 Matematisk överbryggningskurs eller LMA017 Matematisk analys i flera variabler eller MVE255
+Flervariabelanalys och partiella differentialekvationer
+samt
+MMF092 Maskinkonstruktion
+samt
+LMA522/LMA521 Tillämpad matematisk statistik
+Sökande från följande program har samma kurskrav:
+Automation och mekatronik, civilingenjör (300hp) (TKAUT) – förtur (platsgaranti), ackrediterat
+Maskinteknik, civilingenjör (300hp) (TKMAS) – förtur (platsgaranti), ackrediterat
+Maskinteknik (180/300hp) (TKMSK) – ackrediterat (för student som följer programplan mot civilingenjörsexamen)
+Maskinteknik (180/300hp) (TKMSK) – (för student som följer programplan mot högskoleingenjörsexamen)
+Kurskrav:
+MHA022/MHA021 Finit elementmetod eller MMF092 Maskinkonstruktion
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Teknisk design, civilingenjör (300hp) (TKDES) – ackrediterat
+Teknisk design (180/300hp) (TKTDE) – ackrediterat (för student som följer programplan mot civilingenjörsexamen)
+Production Engineering (MPPRD)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Automation och mekatronik, civilingenjör (300hp) (TKAUT) - ackrediterat
+Kurskrav:31
+IMS080 Hållfasthetslära och materialval
+Ekonomi och produktionsteknik, högskoleingenjör (180hp) (TIEPL) - förtur
+Kurskrav:
+LMA017/MVE765 Matematisk analys i flera variabler
+Industriell ekonomi, civilingenjör (300hp) (TKIEK) - ackrediterat
+Kurskrav:
+IMS070 Material- och tillverkningsteknik
+samt
+PPU055 Virtuell produktion
+Maskinteknik, högskoleingenjör (180hp) (TIMAL) - förtur
+Kurskrav:
+LMA017/MVE765 Matematisk analys i flera variabler eller MVE255 Flervariabelanalys och partiella
+differentialekvationer
+Mekatronik, högskoleingenjör (180hp) (TIMEL) - förtur
+Kurskrav:
+LMA017/MVE765 Matematisk analys i flera variabler
+samt
+LMA522 Tillämpad matematisk statistik
+Teknisk Design, civilingenjör (300hp) (TKDES)
+Kurskrav:
+TEK441* Industriell ekonomi, produktion och organisation
+*) kursregistrering kontrollereras, undantag från kravet på slutrapporterad kurs i Ladok gäller endast för anmälan i tid
+till höstterminen 2027 och vid studier i nominell studietakt. Vid sen anmälan till höstterminen 2027 ska kursen vara
+slutrapporterad. Undantag från avklarad kurs upphör efter 2027 och gäller inte för anmälan till höstterminen 2028.
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Maskinteknik, civilingenjör (300hp) (TKMAS) - ackrediterat
+Maskinteknik (180/300hp) (TKMSK) – ackrediterat (för student som följer programplan mot civilingenjörsexamen)
+Maskinteknik (180/300hp) (TKMSK) (för student som följer programplan mot högskoleingenjörsexamen)
+Software Engineering (MPSOE)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Globala system, civilingenjör (300hp) (TKGBS)
+Kurskrav:
+TDA553 Objektorienterad programmering och design
+samt32
+DAT038 Datastrukturer och algoritmer
+samt
+DAT257 Agile software project management
+Industriell ekonomi, civilingenjör (300hp) (TKIEK)
+Kurskrav:
+TDA553 Objektorienterad programmering och design
+samt
+TDA417 Datastrukturer och algoritmer
+samt
+DAT257* Agile software project management
+*) kursregistrering kontrollereras, undantag från kravet på slutrapporterad kurs i Ladok gäller endast för anmälan i tid
+till höstterminen 2027 och vid studier i nominell studietakt. Vid sen anmälan till höstterminen 2027 ska kursen vara
+slutrapporterad. Undantag från avklarad kurs upphör efter 2027 och gäller inte för anmälan till höstterminen 2028.
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Datateknik, civilingenjör (300hp) (TKDAT) - ackrediterat
+Datateknik, högskoleingenjör (180hp) (TIDAL) - förtur
+Informationsteknik, civilingenjör (300hp) (TKITE) - ackrediterat
+Structural and Geotechnical Engineering (MPSGE)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Arkitektur och teknik (300hp) (TKATK) – ackrediterat (för civilingenjörsexamen)
+Samhällsbyggnadsteknik, civilingenjör (300hp) (TKSAM) - ackrediterat
+Kurskrav:
+TME305/TME187 Strukturmekanik
+Rekommenderad kurs: BOM340 Konstruktionsteknik
+Samhällsbyggnadsteknik, högskoleingenjör (180hp) (TISAM) - förtur
+Kurskrav:
+TME305/TME187 Strukturmekanik
+MVE500 Serier och derivator i flera variabler
+Rekommenderad kurs: BOM340 Konstruktionsteknik33
+Systems, Learning and Control (MPSLC)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Datateknik, civilingenjör (300hp) (TKDAT) - ackrediterat
+Kurskrav:
+MVE085/MVE270 Flervariabelanalys eller LMA017/MVE255 Matematisk analys i flera variabler
+samt
+ERE033/ERE103 Reglerteknik
+Elektroteknik, högskoleingenjör (180hp) (TIELL) - förtur
+Kurskrav:
+LMA017/TMV160/MVE255 Matematisk analys i flera variabler eller MVE040 Flervariabelmatematik eller MVE270
+Flervariabelanalys
+samt
+LMT204/LMT202/TME011 Mekanik eller LMT210 Mekanik fortsättningskurs
+samt
+SSY251/SSY250 Tillämpad reglerdesign
+Maskinteknik, högskoleingenjör (180hp) (TIMAL)
+Kurskrav:
+LMA017/TMV160/MVE255 Matematisk analys i flera variabler eller MVE040 Flervariabelmatematik eller MVE270
+Flervariabelanalys
+samt
+MVE645 Programmering och numeriska beräkningar med Python eller MVE355 Programmering och numeriska
+beräkningar med Matlab eller MMS320 Introduktion till programmering och AI
+samt
+LMT202 Mekanik
+samt
+LMA522 Tillämpad matematisk statistik
+samt
+SSY061 Mekatronik
+samt
+ERE033 Reglerteknik
+Maskinteknik (180/300hp) (TKMSK) (för student som följer programplan mot högskoleingenjörsexamen)
+Kurskrav:
+SSY061 Mekatronik
+samt
+ERE033 Reglerteknik
+Mekatronik, högskoleingenjör (180hp) (TIMEL) - förtur
+Kurskrav:
+LMA017/TMV160/MVE255 Matematisk analys i flera variabler eller MVE040 Flervariabelmatematik eller MVE270
+Flervariabelanalys34
+samt
+LMA522/LMA521 Tillämpad matematisk statistik eller LMA201/LMA200 Matematisk statistik
+samt
+SSY251/SSY250 Tillämpad reglerdesign
+Teknisk kemi, civilingenjör (300hp) (TKTKE)
+Kurskrav:
+ESS217 Reglerteknik och mätteknik
+Sökande från följande program har samma kurskrav:
+Globala system, civilingenjör (300hp) (TKGBS)
+Teknisk matematik, civilingenjör (300hp) (TKTEM) - ackrediterat
+Kurskrav:
+SSY052/SSY051/ESS017/ERE091/SSY310 Reglerteknik
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Automation och mekatronik, civilingenjör (300hp) (TKAUT) - ackrediterat
+Elektroteknik, civilingenjör (300hp) (TKELT) - ackrediterat
+Kemiteknik, civilingenjör (300hp) (TKKMT) - ackrediterat
+Kemiteknik med fysik, civilingenjör (300hp) (TKKEF) - ackrediterat
+Maskinteknik, civilingenjör (300hp) (TKMAS) - ackrediterat
+Maskinteknik (180/300hp) (TKMSK) - ackrediterat (för student som följer programplan mot civilingenjörsexamen)
+Medicinteknik, civilingenjör (300hp) (TKMED) – ackrediterat
+Teknisk fysik, civilingenjör (300hp) (TKTFY) – ackrediterat
+Systems, Learning and Control (MPSLC) med specialiseringen: Communication and Sensing
+Anmälan görs samtidigt till program och specialiseringen, på antagning.se. Den här specialiseringen är inte valbar
+senare. De särskilda behörighetskraven är desamma som till programmet, se ovan.
+Technology and Innovation Management (MPTIM)
+För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda
+behörighetskraven av kapitlet Särskild behörighet till avancerad nivå (huvudområde och kurskrav specificerat för varje
+masterprogram) i Antagningsordningen.
+Är programmet ackrediterat omfattas det av förtur. Om ett högskoleingenjörs- eller kandidatprogram omfattas av
+förtur anges det nedan.
+Automation och mekatronik, civilingenjör (300hp) (TKAUT)
+Kurskrav:
+TEK125 Logistik eller TEK741 Ledarskap och organisationsutveckling eller TEK250 Industriell produktion eller MMS225
+Organisation och ledarskap
+Globala system, civilingenjör (300hp) (TKGBS) – ackrediterat
+Kurskrav:
+TEK915 Samhället som system
+samt
+TEK761/TEK760 Innovation och omställning35
+samt
+IEK415 Industriell ekonomi
+Informationsteknik, civilingenjör (300hp) (TKITE) – ackrediterat
+Kurskrav:
+IEK415 Industriell ekonomi eller TEK262 Industriell marknadsföring och inköp
+Teknisk matematik, civilingenjör (300hp) (TKTEM) – ackrediterat
+Kurskrav:
+TEK741 Ledarskap och organisationsutveckling eller TEK685 produktionsutveckling eller SEE150 Environmental
+economics
+Sökande från följande program har samma kurskrav:
+Maskinteknik, civilingenjör (300hp) (TKMAS)
+Maskinteknik (180/300hp) (TKMSK)
+Kurskrav:
+TEK125 Logistik eller TEK741 Ledarskap och organisationsutveckling
+Sökande från följande program uppfyller behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan ytterligare
+kurskrav:
+Industriell ekonomi, civilingenjör (300hp) (TKIEK) – ackrediterat
+Urban Design (MPURB)
+Är programmet ackrediterat omfattas det av förtur.
+Sökande från följande program uppfyller alla behörigheten utifrån de obligatoriska kurserna i årskurs 1-3, utan
+ytterligare kurskrav:
+Arkitektur (300hp) (TKARK) - ackrediterat
+Arkitektur och teknik (300hp) (TKATK) – ackrediterat (för arkitektexamen)
