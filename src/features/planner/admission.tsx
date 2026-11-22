@@ -81,7 +81,7 @@ const passes = ({ eligibility }: AdmissionCheck) =>
 /** The requirements a check still misses. */
 const missingOf = ({ eligibility }: AdmissionCheck) => (eligibility.kind === "courses" ? eligibility.clauses.filter((c) => !c.met) : []);
 
-/** Whether only a course outside the programme's plans meets a requirement, which is no choice within the plan. */
+/** Whether only a course outside the programme's plans meets a requirement, so no choice within the plan can. */
 const isOutside = (clause: Clause) => clause.reach === "outside";
 
 /**

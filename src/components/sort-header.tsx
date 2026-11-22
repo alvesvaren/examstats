@@ -10,7 +10,7 @@ interface SortHeaderProps<K extends string> {
   sort: K;
   dir: SortDir;
   onSort: (key: K) => void;
-  /** Lays the header out in its table, such as its alignment. */
+  /** Classes that place the header in its table, such as its alignment. */
   className?: string;
   /** Controls after the label, such as an explanation or the survey question picker. */
   children?: ReactNode;

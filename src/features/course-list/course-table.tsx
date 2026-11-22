@@ -344,10 +344,11 @@ interface NewCourseRowProps {
 }
 
 /**
- * A course without results. The whole row links to chalmers.se, since the course has no page here: to its syllabus, or
- * for a course without a code, to the course list that names it. Such a course shows the master's programmes whose
- * lists name it where others show their code, and leads with its name on phones too, since that is all that tells it
- * apart. Below `lg` the note sits right after the course, where the table shows it before scrolling sideways.
+ * A course without results. The whole row links to chalmers.se, since the course has no page here: to its syllabus, or,
+ * for a course without a code, to the course list that names it. Where other rows show a code, this row shows the
+ * master's programmes whose lists name the course. It leads with the name on phones too, since the name is all that
+ * tells the course apart. Below `lg` the note sits right after the course, where the table shows it before scrolling
+ * sideways.
  */
 const NewCourseRow = memo(function NewCourseRow({ course, examiner }: NewCourseRowProps) {
   const t = useMessages();

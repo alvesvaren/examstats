@@ -60,8 +60,8 @@ type Env = ReturnType<typeof parseEnv>;
 
 const RETRIES = 6;
 /**
- * From GitHub's runners the API at times answers 403 to every request for a while, so retries back off long enough
- * to outlast that: 5 s, 10 s, 20 s, 40 s and 80 s.
+ * The API sometimes answers 403 to every request from GitHub's runners for a while. Retries back off long enough to
+ * outlast it: 5 s, 10 s, 20 s, 40 s and 80 s.
  */
 const RETRY_DELAY_MS = 5_000;
 /** Enough of an error response to tell an API error from a firewall page in the log. */

@@ -32,7 +32,7 @@ const ASCENDING_SORTS: readonly SortKey[] = ["name", "programme", "workload"];
 /** The other direction. */
 export const flip = (dir: SortDir): SortDir => (dir === "asc" ? "desc" : "asc");
 
-/** The direction a sort starts in: the rest start with the largest. */
+/** The direction a sort starts in. Sorts other than those above start with the largest. */
 export const defaultSortDir = (key: SortKey): SortDir => (ASCENDING_SORTS.includes(key) ? "asc" : "desc");
 
 /** The sort key of a survey question. The overall impression sorts as the rating. */
@@ -46,7 +46,7 @@ export function surveyColumn(sort: SortKey, picked: OtherQuestion | undefined): 
 
 const TREND_BASELINE_YEARS = 3;
 const MIN_PROGRAMME_QUERY = 2;
-/** Shorter queries match too many names to suggest examiners. */
+/** Queries shorter than this match too many names to suggest examiners. */
 const MIN_EXAMINER_QUERY = 3;
 
 const SEARCH_SEPARATOR = ";";
@@ -130,7 +130,7 @@ export function toCatalog(snapshot: Snapshot, language: Language) {
 export const periodsThisYear = ({ byCode, newCourses }: Pick<Catalog, "byCode" | "newCourses">, code: string) =>
   byCode.get(code)?.periods ?? newCourses.find((course) => course.code === code)?.periods ?? [];
 
-/** Everyone who examines a course this year, by name, with how many such courses. */
+/** Everyone who examines a course this year, by name, with how many courses each examines. */
 function examinersOf(courses: readonly Pick<CourseSummary, "examiners">[]) {
   return [
     ...Map.groupBy(

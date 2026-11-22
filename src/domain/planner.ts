@@ -52,8 +52,8 @@ function thesisRounds(rounds: readonly PlanRound[]): PlanRound[] {
 
 /**
  * A year as the planner shows it: the rounds every student takes, and the ones to choose between. A year with one
- * way to do the thesis has it fixed. With several, such as a thesis of 30 or of 60 credits, the student chooses. So
- * do they between the rounds of a compulsory course given in several study periods, since they take it once.
+ * way to do the thesis has it fixed. With several, such as a thesis of 30 or of 60 credits, the student chooses. They
+ * also choose between the rounds of a compulsory course given in several study periods, since they take it once.
  */
 export function plannerYear(rounds: readonly PlanRound[], stats: ReadonlyMap<string, CatalogCourse>) {
   const withStats = (round: PlanRound): PlannerRound => ({
@@ -163,7 +163,7 @@ export function exclusiveWith<R extends PlanRound>(round: PlanRound, plan: reado
   return plan.find((other) => !sameCourse(other, round) && other.choices.some((c) => ids.includes(c.id)));
 }
 
-/** Something to tell about a round that sits badly with the rest of the plan. */
+/** A warning about a round that clashes with the rest of the plan. */
 export type RoundWarning =
   /** Another course has lectures at the same times. `fixed` tells whether every student takes it. */
   | { kind: "sameLectures"; name: string; fixed: boolean }

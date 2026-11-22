@@ -51,7 +51,7 @@ export function buildSnapshot(
   const { programmes: programmePlans, ...planInfo } = plans;
   const currentPlans = programmePlans.filter((p) => p.academicYear === planInfo.academicYear);
   const placements = placementsByCourse(currentPlans, planInfo.ruleNames);
-  // The upcoming master's programmes retire once Chalmers publishes the plans of their year.
+  // The snapshot drops the upcoming master's programmes once Chalmers publishes the plans of their year.
   const upcoming =
     upcomingFile && upcomingFile.academicYear > planInfo.academicYear ? upcomingMasters(upcomingFile, currentPlans, names.courses) : null;
   const starts = [...new Set(programmePlans.map((p) => startYearOf(p.academicYear)))].toSorted((a, b) => a - b);
@@ -76,7 +76,7 @@ export function buildSnapshot(
       hasSyllabus: listed !== undefined,
     });
     const summary = summarizeCourse({ ...course, ...nameOf(listed, name) }, parts, today);
-    // A course that chalmers.se has not listed since 2021/2022 says nothing either way.
+    // A course that chalmers.se has not listed since 2021/2022 does not count as discontinued, so its results decide.
     const discontinued = listed !== undefined && (listed.lastOffered === null || listed.lastOffered < planInfo.academicYear);
     courses.push({
       ...summary,
@@ -97,8 +97,8 @@ export function buildSnapshot(
       ...courseThisYear(coursePlacements),
       masters: [],
     }));
-  // A course only a course list names has a code made from its name, so the master's programmes that list it share it.
-  // Every master's programme lists a thesis, so one that only a list names tells nothing of a course.
+  // A course that only a course list names has a code made from its name, so every master's programme that lists it
+  // gets the same code. Every master's programme lists a thesis, so a thesis that only a list names is left out.
   const listedNew: NewCourse[] = [
     ...Map.groupBy(
       (upcoming?.plans ?? []).flatMap((plan) =>

@@ -2,7 +2,7 @@ import { plannedCourses, tenths, type PlanChoice, type PlanCourse, type PlanRequ
 
 /**
  * How far the courses of a whole plan go towards a choice of `programme` that asks for some of its courses, in courses
- * or in credits as the choice counts. A course of the choice counts in any year, also one whose plan lists it there
+ * or in credits, as the choice counts them. A course of the choice counts in any year, even a year whose plan lists it
  * outside the choice.
  */
 export function pickProgress(pick: PlanChoice, programme: ProgrammePlan, courses: readonly PlanCourse[]) {

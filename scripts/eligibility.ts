@@ -5,11 +5,11 @@
  * against them exactly. Chalmers publishes the guide of the next academic year each October on its admission
  * regulations page, and the newest guide is the one to plan by.
  *
- * The guide is a PDF whose blocks follow a few fixed phrasings. The parser reads only those, and a block of courses
- * has to read back to its own words. Anything else keeps the guide's words, which the planner shows without checking,
- * and the script lists it. Typos in the guide, such as codes that never existed, are corrected by hand in
- * `data/eligibility-corrections.json`, and the script lists a correction the guide no longer needs. The only code
- * that knows the guide.
+ * The guide is a PDF whose blocks follow a few fixed phrasings. The parser reads only those, and a parsed block of
+ * courses must render back to its own words. Any other block keeps the guide's words, which the planner shows without
+ * a check, and the script lists each such block. Typos in the guide, such as codes that never existed, are corrected
+ * by hand in `data/eligibility-corrections.json`, and the script lists a correction the guide no longer needs. This is
+ * the only code that knows the guide.
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -202,7 +202,7 @@ const NOTES = [
   /^Programmet tillämpar ett alternativt urval baserat på skriftliga reflektioner, resumé samt intervju för samtliga sökande\. För sökande från samtliga program på grundutbildningsnivå framgår de särskilda behörighetskraven av kapitlet Särskild behörighet till avancerad nivå \(huvudområde och kurskrav specificerat för varje masterprogram\) i Antagningsordningen\.$/,
   /^Programmet tillämpar ett alternativt urval baserat på ett personligt brev och en godkänd personlig intervju för samtliga sökande\. För sökande från andra program på grundutbildningsnivå än de som anges nedan framgår de särskilda behörighetskraven av kapitlet Särskild behörighet till avancerad nivå \(huvudområde och kurskrav specificerat för varje masterprogram\) i Antagningsordningen\.$/,
   /^Programmet är inte ackrediterat av något civilingenjörs-\/arkitektprogram\.$/,
-  // The asterisk it explains marks the course as one that needs only a registration.
+  // The note on the asterisk, which marks a course that needs only a registration.
   /^\*\) kursregistrering kontroller(?:er)?as, undantag från kravet på slutrapporterad kurs i Ladok gäller endast för anmälan i tid till höstterminen \d{4} och vid studier i nominell studietakt\. Vid sen anmälan till höstterminen \d{4} ska kursen vara slutrapporterad\. Undantag från avklarad kurs upphör efter \d{4} och gäller inte för anmälan till höstterminen \d{4}\.$/,
 ];
 
@@ -305,7 +305,7 @@ export function ruleText(rule: CourseRule): string {
   }
 }
 
-/** The guide's lines with the spellings it varies between made one: "MTF053 - Strömningsmekanik", "LMA224Matematisk", "Samt". */
+/** The guide's lines in one spelling where the guide varies, as in "MTF053 - Strömningsmekanik", "LMA224Matematisk" and "Samt". */
 const comparable = (lines: readonly string[]) =>
   lines
     .map((line) =>
@@ -316,7 +316,7 @@ const comparable = (lines: readonly string[]) =>
     )
     .join("\n");
 
-/** The rule of a block of course lines, if it follows the guide's grammar and reads back to the same words. */
+/** The rule of a block of course lines, if it follows the guide's grammar and renders back to the same words. */
 export function requirementOf(lines: readonly string[]): CourseRule | null {
   const rule = ruleOf(lines.map(space));
   return rule && comparable(ruleText(rule).split("\n")) === comparable(lines) ? rule : null;
@@ -339,8 +339,8 @@ const CREDITS = /\s*\((?:\d+ ?hp(?:\/\d+ ?hp)?|\d+\/\d+ ?hp)\)/g;
 const DASHES = /^\s*-+\s*|\s*-+–\s*|\s+-+\s+|\s*–\s*/g;
 
 /**
- * A programme's line: its code, the path of its students the line is for, and whether the rest says only what the
- * parser knows: accreditation, conditional accreditation for specialisations, and priority.
+ * A programme's line: its code, which path of its students the line is for, and whether the rest of the line says only
+ * what the parser knows (accreditation, conditional accreditation for specialisations and priority).
  */
 function programmeOf(line: string) {
   const code = PROGRAMME_CODE.exec(line)![1]!;
@@ -379,8 +379,9 @@ function admissionOf(group: Group, programme: string): { admission: Admission; p
 
 /**
  * Each master's programme of a guide, with what it asks of the students of each programme the guide names, and the
- * problems to report. Each of `corrections` replaces a line of a programme's course requirements while the guide words
- * that line as it says. `unused` lists those it words otherwise now.
+ * problems to report. Each correction in `corrections` replaces a line of a programme's course requirements while the
+ * guide words that line as the correction quotes it. `unused` lists the corrections whose line the guide now words
+ * otherwise.
  */
 export function parseGuide(
   pages: readonly string[],
@@ -477,7 +478,7 @@ export function parseGuide(
   return { masters, problems, unused: corrections.filter((c) => !applied.has(c)) };
 }
 
-/** pdf.js logs errors only, not its warnings about the guide's fonts, which leave the text as it is. */
+/** Makes pdf.js log only errors. Its warnings about the guide's fonts do not change the text. */
 const PDF_ERRORS_ONLY = 0;
 
 /** The text of each page of a PDF. */
@@ -512,9 +513,9 @@ async function newestGuide(pageUrl: string) {
 const nameWords = (name: string) => space(normalize(name).replace(/[^a-z0-9]+/g, " "));
 
 /**
- * Codes the guide names that chalmers.se has not named since 2021/2022, and names the guide gives courses that
- * chalmers.se names otherwise, either of which can be a typo in the guide. Older codes are common, since the guide
- * names the codes a course had before.
+ * Codes in the guide that chalmers.se has not named since 2021/2022, and course names in the guide that differ from
+ * chalmers.se's. Either can be a typo in the guide. Old codes are common, since the guide also names the codes a course
+ * had before.
  */
 function courseWarnings(masters: readonly GuideMaster[], names: ReadonlyMap<string, { en: string; sv: string }>) {
   const courses = guideCourses(masters);

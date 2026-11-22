@@ -67,7 +67,7 @@ function LanguageSwitcher() {
     // Radix sends an empty value when the picked language is clicked again.
     if (!next.success) return;
     setLanguage(next.data);
-    // Loaders and heads write page titles, so they run again.
+    // Route loaders and heads write the page titles, so they run again in the new language.
     void router.invalidate();
   };
   return (

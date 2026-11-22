@@ -74,7 +74,7 @@ export function ChalmersLink({ code, courseList, className }: ChalmersLinkProps)
   );
 }
 
-/** Says that a master's programme leads to the degree only with one of some of its specialisations. Nothing when any will do. */
+/** Says that a master's programme leads to the degree only with one of certain specialisations. Renders nothing when any will do. */
 export function Specialisations({ names, className }: { names: readonly string[]; className?: string }) {
   const t = useMessages();
   if (names.length === 0) return null;

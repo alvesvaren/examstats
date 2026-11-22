@@ -40,8 +40,8 @@ export type PlannerSearch = z.infer<typeof plannerSearchSchema>;
 export const NO_TRACK = "";
 
 /**
- * What the planner remembers on a device: the plan last worked on, the picks of every year planned, the start year of
- * and master's programme after each programme, and the track chosen in each plan.
+ * What the planner remembers on a device: the plan last worked on, the picks of every year planned, the start year
+ * and master's programme of each programme, and the track chosen in each plan.
  */
 const plannerMemorySchema = z.object({
   last: z
@@ -92,7 +92,7 @@ function withPicks(memory: PlannerMemory, programme: string, year: number, keys:
   return { ...memory, picks: keys.length ? { ...others, [planKey(programme, year)]: [...keys] } : others };
 }
 
-/** The memory after the master's programme after `programme` changed. Without one, it is forgotten, but its picks are kept. */
+/** The memory after the master's programme that follows `programme` changed. Choosing none forgets it but keeps its picks. */
 function withMaster(memory: PlannerMemory, programme: string, master: string | undefined): PlannerMemory {
   const { [programme]: _, ...others } = memory.masters;
   return { ...memory, masters: master ? { ...others, [programme]: master } : others };
@@ -152,7 +152,7 @@ export function resolvePlanner({ search, memory, cohort, plans, masterPlans, nam
   const masterCode = search.master ?? memory.masters[programme.code];
   const master = masters.find((p) => p.code === masterCode);
   const years = studyYears(programme, master);
-  // Without a master's programme, its first year is where to choose one.
+  // Without a master's programme, its first year shows the choice of one.
   const choosingMaster = !master && masters.length > 0 && search.year === MASTER_START_YEAR;
   const current = years.find((y) => y.number === search.year) ?? years[0];
   const tracks = choosingMaster ? [] : tracksOf(current?.plan.years.find((y) => y.year === current.year)?.courses ?? []);
@@ -163,7 +163,7 @@ export function resolvePlanner({ search, memory, cohort, plans, masterPlans, nam
   // A master's programme can give the degree only with some of its specialisations, and the student follows one of those.
   const degreeTracks = master && current?.plan === master ? (masterAccreditation?.specialisations ?? []) : [];
   const withoutDegree = degreeTracks.length > 0 ? tracks.filter((t) => !degreeTracks.includes(t)) : [];
-  /** The track chosen in a plan: the one shown when a year of it shows, else the one remembered for it. None is undefined. */
+  /** The track chosen in a plan: the one shown when a year of it shows, else the one remembered for it. Undefined for none. */
   const trackOf = (plan: ProgrammePlan) => (current?.plan === plan ? trackChoice : memory.tracks[plan.code]) || undefined;
   const pickedKeys = current ? (search.picked ?? rememberedPicks(memory, current.plan.code, current.year) ?? []) : [];
   const others = current ? otherPicks(memory, years, current.number) : [];
@@ -205,7 +205,7 @@ export function resolvePlanner({ search, memory, cohort, plans, masterPlans, nam
     picks: current
       ? [...others, ...pickedKeys.map((key) => ({ number: current.number, programme: current.plan.code, year: current.year, key }))]
       : [],
-    /** The track of the programme's own years, which decides their compulsory courses also while a year of the master's programme shows. */
+    /** The track of the programme's own years, which decides their compulsory courses even while a year of the master's programme shows. */
     programmeTrack: trackOf(programme),
     /** The track of the master's programme, which picks the requirements of a specialisation that has its own. */
     masterTrack: master && trackOf(master),
@@ -225,7 +225,7 @@ export type PlannerAction =
   | { type: "showStart"; start: number }
   /** The picks of the current year. `period` keeps the list on that lane. */
   | { type: "setPicks"; keys: readonly string[]; period?: Lane }
-  /** What the year's list shows. It touches the URL only. */
+  /** What the year's list shows. It changes only the URL. */
   | { type: "view"; changes: Pick<PlannerSearch, "period" | "sort" | "dir" | "survey"> };
 
 /** What an action does: the changes to the URL's search, and how the memory changes when the action is one to remember. */
