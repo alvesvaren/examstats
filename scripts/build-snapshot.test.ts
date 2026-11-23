@@ -300,6 +300,22 @@ describe("buildSnapshot", () => {
       });
     });
 
+    it("leaves out the years a programme plans no first year in, since it admitted no students then", () => {
+      const phasingOut = {
+        ...plans,
+        programmes: [
+          ...plans.programmes,
+          plan("TKOLD", "2025/2026", [{ year: 1, courses: [planCourse("TDA357", { rule: "O" })] }]),
+          plan("TKOLD", "2026/2027", [{ year: 2, courses: [planCourse("TDA357", { rule: "O" })] }]),
+        ],
+      };
+      expect(buildSnapshot({ ...inputs(), plans: phasingOut }, TODAY).index.plans.starts).toEqual({
+        TKITE: [2025, 2026],
+        MPALG: [2026],
+        TKOLD: [2025],
+      });
+    });
+
     it("places a course in this year's plans only, the most required first", () => {
       expect(detailOf("TDA357").placements).toEqual([
         {
